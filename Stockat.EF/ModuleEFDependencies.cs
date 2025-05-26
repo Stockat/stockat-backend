@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Stockat.EF;
 
-internal class ModuleEFDependencies
+public static class ModuleEFDependencies
 {
 
 }

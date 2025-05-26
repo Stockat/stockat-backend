@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stockat.Core.Entities
+namespace Stockat.Core.Entities;
+
+public class Dummy
 {
-    internal class Dummy
-    {
-    }
 }

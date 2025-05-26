@@ -1,6 +1,6 @@
 ﻿namespace Stockat.Service;
 
-public class ModuleServiceDependencies
+public static class ModuleServiceDependencies
 {
 
 }

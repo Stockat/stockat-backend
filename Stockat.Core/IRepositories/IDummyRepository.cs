@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stockat.Core.IRepositories
+namespace Stockat.Core.IRepositories;
+
+public interface IDummyRepository
 {
-    internal interface IDumyRepository
-    {
-    }
 }

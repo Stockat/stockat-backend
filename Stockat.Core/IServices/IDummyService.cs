@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stockat.Core.IServices
+namespace Stockat.Core.IServices;
+
+public interface IDummyService
 {
-    internal interface IDummyService
-    {
-    }
 }
