@@ -1,12 +1,12 @@
-﻿using System;
+﻿using Stockat.Core.IServices;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stockat.Service.Services
+namespace Stockat.Service.Services;
+
+public class DummyService: IDummyService
 {
-    internal class DummyService
-    {
-    }
 }
