@@ -100,3 +100,7 @@ ScaffoldingReadMe.txt
 *.tar.gz
 *.tgz
 *.rar
+
+
+appsettings*.json
+
