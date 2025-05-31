@@ -103,4 +103,4 @@ ScaffoldingReadMe.txt
 
 
 appsettings*.json
-
+**/internal_logs/
