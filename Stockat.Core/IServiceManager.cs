@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stockat.EF;
+namespace Stockat.Core;
 
-public static class ModuleEFDependencies
+public interface IServiceManager
 {
-
 }
