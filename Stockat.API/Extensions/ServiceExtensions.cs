@@ -23,7 +23,8 @@ public static class ServiceExtensions
         });
     }
     // register iis
-    public static void ConfigureIISIntegration(this IServiceCollection services) {
+    public static void ConfigureIISIntegration(this IServiceCollection services)
+    {
         services.Configure<IISOptions>(options =>
         {
         });
