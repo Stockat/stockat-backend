@@ -23,6 +23,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<Product> Products { get; set; }
     public virtual DbSet<StockDetails> StockDetails { get; set; }
     public virtual DbSet<Stock> Stocks { get; set; }
+    public virtual DbSet<UserVerification> UserVerification { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -34,6 +35,7 @@ public class StockatDBContext : IdentityDbContext<User>
         modelBuilder.ApplyConfiguration(new ProductConfiguration());
         modelBuilder.ApplyConfiguration(new ProductImageConfiguration());
         modelBuilder.ApplyConfiguration(new StockConfiguration());
+        modelBuilder.ApplyConfiguration(new UserVerificationConfiguration());
         // modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         //  modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
     }
