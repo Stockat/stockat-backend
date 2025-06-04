@@ -12,6 +12,10 @@ namespace Stockat.EF;
 
 public class StockatDBContext: IdentityDbContext<User>
 {
+    public DbSet<Service> Services { get; set; }
+    public DbSet<ServiceRequest> ServiceRequests { get; set; }
+    public DbSet<ServiceRequestUpdate> ServiceRequestUpdates { get; set; }
+
     public StockatDBContext(DbContextOptions options): base(options) 
     {
         
@@ -21,7 +25,12 @@ public class StockatDBContext: IdentityDbContext<User>
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfiguration(new RoleConfiguration());
+        modelBuilder.ApplyConfiguration(new ServiceConfiguration());
+        modelBuilder.ApplyConfiguration(new ServiceRequestConfiguration());
+        modelBuilder.ApplyConfiguration(new ServiceRequestUpdateConfiguration());
         // modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         //  modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
+
+
     }
 }

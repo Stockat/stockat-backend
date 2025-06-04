@@ -17,4 +17,20 @@ public class User : IdentityUser
     public string NationalId { get; set; }
     public bool Approved { get; set; } // to be reviewed --> defaults to false; will be set to true only after National ID is validated
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //  Navigation properties
+    public ICollection<Service> Services { get; set; } = new List<Service>();
+
 }
