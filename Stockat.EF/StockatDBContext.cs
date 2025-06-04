@@ -10,16 +10,26 @@ using System.Threading.Tasks;
 
 namespace Stockat.EF;
 
-public class StockatDBContext: IdentityDbContext<User>
+public class StockatDBContext : IdentityDbContext<User>
 {
     public DbSet<Service> Services { get; set; }
     public DbSet<ServiceRequest> ServiceRequests { get; set; }
     public DbSet<ServiceRequestUpdate> ServiceRequestUpdates { get; set; }
 
     public StockatDBContext(DbContextOptions options): base(options) 
+    public StockatDBContext(DbContextOptions options) : base(options)
     {
-        
+
     }
+
+    public virtual DbSet<Feature> Features { get; set; }
+    public virtual DbSet<FeatureValue> FeatureValues { get; set; }
+    public virtual DbSet<ProductImage> ProductImages { get; set; }
+    public virtual DbSet<Product> Products { get; set; }
+    public virtual DbSet<StockDetails> StockDetails { get; set; }
+    public virtual DbSet<Stock> Stocks { get; set; }
+    public virtual DbSet<UserVerification> UserVerification { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +38,12 @@ public class StockatDBContext: IdentityDbContext<User>
         modelBuilder.ApplyConfiguration(new ServiceConfiguration());
         modelBuilder.ApplyConfiguration(new ServiceRequestConfiguration());
         modelBuilder.ApplyConfiguration(new ServiceRequestUpdateConfiguration());
+        modelBuilder.ApplyConfiguration(new FeatureConfiguration());
+        modelBuilder.ApplyConfiguration(new FeatureValueConfiguration());
+        modelBuilder.ApplyConfiguration(new ProductConfiguration());
+        modelBuilder.ApplyConfiguration(new ProductImageConfiguration());
+        modelBuilder.ApplyConfiguration(new StockConfiguration());
+        modelBuilder.ApplyConfiguration(new UserVerificationConfiguration());
         // modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         //  modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
 
