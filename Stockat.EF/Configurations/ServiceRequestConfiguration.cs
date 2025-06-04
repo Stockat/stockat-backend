@@ -15,13 +15,13 @@ public class ServiceRequestConfiguration : IEntityTypeConfiguration<ServiceReque
             .HasOne(sr => sr.Service)
             .WithMany()
             .HasForeignKey(sr => sr.ServiceId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder
           .HasOne(sr => sr.Buyer)
           .WithMany()
           .HasForeignKey(sr => sr.BuyerId)
-          .OnDelete(DeleteBehavior.Cascade);
+          .OnDelete(DeleteBehavior.NoAction);
 
         builder
           .Property(s => s.SellerApprovalStatus).HasConversion<string>();

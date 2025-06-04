@@ -16,11 +16,6 @@ public class StockatDBContext : IdentityDbContext<User>
     public DbSet<ServiceRequest> ServiceRequests { get; set; }
     public DbSet<ServiceRequestUpdate> ServiceRequestUpdates { get; set; }
 
-    public StockatDBContext(DbContextOptions options): base(options) 
-    public StockatDBContext(DbContextOptions options) : base(options)
-    {
-
-    }
 
     public virtual DbSet<Feature> Features { get; set; }
     public virtual DbSet<FeatureValue> FeatureValues { get; set; }
@@ -29,6 +24,11 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<StockDetails> StockDetails { get; set; }
     public virtual DbSet<Stock> Stocks { get; set; }
     public virtual DbSet<UserVerification> UserVerification { get; set; }
+
+    public StockatDBContext(DbContextOptions options) : base(options)
+    {
+
+    }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

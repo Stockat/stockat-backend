@@ -24,6 +24,10 @@ public class User : IdentityUser
     public virtual UserVerification UserVerification { get; set; } // make it virtual in case we used lazy loading
     // 1 to 1 relation but partial
     public virtual ICollection<Product> Products { get; set; }
+
+
+    //  Navigation properties
+    public ICollection<Service> Services { get; set; } = new List<Service>();
 }
 
 public class UserVerification
@@ -46,10 +50,6 @@ public class UserVerification
     // foreign key and navigation to User
     public string UserId { get; set; }
     public User User { get; set; }
-
-
-    //  Navigation properties
-    public ICollection<Service> Services { get; set; } = new List<Service>();
 }
 
 public enum VerificationStatus
