@@ -12,10 +12,10 @@ namespace Stockat.EF;
 
 public class StockatDBContext : IdentityDbContext<User>
 {
-    public StockatDBContext(DbContextOptions options) : base(options)
-    {
+    public DbSet<Service> Services { get; set; }
+    public DbSet<ServiceRequest> ServiceRequests { get; set; }
+    public DbSet<ServiceRequestUpdate> ServiceRequestUpdates { get; set; }
 
-    }
 
     public virtual DbSet<Feature> Features { get; set; }
     public virtual DbSet<FeatureValue> FeatureValues { get; set; }
@@ -25,11 +25,19 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<Stock> Stocks { get; set; }
     public virtual DbSet<UserVerification> UserVerification { get; set; }
 
+    public StockatDBContext(DbContextOptions options) : base(options)
+    {
+
+    }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfiguration(new RoleConfiguration());
+        modelBuilder.ApplyConfiguration(new ServiceConfiguration());
+        modelBuilder.ApplyConfiguration(new ServiceRequestConfiguration());
+        modelBuilder.ApplyConfiguration(new ServiceRequestUpdateConfiguration());
         modelBuilder.ApplyConfiguration(new FeatureConfiguration());
         modelBuilder.ApplyConfiguration(new FeatureValueConfiguration());
         modelBuilder.ApplyConfiguration(new ProductConfiguration());
@@ -38,5 +46,7 @@ public class StockatDBContext : IdentityDbContext<User>
         modelBuilder.ApplyConfiguration(new UserVerificationConfiguration());
         // modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         //  modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
+
+
     }
 }
