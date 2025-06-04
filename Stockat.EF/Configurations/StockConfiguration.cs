@@ -27,5 +27,12 @@ public class StockConfiguration : IEntityTypeConfiguration<Stock>
             .OnDelete(DeleteBehavior.Restrict);
 
 
+        builder
+            .HasMany(op => op.OrderProducts)
+            .WithOne(s => s.Stock)
+            .HasForeignKey(p => p.StockId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+
     }
 }

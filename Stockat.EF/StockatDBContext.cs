@@ -34,6 +34,7 @@ public class StockatDBContext : IdentityDbContext<User>
         modelBuilder.ApplyConfiguration(new ProductConfiguration());
         modelBuilder.ApplyConfiguration(new ProductImageConfiguration());
         modelBuilder.ApplyConfiguration(new StockConfiguration());
+        modelBuilder.ApplyConfiguration(new OrderProductConfiguration());
         // modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         //  modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
     }

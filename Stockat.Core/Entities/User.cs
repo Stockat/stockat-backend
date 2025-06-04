@@ -20,4 +20,7 @@ public class User : IdentityUser
     // Navigation Properties
 
     public virtual ICollection<Product> Products { get; set; }
+    public virtual ICollection<OrderProduct> SellerOrderProducts { get; set; }
+    public virtual ICollection<OrderProduct> BuyerOrderProducts { get; set; }
+
 }

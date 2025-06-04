@@ -31,6 +31,7 @@ public class Product
     // Navigation Properties
     public virtual ICollection<ProductImage> Images { get; set; }
     public virtual ICollection<Stock> Stocks { get; set; }
+    public virtual ICollection<OrderProduct> OrderProducts { get; set; }
     public virtual User User { get; set; }
 
 }
