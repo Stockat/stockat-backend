@@ -24,6 +24,9 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<StockDetails> StockDetails { get; set; }
     public virtual DbSet<Stock> Stocks { get; set; }
     public virtual DbSet<UserVerification> UserVerification { get; set; }
+    public virtual DbSet<Auction> Auction { get; set; }
+    public virtual DbSet<AuctionBidRequest> AuctionBidRequest { get; set; }
+    public virtual DbSet<AuctionOrder> AuctionOrder { get; set; }
 
     public StockatDBContext(DbContextOptions options) : base(options)
     {
@@ -44,6 +47,8 @@ public class StockatDBContext : IdentityDbContext<User>
         modelBuilder.ApplyConfiguration(new ProductImageConfiguration());
         modelBuilder.ApplyConfiguration(new StockConfiguration());
         modelBuilder.ApplyConfiguration(new UserVerificationConfiguration());
+        modelBuilder.ApplyConfiguration(new AuctionConfiguration());
+        modelBuilder.ApplyConfiguration(new AuctionOrderConfiguration());
         // modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         //  modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
 
