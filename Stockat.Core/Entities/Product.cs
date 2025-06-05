@@ -32,6 +32,7 @@ public class Product
     public virtual ICollection<ProductImage> Images { get; set; }
     public virtual ICollection<Stock> Stocks { get; set; }
     public virtual User User { get; set; }
+    public ICollection<Auction> Auctions { get; set; } = new List<Auction>(); //partial 1-M with Auction 
 
 }
 
