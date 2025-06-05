@@ -17,21 +17,22 @@ namespace Stockat.EF.Configurations
             builder
                 .HasOne(a => a.AuctionOrder)
                 .WithOne(o => o.Auction)
-                .HasForeignKey<AuctionOrder>(o => o.AuctionId);
+                .HasForeignKey<AuctionOrder>(o => o.AuctionId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             //prevent deleting Product if Auction exists
             builder
                 .HasOne(a => a.Product)
                 .WithMany(p => p.Auctions)
                 .HasForeignKey(a => a.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
 
             //prevent deleting User if Auction exists
             builder
             .HasOne(a => a.SellerUser)
             .WithMany(u => u.CreatedAuctions)
             .HasForeignKey(a => a.SellerId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.NoAction);
 
 
         }
@@ -41,10 +42,12 @@ namespace Stockat.EF.Configurations
     {
         public void Configure(EntityTypeBuilder<AuctionOrder> builder)
         {
+            //1-1 with AuctionRequest
             builder
             .HasOne(o => o.AuctionRequest)
             .WithOne(r => r.AuctionOrder)
-            .HasForeignKey<AuctionOrder>(o => o.AuctionRequestId);
+            .HasForeignKey<AuctionOrder>(o => o.AuctionRequestId)
+            .OnDelete(DeleteBehavior.NoAction);
         }
     }
 
