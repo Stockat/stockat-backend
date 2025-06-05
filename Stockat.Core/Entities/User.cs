@@ -32,6 +32,10 @@ public class User : IdentityUser
 
 
 
+
+
+    //  Navigation properties
+    public ICollection<Service> Services { get; set; } = new List<Service>();
 }
 
 public class UserVerification
@@ -62,3 +66,4 @@ public enum VerificationStatus
     Approved,
     Rejected
 }
+
