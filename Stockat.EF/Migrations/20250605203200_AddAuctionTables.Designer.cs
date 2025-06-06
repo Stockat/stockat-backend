@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Stockat.EF;
 
@@ -11,9 +12,11 @@ using Stockat.EF;
 namespace Stockat.EF.Migrations
 {
     [DbContext(typeof(StockatDBContext))]
-    partial class StockatDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250605203200_AddAuctionTables")]
+    partial class AddAuctionTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -348,62 +351,6 @@ namespace Stockat.EF.Migrations
                     b.HasIndex("FeatureId");
 
                     b.ToTable("FeatureValues");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.OrderProduct", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BuyerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CraetedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PaymentId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SellerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("StockId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("SellerId");
-
-                    b.HasIndex("StockId");
-
-                    b.ToTable("OrderProduct");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
@@ -917,41 +864,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("Feature");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.OrderProduct", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.User", "Buyer")
-                        .WithMany("BuyerOrderProducts")
-                        .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.Product", "Product")
-                        .WithMany("OrderProducts")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.User", "Seller")
-                        .WithMany("SellerOrderProducts")
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.Stock", "Stock")
-                        .WithMany("OrderProducts")
-                        .HasForeignKey("StockId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Buyer");
-
-                    b.Navigation("Product");
-
-                    b.Navigation("Seller");
-
-                    b.Navigation("Stock");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
                 {
                     b.HasOne("Stockat.Core.Entities.User", "User")
@@ -1094,8 +1006,6 @@ namespace Stockat.EF.Migrations
 
                     b.Navigation("Images");
 
-                    b.Navigation("OrderProducts");
-
                     b.Navigation("Stocks");
                 });
 
@@ -1106,22 +1016,16 @@ namespace Stockat.EF.Migrations
 
             modelBuilder.Entity("Stockat.Core.Entities.Stock", b =>
                 {
-                    b.Navigation("OrderProducts");
-
                     b.Navigation("StockDetails");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.User", b =>
                 {
-                    b.Navigation("BuyerOrderProducts");
-
                     b.Navigation("AuctionBidRequests");
 
                     b.Navigation("CreatedAuctions");
 
                     b.Navigation("Products");
-
-                    b.Navigation("SellerOrderProducts");
 
                     b.Navigation("Services");
 

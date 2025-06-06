@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Stockat.EF;
 
@@ -11,9 +12,11 @@ using Stockat.EF;
 namespace Stockat.EF.Migrations
 {
     [DbContext(typeof(StockatDBContext))]
-    partial class StockatDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250603234437_addedUserVerificationAndUpdatedUserEntity")]
+    partial class addedUserVerificationAndUpdatedUserEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -175,135 +178,6 @@ namespace Stockat.EF.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.Auction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BuyerId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BuyerUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal>("CurrentBid")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("IncrementUnit")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("IsClosed")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SellerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("StartingPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerUserId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("SellerId");
-
-                    b.ToTable("Auction");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.AuctionBidRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AuctionId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("BidAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("BidderId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BidderUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuctionId");
-
-                    b.HasIndex("BidderUserId");
-
-                    b.ToTable("AuctionBidRequest");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.AuctionOrder", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AuctionId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("AuctionRequestId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("OrderDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("PaymentStatus")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PaymentTransactionId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuctionId")
-                        .IsUnique();
-
-                    b.HasIndex("AuctionRequestId")
-                        .IsUnique();
-
-                    b.ToTable("AuctionOrder");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
                 {
                     b.Property<int>("Id")
@@ -348,62 +222,6 @@ namespace Stockat.EF.Migrations
                     b.HasIndex("FeatureId");
 
                     b.ToTable("FeatureValues");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.OrderProduct", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BuyerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CraetedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PaymentId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SellerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("StockId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("SellerId");
-
-                    b.HasIndex("StockId");
-
-                    b.ToTable("OrderProduct");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
@@ -455,169 +273,6 @@ namespace Stockat.EF.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("ProductImages");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Service", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("EstimatedTime")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("ImageId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(2083)
-                        .HasColumnType("nvarchar(2083)");
-
-                    b.Property<int>("MinQuantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("PricePerProduct")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("SellerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SellerId");
-
-                    b.ToTable("Services");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BuyerApprovalStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("BuyerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("EstimatedTime")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ImageId")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(2083)
-                        .HasColumnType("nvarchar(2083)");
-
-                    b.Property<string>("PaymentId")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("PricePerProduct")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("RequestDescription")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("RequestedQuantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SellerApprovalStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("ServiceId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ServiceStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerId");
-
-                    b.HasIndex("ServiceId");
-
-                    b.ToTable("ServiceRequests");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.ServiceRequestUpdate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("AdditionalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("AdditionalQuantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("AdditionalTime")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("ServiceRequestId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("TotalOldPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ServiceRequestId");
-
-                    b.ToTable("ServiceRequestUpdates");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Stock", b =>
@@ -834,67 +489,6 @@ namespace Stockat.EF.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.Auction", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.User", "BuyerUser")
-                        .WithMany()
-                        .HasForeignKey("BuyerUserId");
-
-                    b.HasOne("Stockat.Core.Entities.Product", "Product")
-                        .WithMany("Auctions")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.User", "SellerUser")
-                        .WithMany("CreatedAuctions")
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("BuyerUser");
-
-                    b.Navigation("Product");
-
-                    b.Navigation("SellerUser");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.AuctionBidRequest", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.Auction", "Auction")
-                        .WithMany("AuctionBidRequest")
-                        .HasForeignKey("AuctionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.User", "BidderUser")
-                        .WithMany("AuctionBidRequests")
-                        .HasForeignKey("BidderUserId");
-
-                    b.Navigation("Auction");
-
-                    b.Navigation("BidderUser");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.AuctionOrder", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.Auction", "Auction")
-                        .WithOne("AuctionOrder")
-                        .HasForeignKey("Stockat.Core.Entities.AuctionOrder", "AuctionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.AuctionBidRequest", "AuctionRequest")
-                        .WithOne("AuctionOrder")
-                        .HasForeignKey("Stockat.Core.Entities.AuctionOrder", "AuctionRequestId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Auction");
-
-                    b.Navigation("AuctionRequest");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
                 {
                     b.HasOne("Stockat.Core.Entities.Product", "Product")
@@ -917,41 +511,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("Feature");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.OrderProduct", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.User", "Buyer")
-                        .WithMany("BuyerOrderProducts")
-                        .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.Product", "Product")
-                        .WithMany("OrderProducts")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.User", "Seller")
-                        .WithMany("SellerOrderProducts")
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.Stock", "Stock")
-                        .WithMany("OrderProducts")
-                        .HasForeignKey("StockId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Buyer");
-
-                    b.Navigation("Product");
-
-                    b.Navigation("Seller");
-
-                    b.Navigation("Stock");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
                 {
                     b.HasOne("Stockat.Core.Entities.User", "User")
@@ -972,47 +531,6 @@ namespace Stockat.EF.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Service", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.User", "Seller")
-                        .WithMany("Services")
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Seller");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.User", "Buyer")
-                        .WithMany()
-                        .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.Service", "Service")
-                        .WithMany()
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Buyer");
-
-                    b.Navigation("Service");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.ServiceRequestUpdate", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.ServiceRequest", "ServiceRequest")
-                        .WithMany("RequestUpdates")
-                        .HasForeignKey("ServiceRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ServiceRequest");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Stock", b =>
@@ -1064,18 +582,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.Auction", b =>
-                {
-                    b.Navigation("AuctionBidRequest");
-
-                    b.Navigation("AuctionOrder");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.AuctionBidRequest", b =>
-                {
-                    b.Navigation("AuctionOrder");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
                 {
                     b.Navigation("FeatureValues");
@@ -1090,40 +596,19 @@ namespace Stockat.EF.Migrations
 
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
                 {
-                    b.Navigation("Auctions");
-
                     b.Navigation("Images");
-
-                    b.Navigation("OrderProducts");
 
                     b.Navigation("Stocks");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>
-                {
-                    b.Navigation("RequestUpdates");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Stock", b =>
                 {
-                    b.Navigation("OrderProducts");
-
                     b.Navigation("StockDetails");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.User", b =>
                 {
-                    b.Navigation("BuyerOrderProducts");
-
-                    b.Navigation("AuctionBidRequests");
-
-                    b.Navigation("CreatedAuctions");
-
                     b.Navigation("Products");
-
-                    b.Navigation("SellerOrderProducts");
-
-                    b.Navigation("Services");
 
                     b.Navigation("UserVerification")
                         .IsRequired();
