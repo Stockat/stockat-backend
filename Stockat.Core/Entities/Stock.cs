@@ -22,6 +22,8 @@ public class Stock
 
     // Navigation Properties
     public virtual Product Product { get; set; }
+    public virtual ICollection<OrderProduct> OrderProducts { get; set; }
+
     public virtual ICollection<StockDetails> StockDetails { get; set; }
 
 

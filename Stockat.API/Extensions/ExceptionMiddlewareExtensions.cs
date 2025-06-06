@@ -27,7 +27,7 @@ public static class ExceptionMiddlewareExtensions
                     logger.LogError($"Something went wrong: {contextFeature.Error}");
                     await context.Response.WriteAsync(new ErrorDetails()
                     {
-                        StatusCode = context.Response.StatusCode,
+                        Status = context.Response.StatusCode,
                         Message = contextFeature.Error.Message,
                     }.ToString());
                 }

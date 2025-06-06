@@ -19,5 +19,13 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasOne(u => u.User)
             .WithMany(u => u.Products)
             .HasForeignKey(p => p.SellerId);
+
+
+        builder
+            .HasMany(p => p.OrderProducts)
+            .WithOne(u => u.Product)
+            .HasForeignKey(p => p.ProductId)
+            .OnDelete(DeleteBehavior.NoAction);
+
     }
 }
