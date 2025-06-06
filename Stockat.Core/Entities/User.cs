@@ -15,27 +15,21 @@ public class User : IdentityUser
     public string FirstName { get; set; }
     public string LastName { get; set; }
 
-
-
     [NotMapped]
     public bool IsApproved => UserVerification?.Status == VerificationStatus.Approved; // to be reviewed --> defaults to false; will be set to true only after National ID is validated
 
-    // Navigation Properties
+
+    //  Navigation properties
     public virtual UserVerification UserVerification { get; set; } // make it virtual in case we used lazy loading
-    // 1 to 1 relation but partial
+    public ICollection<Service> Services { get; set; } = new List<Service>();
     public virtual ICollection<Product> Products { get; set; }
+    public virtual ICollection<OrderProduct> SellerOrderProducts { get; set; }
+    public virtual ICollection<OrderProduct> BuyerOrderProducts { get; set; }
 
     //partial 1-M with Auction 
     public ICollection<Auction> CreatedAuctions { get; set; } = new List<Auction>();
 
     public ICollection<AuctionBidRequest> AuctionBidRequests { get; set; }
-
-
-
-
-
-    //  Navigation properties
-    public ICollection<Service> Services { get; set; } = new List<Service>();
 }
 
 public class UserVerification
@@ -58,6 +52,8 @@ public class UserVerification
     // foreign key and navigation to User
     public string UserId { get; set; }
     public User User { get; set; }
+
+
 }
 
 public enum VerificationStatus
@@ -67,8 +63,5 @@ public enum VerificationStatus
     Rejected
 }
 
-    public virtual ICollection<Product> Products { get; set; }
-    public virtual ICollection<OrderProduct> SellerOrderProducts { get; set; }
-    public virtual ICollection<OrderProduct> BuyerOrderProducts { get; set; }
 
-}
+
