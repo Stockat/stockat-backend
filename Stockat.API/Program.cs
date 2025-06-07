@@ -56,6 +56,7 @@ public class Program
         });
         app.UseCors("CorsPolicy");
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
 
