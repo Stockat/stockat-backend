@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stockat.Core.IServices;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,4 +9,5 @@ namespace Stockat.Core;
 
 public interface IServiceManager
 {
+    IAuthenticationService AuthenticationService { get; }
 }
