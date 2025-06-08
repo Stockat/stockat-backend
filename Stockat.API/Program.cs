@@ -38,6 +38,10 @@ public class Program
         builder.Services.AddScoped<ValidationFilterAttribute>(); // custom validation
         builder.Services.AddControllers();
 
+        // only use IHttpContextAccessor when necessary like accessing user claims, IP address, headers
+        builder.Services.AddHttpContextAccessor();
+
+
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
         //builder.Services.AddAutoMapper(typeof(Program));

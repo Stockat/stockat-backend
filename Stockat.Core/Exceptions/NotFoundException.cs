@@ -14,7 +14,7 @@ public class NotFoundException: Exception
 }
 
 
-// if it going to be used as a abstract class use the below
+// if it is going to be used as an abstract class use the below
 //public abstract class NotFoundException : Exception
 //{ 
 //    protected NotFoundException(string message)
