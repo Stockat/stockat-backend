@@ -17,9 +17,12 @@ namespace Stockat.Service;
 public sealed class ServiceManager : IServiceManager
 {
     private readonly Lazy<IAuthenticationService> _authenticationService;
+    private readonly Lazy<IImageService> _imageService;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration));
+
+        _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
     }
     public IAuthenticationService AuthenticationService
     {
@@ -27,4 +30,6 @@ public sealed class ServiceManager : IServiceManager
     }
     // we could use the expression embodied function instead like the below instead of the above
     //public IAuthenticationService AuthenticationService => _authenticationService.Value;
+
+    public IImageService ImageService => _imageService.Value;
 }
