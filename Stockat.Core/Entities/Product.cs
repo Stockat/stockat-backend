@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stockat.Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -22,6 +23,10 @@ public class Product
     [MaxLength(250, ErrorMessage = "Product Description Length Must Be less than or equal 250 char")]
     public string Description { get; set; } = string.Empty;
 
+    public ApprovalStatus ProductStatus { get; set; } = ApprovalStatus.Pending;
+
+    public bool isDeleted { get; set; } = false;
+
     //ForeignKey
     [Required(ErrorMessage = "Seller Id is Required")]
     public string SellerId { get; set; }
@@ -34,6 +39,8 @@ public class Product
     public virtual ICollection<OrderProduct> OrderProducts { get; set; }
     public virtual User User { get; set; }
     public ICollection<Auction> Auctions { get; set; } = new List<Auction>(); //partial 1-M with Auction 
+    public virtual ICollection<ProductTag> ProductTags { get; set; }
+
 
 }
 

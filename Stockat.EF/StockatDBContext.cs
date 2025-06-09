@@ -30,7 +30,6 @@ public class StockatDBContext : IdentityDbContext<User>
 
     public StockatDBContext(DbContextOptions options) : base(options)
     {
-
     }
 
 
@@ -50,6 +49,7 @@ public class StockatDBContext : IdentityDbContext<User>
         modelBuilder.ApplyConfiguration(new AuctionConfiguration());
         modelBuilder.ApplyConfiguration(new AuctionOrderConfiguration());
         modelBuilder.ApplyConfiguration(new OrderProductConfiguration());
+        modelBuilder.ApplyConfiguration(new TagConfiguration());
         // modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         //  modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
 
