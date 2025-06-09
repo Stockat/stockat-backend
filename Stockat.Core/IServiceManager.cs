@@ -13,4 +13,6 @@ public interface IServiceManager
     IImageService ImageService { get; }
 
     IEmailService EmailService { get; } 
+
+    IUserVerificationService UserVerificationService { get; }
 }

@@ -91,9 +91,13 @@ internal sealed class AuthenticationService: IAuthenticationService
 
     private async Task<List<Claim>> GetClaims()
     {
-        var claims = new List<Claim> { new Claim(ClaimTypes.Name, _user.UserName)};
-        var roles = await _userManager.GetRolesAsync(_user);
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, _user.UserName),
+            new Claim(ClaimTypes.NameIdentifier, _user.Id) // Add UserId as NameIdentifier
+        };
 
+        var roles = await _userManager.GetRolesAsync(_user);
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
@@ -101,6 +105,7 @@ internal sealed class AuthenticationService: IAuthenticationService
 
         return claims;
     }
+
 
     private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
     {
