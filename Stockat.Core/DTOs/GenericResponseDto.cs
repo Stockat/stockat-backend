@@ -1,4 +1,4 @@
-﻿namespace Stockat.API.DTOs;
+﻿namespace Stockat.Core.DTOs;
 
 public class GenericResponseDto<T> where T : class
 {

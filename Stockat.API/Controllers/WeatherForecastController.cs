@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IServices;
 using Stockat.Core.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Stockat.API.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [Authorize(Roles = "Buyer")]
     public class WeatherForecastController : ControllerBase
     {
         private static readonly string[] Summaries = new[]
