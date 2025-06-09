@@ -33,7 +33,7 @@ internal sealed class EmailService : IEmailService
 
         var mailMessage = new MailMessage
         {
-            From = new MailAddress(_config["Smtp:Username"]),
+            From = new MailAddress(_config["Smtp:Username"], "Stockat Support"), // the second parameter is the display name
             Subject = subject,
             Body = message,
             IsBodyHtml = true

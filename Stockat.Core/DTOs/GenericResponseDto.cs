@@ -3,7 +3,7 @@
 public class GenericResponseDto<T> where T : class
 {
     public string Message { get; set; }
-    public int status { get; set; }
+    public int Status { get; set; }
 
     public string? RedirectUrl { get; set; }
     public T Data { get; set; }
