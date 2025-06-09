@@ -87,7 +87,7 @@ public class ImageKitService : IImageService
     {
         var result = await _client.DeleteFileAsync(fileId);
 
-        // return true if delete operation succeeded
+        
         return result.HttpStatusCode >= 200 && result.HttpStatusCode < 300;
     }
 

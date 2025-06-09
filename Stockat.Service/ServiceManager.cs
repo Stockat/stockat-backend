@@ -18,11 +18,13 @@ public sealed class ServiceManager : IServiceManager
 {
     private readonly Lazy<IAuthenticationService> _authenticationService;
     private readonly Lazy<IImageService> _imageService;
+    private readonly Lazy<IEmailService> _emailService;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration));
 
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
+        _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
     }
     public IAuthenticationService AuthenticationService
     {
@@ -32,4 +34,6 @@ public sealed class ServiceManager : IServiceManager
     //public IAuthenticationService AuthenticationService => _authenticationService.Value;
 
     public IImageService ImageService => _imageService.Value;
+
+    public IEmailService EmailService => _emailService.Value;
 }

@@ -11,4 +11,6 @@ public interface IServiceManager
 {
     IAuthenticationService AuthenticationService { get; }
     IImageService ImageService { get; }
+
+    IEmailService EmailService { get; } 
 }
