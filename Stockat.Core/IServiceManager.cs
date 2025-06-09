@@ -10,4 +10,5 @@ namespace Stockat.Core;
 public interface IServiceManager
 {
     IAuthenticationService AuthenticationService { get; }
+    IImageService ImageService { get; }
 }
