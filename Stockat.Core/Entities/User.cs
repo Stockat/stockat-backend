@@ -39,7 +39,9 @@ public class User : IdentityUser
 
 public class UserVerification
 {
-    public int Id { get; set; }
+    [Key] // will use the user primary key since this is 1:1 relation and a weak entity 
+    // if it was 1:m we would add and Id property and the primary key would be composite
+    public string UserId { get; set; }
 
     [RegularExpression(@"^[2-3]\d{13}$", ErrorMessage = "National ID must be 14 digits and start with 2 or 3.")]
     public string NationalId { get; set; }
@@ -55,7 +57,6 @@ public class UserVerification
     public DateTime? UpdatedAt { get; set; }     // to sort according to the updated
 
     // foreign key and navigation to User
-    public string UserId { get; set; }
     public User User { get; set; }
 
 
