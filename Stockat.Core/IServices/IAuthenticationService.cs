@@ -14,4 +14,6 @@ public interface IAuthenticationService
     Task<bool> ValidateUser(UserForAuthenticationDto userForAuth);
     Task<TokenDto> CreateToken(bool populateExp);
     Task<TokenDto> RefreshToken(TokenDto tokenDto);
+
+    Task<TokenDto> ExternalLoginAsync(ExternalAuthDto externalAuth);
 }
