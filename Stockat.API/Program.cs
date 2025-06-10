@@ -16,7 +16,7 @@ public class Program
 
         LogManager.LoadConfiguration(string.Concat(Directory.GetCurrentDirectory(),
         "/nlog.config"));
-
+        builder.Services.AddSwaggerDocumentation();
         // Add services to the container.
         builder.Services.ConfigureCors();
         builder.Services.ConfigureIISIntegration();
@@ -56,7 +56,7 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
-            app.UseSwaggerUI(option => option.SwaggerEndpoint("/openapi/v1.json", "v1"));
+            app.UseSwaggerDocumentation();
 
         }
         else

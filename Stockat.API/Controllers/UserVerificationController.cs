@@ -52,7 +52,7 @@ public class UserVerificationController : ControllerBase
         return StatusCode(response.Status, response);
     }
 
-    // DELETE: api/UserVerification
+    //  api/UserVerification
     [HttpDelete]
     public async Task<IActionResult> Delete()
     {

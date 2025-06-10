@@ -50,9 +50,6 @@ public class StockatDBContext : IdentityDbContext<User>
         modelBuilder.ApplyConfiguration(new AuctionOrderConfiguration());
         modelBuilder.ApplyConfiguration(new OrderProductConfiguration());
         modelBuilder.ApplyConfiguration(new TagConfiguration());
-        // modelBuilder.ApplyConfiguration(new CompanyConfiguration());
-        //  modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
-
 
     }
 }
