@@ -8,6 +8,7 @@ using Stockat.Core.Entities;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IServices;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -23,14 +24,16 @@ internal sealed class AuthenticationService: IAuthenticationService
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConfiguration _configuration;
+    private readonly IEmailService _emailService;
     private User? _user;
-    public AuthenticationService(ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+    public AuthenticationService(ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IEmailService emailService)
     {
         _logger = logger;
         _mapper = mapper;
         _userManager = userManager;
         _roleManager = roleManager;
         _configuration = configuration;
+        _emailService = emailService;
     }
 
     private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleToken(ExternalAuthDto externalAuth)
@@ -51,7 +54,7 @@ internal sealed class AuthenticationService: IAuthenticationService
             return null;
         }
     }
-
+    // google external loging service
     public async Task<TokenDto> ExternalLoginAsync(ExternalAuthDto externalAuth)
     {
         var payload = await VerifyGoogleToken(externalAuth);
@@ -98,28 +101,100 @@ internal sealed class AuthenticationService: IAuthenticationService
     }
 
 
-
+    // register
     public async Task<IdentityResult> RegisterUser(UserForRegistrationDto userForRegistration)
     {
         var user = _mapper.Map<User>(userForRegistration);
+        user.EmailConfirmed = false;
+
         var result = await _userManager.CreateAsync(user, userForRegistration.Password);
-        
-        
+
         if (result.Succeeded && await _roleManager.RoleExistsAsync("Buyer"))
+        {
             await _userManager.AddToRoleAsync(user, "Buyer");
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = $"http://localhost:4200/confirm-email?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+
+            var emailMessage = $"<p>Click <a href='{confirmationLink}'>here</a> to confirm your email.</p>";
+            await _emailService.SendEmailAsync(user.Email, "Confirm your email", emailMessage);
+        }
+
         return result;
     }
+
 
     // login
     public async Task<bool> ValidateUser(UserForAuthenticationDto userForAuth)
     {
         _user = await _userManager.FindByNameAsync(userForAuth.UserName);
-        var result = (_user != null && await _userManager.CheckPasswordAsync(_user,
-        userForAuth.Password));
+
+        var result = _user != null && await _userManager.CheckPasswordAsync(_user, userForAuth.Password);
+
         if (!result)
-            _logger.LogWarn($"{nameof(ValidateUser)}: Authentication failed. Wrong user name or password.");
-        return result;
+        {
+            _logger.LogWarn($"{nameof(ValidateUser)}: Authentication failed. Wrong username or password.");
+            return false;
+        }
+
+        if (!_user.EmailConfirmed)
+        {
+            _logger.LogWarn($"{nameof(ValidateUser)}: Email not confirmed.");
+            throw new BadRequestException("Email not confirmed");
+        }
+
+        return true;
     }
+
+    // 
+    public async Task ConfirmEmail(string userId, string token)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            throw new NotFoundException("User not found"); // custom exception
+
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+        if (!result.Succeeded)
+            throw new BadRequestException("Email confirmation failed");
+    }
+
+    public async Task LogoutAsync(string username)
+    {
+        var user = await _userManager.FindByNameAsync(username);
+        if (user is null)
+            throw new NotFoundException("User not found.");
+
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = null;
+        await _userManager.UpdateAsync(user);
+    }
+
+
+    public async Task ForgotPasswordAsync(string email)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+            return;
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var resetLink = $"http://localhost:4200/reset-password?email={email}&token={WebUtility.UrlEncode(token)}";
+
+        var message = $"<p>Click <a href='{resetLink}'>here</a> to reset your password.</p>";
+        await _emailService.SendEmailAsync(user.Email, "Reset Password", message);
+    }
+    // will be called to serve the forgot password endpoint
+    public async Task ResetPasswordAsync(string email, string token, string newPassword)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+            throw new NotFoundException("User not found");
+
+        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+        if (!result.Succeeded)
+            throw new BadRequestException("Password reset failed");
+    }
+
+
 
     public async Task<TokenDto> CreateToken(bool populateExp)
     {
