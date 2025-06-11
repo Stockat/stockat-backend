@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stockat.Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -67,13 +68,7 @@ namespace Stockat.Core.Entities
         public AuctionOrder? AuctionOrder { get; set; }
     }
 
-    public enum OrderStatus
-    {
-        Pending,
-        Shipped,
-        Completed,
-        Cancelled
-    }
+
 
     public class AuctionOrder
     {
