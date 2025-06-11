@@ -18,7 +18,7 @@ public class User : IdentityUser
 
 
     public string? RefreshToken { get; set; }
-    public DateTime RefreshTokenExpiryTime { get; set; }
+    public DateTime? RefreshTokenExpiryTime { get; set; }
 
     [NotMapped]
     public bool IsApproved => UserVerification?.Status == VerificationStatus.Approved; // to be reviewed --> defaults to false; will be set to true only after National ID is validated
