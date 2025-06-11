@@ -16,7 +16,7 @@ public class Program
 
         LogManager.LoadConfiguration(string.Concat(Directory.GetCurrentDirectory(),
         "/nlog.config"));
-
+        builder.Services.AddSwaggerDocumentation();
         // Add services to the container.
         builder.Services.ConfigureCors();
         builder.Services.ConfigureIISIntegration();
@@ -38,6 +38,10 @@ public class Program
         builder.Services.AddScoped<ValidationFilterAttribute>(); // custom validation
         builder.Services.AddControllers();
 
+        // only use IHttpContextAccessor when necessary like accessing user claims, IP address, headers
+        builder.Services.AddHttpContextAccessor();
+
+
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
         //builder.Services.AddAutoMapper(typeof(Program));
@@ -52,7 +56,7 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
-            app.UseSwaggerUI(option => option.SwaggerEndpoint("/openapi/v1.json", "v1"));
+            app.UseSwaggerDocumentation();
 
         }
         else
@@ -65,8 +69,10 @@ public class Program
         {
             ForwardedHeaders = ForwardedHeaders.All
         });
-        app.UseCors("CorsPolicy");
 
+
+        app.UseCors("CorsPolicy");
+        
         app.UseAuthentication();
         app.UseAuthorization();
 

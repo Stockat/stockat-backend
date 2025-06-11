@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -31,6 +32,72 @@ internal sealed class AuthenticationService: IAuthenticationService
         _roleManager = roleManager;
         _configuration = configuration;
     }
+
+    private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleToken(ExternalAuthDto externalAuth)
+    {
+        try
+        {
+            var settings = new GoogleJsonWebSignature.ValidationSettings()
+            {
+                Audience = new List<string>() { _configuration["Authentication:Google:ClientId"] }
+            };
+
+            var payload = await GoogleJsonWebSignature.ValidateAsync(externalAuth.IdToken, settings);
+            return payload;
+        }
+        catch (Exception ex)
+        {
+            //log an exception
+            return null;
+        }
+    }
+
+    public async Task<TokenDto> ExternalLoginAsync(ExternalAuthDto externalAuth)
+    {
+        var payload = await VerifyGoogleToken(externalAuth);
+        if (payload == null)
+            throw new BadRequestException("Invalid External Authentication.");
+
+        var loginInfo = new UserLoginInfo(externalAuth.Provider, payload.Subject, externalAuth.Provider);
+        var user = await _userManager.FindByLoginAsync(loginInfo.LoginProvider, loginInfo.ProviderKey);
+
+        if (user == null)
+        {
+            user = await _userManager.FindByEmailAsync(payload.Email);
+
+            if (user == null)
+            {
+                 user = new User
+                {
+                    Email = payload.Email,
+                    UserName = payload.Email,
+                    EmailConfirmed = true,
+                    FirstName = payload.GivenName ?? "", 
+                    LastName = payload.FamilyName ?? ""  
+                                                         
+                };
+
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                    throw new BadRequestException("Failed to create user from external login.");
+
+                await _userManager.AddToRoleAsync(user, "Buyer"); 
+                await _userManager.AddLoginAsync(user, loginInfo);
+            }
+            else
+            {
+                await _userManager.AddLoginAsync(user, loginInfo);
+            }
+        }
+
+        if (await _userManager.IsLockedOutAsync(user))
+            throw new BadRequestException("User account is locked.");
+
+        _user = user;
+        return await CreateToken(populateExp: true);
+    }
+
+
 
     public async Task<IdentityResult> RegisterUser(UserForRegistrationDto userForRegistration)
     {
@@ -91,9 +158,13 @@ internal sealed class AuthenticationService: IAuthenticationService
 
     private async Task<List<Claim>> GetClaims()
     {
-        var claims = new List<Claim> { new Claim(ClaimTypes.Name, _user.UserName)};
-        var roles = await _userManager.GetRolesAsync(_user);
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, _user.UserName),
+            new Claim(ClaimTypes.NameIdentifier, _user.Id) // Add UserId as NameIdentifier
+        };
 
+        var roles = await _userManager.GetRolesAsync(_user);
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
@@ -101,6 +172,7 @@ internal sealed class AuthenticationService: IAuthenticationService
 
         return claims;
     }
+
 
     private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
     {

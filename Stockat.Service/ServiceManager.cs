@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Stockat.Core;
@@ -16,14 +17,30 @@ namespace Stockat.Service;
 public sealed class ServiceManager : IServiceManager
 {
     private readonly Lazy<IAuthenticationService> _authenticationService;
-    public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+    private readonly Lazy<IImageService> _imageService;
+    private readonly Lazy<IEmailService> _emailService;
+    private readonly Lazy<IUserVerificationService> _userVerificationService;
+    public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration));
+
+        _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
+        _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
+
+        // if you wanna use a lazy loading service in another service initilize it first before sending it to the other layer like i did in the _imageSerive and passed to the UserVerificationService
+        _userVerificationService = new Lazy<IUserVerificationService>(() => new UserVerificationService(logger, mapper, configuration, _imageService.Value, repositoryManager, httpContextAccessor));
     }
+
     public IAuthenticationService AuthenticationService
     {
         get { return _authenticationService.Value; }
     }
     // we could use the expression embodied function instead like the below instead of the above
     //public IAuthenticationService AuthenticationService => _authenticationService.Value;
+
+    public IImageService ImageService => _imageService.Value;
+
+    public IEmailService EmailService => _emailService.Value;
+
+    public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 }

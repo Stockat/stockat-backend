@@ -13,10 +13,14 @@ public class UserVerificationConfiguration: IEntityTypeConfiguration<UserVerific
 {
     public void Configure(EntityTypeBuilder<UserVerification> builder)
     {
-        builder
-             .HasOne(uv => uv.User)
-             .WithOne(u => u.UserVerification)
-             .HasForeignKey<UserVerification>(uv => uv.UserId)
-             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasKey(e => e.UserId); // use UserId as pk and fk
+
+        builder.Property(e => e.Status)
+              .HasConversion<string>(); 
+
+        builder.HasOne(e => e.User)
+              .WithOne(u => u.UserVerification)
+              .HasForeignKey<UserVerification>(e => e.UserId)
+              .OnDelete(DeleteBehavior.Cascade);
     }
 }

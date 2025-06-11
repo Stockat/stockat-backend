@@ -2,6 +2,7 @@
 using Stockat.API.ActionFilters;
 using Stockat.Core;
 using Stockat.Core.DTOs.UserDTOs;
+using Stockat.Core.Exceptions;
 
 namespace Stockat.API.Controllers;
 
@@ -41,7 +42,23 @@ public class AuthenticationController : ControllerBase
         if (!await _service.AuthenticationService.ValidateUser(user))
             return Unauthorized();
         var tokenDto = await _service.AuthenticationService.CreateToken( true);
-        return Ok(tokenDto);
+        return Ok(new AuthResponseDto
+        {
+            Token = tokenDto,
+            IsAuthSuccessful = true
+        });
     }
+
+    [HttpPost("ExternalLogin")] // google external login
+    public async Task<IActionResult> ExternalLogin([FromBody] ExternalAuthDto externalAuth)
+    {
+        var tokenDto = await _service.AuthenticationService.ExternalLoginAsync(externalAuth);
+        return Ok(new AuthResponseDto
+        {
+            Token = tokenDto,
+            IsAuthSuccessful = true
+        });
+    }
+
 
 }
