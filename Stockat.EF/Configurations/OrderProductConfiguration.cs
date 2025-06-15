@@ -26,5 +26,8 @@ public class OrderProductConfiguration : IEntityTypeConfiguration<OrderProduct>
            .HasForeignKey(p => p.BuyerId)
            .OnDelete(DeleteBehavior.NoAction);
 
+
+        builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(30);
+
     }
 }
