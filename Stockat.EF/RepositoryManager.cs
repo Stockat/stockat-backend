@@ -10,16 +10,17 @@ public class RepositoryManager : IRepositoryManager
 {
     private readonly StockatDBContext _context;
     private readonly Lazy<IBaseRepository<UserVerification>> _userVerificationRepo;
+    private readonly Lazy<ProductRepository> _productRepository;
     public RepositoryManager(StockatDBContext context)
     {
         _context = context;
         _userVerificationRepo = new Lazy<IBaseRepository<UserVerification>>(() => new BaseRepository<UserVerification>(_context));
+        _productRepository = new Lazy<ProductRepository>(() => new ProductRepository(_context));
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
 
-
-
+    public IProductRepository ProductRepository => _productRepository.Value;
 
     public int Complete()
     {
@@ -28,7 +29,7 @@ public class RepositoryManager : IRepositoryManager
 
     public async Task<int> CompleteAsync()
     {
-        return await _context.SaveChangesAsync();   
+        return await _context.SaveChangesAsync();
     }
 
     public void Dispose()

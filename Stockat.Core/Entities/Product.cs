@@ -23,6 +23,10 @@ public class Product
     [MaxLength(250, ErrorMessage = "Product Description Length Must Be less than or equal 250 char")]
     public string Description { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Price Is Required")]
+    [Range(1, float.MaxValue, ErrorMessage = "Price must be between 1 :999999 ")]
+    public decimal Price { get; set; }
+
     public ApprovalStatus ProductStatus { get; set; } = ApprovalStatus.Pending;
 
     public bool isDeleted { get; set; } = false;
