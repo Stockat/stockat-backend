@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
+using Azure.Core;
 using Microsoft.Extensions.Logging;
+using Stockat.Core;
 using Stockat.Core.DTOs.AuctionDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IRepositories;
+using Stockat.Core.IServices;
 using Stockat.Core.IServices.IAuctionServices;
 using System;
 using System.Collections.Generic;
@@ -16,13 +19,16 @@ namespace Stockat.Service.Services.AuctionServices
 {
     public class AuctionService : IAuctionService
     {
-        private readonly IAuctionRepository _repository;
+        private readonly IRepositoryManager _repositoryManager;
         private readonly IMapper _mapper;
-        private readonly ILogger<AuctionService> _logger;
+        private readonly ILoggerManager _logger;
 
-        public AuctionService(IAuctionRepository repository, IMapper mapper, ILogger<AuctionService> logger)
+
+        public AuctionService(IMapper mapper,
+            ILoggerManager logger,
+            IRepositoryManager repositoryManager)
         {
-            _repository = repository;
+            _repositoryManager = repositoryManager;
             _mapper = mapper;
             _logger = logger;
         }
@@ -32,30 +38,124 @@ namespace Stockat.Service.Services.AuctionServices
             if (auction == null)
                 throw new NullObjectParameterException(nameof(auction));
 
-            var result = await _repository.AddAsync(auction);
+            try
+            {
+                await _repositoryManager.BeginTransactionAsync();
 
-            return _mapper.Map<AuctionDetailsDto>(result);
+                ValidateAuction(auction);
+
+                var stock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId); //Edit: or find all, with includes, what are includes??
+                if (stock == null) throw new NotFoundException("Stock not found");
+
+                //check if quantity suffecient
+                if (stock.Quantity < auction.Quantity)
+                    throw new BusinessException("Insufficient stock");
+
+                //Edit:check if stock belongs to that sellerid
+                stock.Quantity -= auction.Quantity;
+
+                _repositoryManager.StockRepo.Update(stock);
+
+                auction.CurrentBid = auction.StartingPrice;
+
+                await _repositoryManager.AuctionRepo.AddAsync(auction);
+
+                await _repositoryManager.CompleteAsync();
+
+                await _repositoryManager.CommitTransactionAsync();
+
+                return _mapper.Map<AuctionDetailsDto>(auction);
+            }
+            catch (Exception ex)
+            {
+                await _repositoryManager.RollbackTransactionAsync();
+                throw;
+            }
         }
 
-        public async Task<AuctionDetailsDto> EditAuctionAsync(int id, Auction auction)
+        public async Task<AuctionDetailsDto> EditAuctionAsync(int id, AuctionUpdateDto auction)
         {
-            if (auction == null)
-                throw new NullObjectParameterException(nameof(auction));
+            try
+            {
+                await _repositoryManager.BeginTransactionAsync();
 
-            var existingAuction = await _repository.FindAsync(a => a.Id == id, includes: new[] {"Product", "SellerUser", "BuyerUser" });
+                var existingAuction = await _repositoryManager.AuctionRepo.FindAsync(a => a.Id == id, includes: new[] { "Product", "SellerUser", "BuyerUser", "Stock" });
+                if (existingAuction == null) throw new NotFoundException("Auction not found");
 
-            if (existingAuction == null) throw new NotFoundException("Auction not found.");
+                var currentTime = DateTime.UtcNow;
 
-            _mapper.Map(auction, existingAuction);
+                //Dont update if auction ended 
+                if (existingAuction.EndTime <= currentTime)
+                    throw new BusinessException("Cannot edit ended auction");
 
-            var updated = _repository.Update(existingAuction);
+                //if auction is running -> limited
+                if (existingAuction.StartTime <= currentTime)
+                {
+                    if (auction.StartTime != existingAuction.StartTime)
+                        throw new BusinessException("Cannot change start date after auction begins");
 
-            return _mapper.Map<AuctionDetailsDto>(updated);
+                    if (auction.StockId != existingAuction.StockId)
+                        throw new BusinessException("Cannot change stock after auction begins");
+
+                    if (auction.Quantity != existingAuction.Quantity)
+                        throw new BusinessException("Cannot change quantity after auction begins");
+
+                    if (auction.EndTime <= currentTime)
+                        throw new BusinessException("End date must be in future");
+
+                    existingAuction.EndTime = auction.EndTime ?? existingAuction.EndTime;
+
+                    _mapper.Map(auction, existingAuction);
+                }
+                //if auction not started -> ok, can edit
+                else
+                {
+                    if (auction.StartTime <= currentTime)
+                        throw new BusinessException("Start date must be in future");
+
+                    if (auction.EndTime <= auction.StartTime)
+                        throw new BusinessException("End date must be after start date");
+
+                    if (existingAuction.StockId != auction.StockId ||
+                        existingAuction.Quantity != auction.Quantity)
+                    {
+                        //Edit: includes?
+                        var oldStock = await _repositoryManager.StockRepo.GetByIdAsync(existingAuction.StockId); 
+                        oldStock.Quantity += existingAuction.Quantity;
+
+                        _repositoryManager.StockRepo.Update(oldStock);
+
+                        var newStock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId ?? existingAuction.StockId);
+                        if (newStock == null) throw new NotFoundException("New stock not found");
+
+                        if (newStock.Quantity < auction.Quantity)
+                            throw new BusinessException("Insufficient stock for auction");
+
+                        newStock.Quantity -= auction.Quantity ?? existingAuction.Quantity;
+
+                        _repositoryManager.StockRepo.Update(newStock);
+
+                    }
+                    _mapper.Map(auction, existingAuction);
+                }
+
+                _repositoryManager.AuctionRepo.Update(existingAuction);
+
+                await _repositoryManager.CompleteAsync();
+                await _repositoryManager.CommitTransactionAsync();
+
+                return _mapper.Map<AuctionDetailsDto>(existingAuction);
+            }
+            catch (Exception ex)
+            {
+                await _repositoryManager.RollbackTransactionAsync();
+                throw;
+            }
         }
 
         public async Task<IEnumerable<AuctionDetailsDto>> GetAllAuctionsAsync()
         {
-            var result = await _repository.GetAllAsync();
+            var result = await _repositoryManager.AuctionRepo.GetAllAsync();
 
             if (!result.Any())
                 throw new NotFoundException("No auctions found.");
@@ -63,14 +163,14 @@ namespace Stockat.Service.Services.AuctionServices
             return _mapper.Map<IEnumerable<AuctionDetailsDto>>(result);
         }
 
-        public async Task<int> GetAuctionCountAsync() => await _repository.CountAsync();
+        public async Task<int> GetAuctionCountAsync() => await _repositoryManager.AuctionRepo.CountAsync();
 
         public async Task<int> GetAuctionCountAsync(Expression<Func<Auction, bool>> filter)
         {
             if (filter == null)
                 throw new NullObjectParameterException(nameof(filter));
 
-            return await _repository.CountAsync(filter);
+            return await _repositoryManager.AuctionRepo.CountAsync(filter);
         }
 
         public async Task<AuctionDetailsDto> GetAuctionDetailsAsync(int id)
@@ -78,7 +178,7 @@ namespace Stockat.Service.Services.AuctionServices
             if (id <= 0)
                 throw new IdParametersBadRequestException();
 
-            var result = await _repository.FindAsync(a => a.Id == id, includes: new[] {"Product", "SellerUser", "BuyerUser" });
+            var result = await _repositoryManager.AuctionRepo.FindAsync(a => a.Id == id, includes: new[] {"Product", "SellerUser", "BuyerUser", "Stock"});
             
             if (result == null)
                 throw new NotFoundException("Auction not found.");
@@ -91,7 +191,7 @@ namespace Stockat.Service.Services.AuctionServices
             if (criteria == null)
                 throw new NullObjectParameterException(nameof(criteria));
 
-            var result = await _repository.FindAllAsync(criteria, includes: new[] {"Product", "SellerUser", "BuyerUser" });
+            var result = await _repositoryManager.AuctionRepo.FindAllAsync(criteria, includes: new[] {"Product", "SellerUser", "BuyerUser" , "Stock"});
            
             if (!result.Any())
                 throw new NotFoundException("No Auctions found for this criteria.");
@@ -101,15 +201,35 @@ namespace Stockat.Service.Services.AuctionServices
 
         public async Task RemoveAuctionAsync(int id)
         {
-            if (id <= 0)
-                throw new IdParametersBadRequestException();
+            try
+            {
+                await _repositoryManager.BeginTransactionAsync();
 
-            var result = await _repository.FindAsync(a => a.Id == id, includes: new[] {"Product", "SellerUser", "BuyerUser" });
-            
-            if (result == null)
-                throw new NotFoundException("Auction not found.");
+                if (id <= 0)
+                    throw new IdParametersBadRequestException();
 
-            _repository.Delete(result);
+                var auction = await _repositoryManager.AuctionRepo.FindAsync(a => a.Id == id, includes: new[] { "Product", "SellerUser", "BuyerUser" ,"Stock" });
+                if (auction == null) throw new NotFoundException("Auction not found");
+
+                //if auction is active -> return el stock
+                if (DateTime.UtcNow < auction.EndTime)
+                {
+                    var stock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId);
+                    stock.Quantity += auction.Quantity;
+
+                    _repositoryManager.StockRepo.Update(stock);
+                }
+
+                _repositoryManager.AuctionRepo.Delete(auction);
+
+                await _repositoryManager.CompleteAsync();
+                await _repositoryManager.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _repositoryManager.RollbackTransactionAsync();
+                throw;
+            }
         }
 
         public async Task<IEnumerable<AuctionDetailsDto>> SearchAuctionsAsync(
@@ -122,12 +242,29 @@ namespace Stockat.Service.Services.AuctionServices
             if (filter == null)
                 throw new NullObjectParameterException(nameof(filter));
 
-            var result = await _repository.FindAllAsync(filter, skip, take, orderBy, orderByDirection);
+            var result = await _repositoryManager.AuctionRepo.FindAllAsync(filter, skip, take, orderBy, orderByDirection);
             
             if (!result.Any())
-                throw new NotFoundException("No Auctions found for this filter");
+                throw new NotFoundException("No Auctions found for filter");
 
             return _mapper.Map<IEnumerable<AuctionDetailsDto>>(result);
         }
+
+        private void ValidateAuction(Auction auction)
+        {
+            if (auction.Quantity <= 0)
+                throw new BusinessException("Quantity must be positive");
+
+            if (auction.StartingPrice <= 0)
+                throw new BusinessException("Starting price must be positive");
+
+            if (auction.StartTime <= DateTime.UtcNow)
+                throw new BusinessException("Start date must be in future");
+
+            if (auction.EndTime <= auction.StartTime)
+                throw new BusinessException("End date must be after start date");
+        }
     }
+
+
 }

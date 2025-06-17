@@ -28,7 +28,7 @@ namespace Stockat.Core.IServices.IAuctionServices
 
         Task<AuctionDetailsDto> AddAuctionAsync(Auction auction);
 
-        Task<AuctionDetailsDto> EditAuctionAsync(int id, Auction auction);
+        Task<AuctionDetailsDto> EditAuctionAsync(int id, AuctionUpdateDto auction);
 
         Task RemoveAuctionAsync(int id);
 

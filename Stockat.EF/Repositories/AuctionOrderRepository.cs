@@ -9,10 +9,9 @@ using System.Threading.Tasks;
 
 namespace Stockat.EF.Repositories
 {
-    public class AuctionRepository : BaseRepository<Auction> ,IAuctionRepository
+    public class AuctionOrderRepository : BaseRepository<AuctionBidRequest>, IAuctionBidRequestReopsitory
     {
-
-        public AuctionRepository(StockatDBContext context) : base(context)
+        public AuctionOrderRepository(StockatDBContext context) : base(context)
         {
             _context = context;
         }
@@ -31,5 +30,6 @@ namespace Stockat.EF.Repositories
 
             return await query.FirstOrDefaultAsync(e => e.Id == id);
         }
+
     }
 }

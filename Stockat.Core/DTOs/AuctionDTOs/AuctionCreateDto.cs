@@ -34,6 +34,9 @@ namespace Stockat.Core.DTOs.AuctionDTOs
 
         [Required]
         public string SellerId { get; set; }
+
+        [Required]
+        public int StockId { get; set; }
     }
 
 }

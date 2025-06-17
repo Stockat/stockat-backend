@@ -4,6 +4,7 @@ using Stockat.Core.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -32,6 +33,12 @@ namespace Stockat.EF.Configurations
             .HasOne(a => a.SellerUser)
             .WithMany(u => u.CreatedAuctions)
             .HasForeignKey(a => a.SellerId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+            builder
+            .HasOne(a => a.Stock)
+            .WithMany(s => s.Auctions)
+            .HasForeignKey(a => a.StockId)
             .OnDelete(DeleteBehavior.NoAction);
 
 

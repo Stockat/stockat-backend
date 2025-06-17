@@ -11,6 +11,7 @@ namespace Stockat.Core.Entities
 {
     public class Auction
     {
+        [Key]
         public int Id { get; set; }
 
         [Required, MaxLength(150)]
@@ -39,6 +40,9 @@ namespace Stockat.Core.Entities
         public int ProductId { get; set; }
         public Product Product { get; set; }
 
+        public int StockId { get; set; }
+        public Stock Stock { get; set; }
+
         public string? BuyerId { get; set; }
         public User? BuyerUser { get; set; }
 
@@ -55,6 +59,7 @@ namespace Stockat.Core.Entities
 
     public class AuctionBidRequest
     {
+        [Key]
         public int Id { get; set; }
 
         public int AuctionId { get; set; }
@@ -72,6 +77,7 @@ namespace Stockat.Core.Entities
 
     public class AuctionOrder
     {
+        [Key]
         public int Id { get; set; }
 
         public DateTime OrderDate { get; set; } = DateTime.UtcNow;

@@ -7,8 +7,7 @@ using System.Threading.Tasks;
 
 namespace Stockat.Core.IRepositories
 {
-    public interface IAuctionRepository: IBaseRepository<Auction>
+    public interface IAuctionBidRequestReopsitory : IBaseRepository<AuctionBidRequest>
     {
-        public Task<AuctionOrder> GetByIdAsync(int id, string[] includes = null);
     }
 }
