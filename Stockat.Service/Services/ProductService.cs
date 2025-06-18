@@ -26,24 +26,30 @@ public class ProductService : IProductService
     }
 
 
-    public async Task<GenericResponseDto<PaginatedDto<ProductHomeDto>>> getAllProductsPaginated()
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated(int _size, int _page)
+
     {
-        var res = await _repo.ProductRepository.FindAllAsync(p => p.isDeleted == false, 0, 9, o => o.Id, OrderBy.Descending);
+        int skip = (_page - 1) * _size;
+        int take = _size;
 
-        var productDtos = _mapper.Map<ProductHomeDto>(res);
+        var res = await _repo.ProductRepository.FindAllAsync(p => p.isDeleted == false, skip, take, o => o.Id, OrderBy.Descending);
 
-        var paginatedres = new PaginatedDto<ProductHomeDto>()
+        res.TryGetNonEnumeratedCount(out var count);
+
+        var productDtos = _mapper.Map<IEnumerable<ProductHomeDto>>(res);
+
+        var paginatedres = new PaginatedDto<IEnumerable<ProductHomeDto>>()
         {
 
             PaginatedData = productDtos,
-            Size = 18,
+            Size = count,
             Count = 9,
-            Page = 1
+            Page = _page
         };
 
 
 
-        var resDto = new GenericResponseDto<PaginatedDto<ProductHomeDto>>()
+        var resDto = new GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>()
         {
             Data = paginatedres,
             Message = "Success",
@@ -53,4 +59,6 @@ public class ProductService : IProductService
 
         return resDto;
     }
+
+
 }

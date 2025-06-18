@@ -10,5 +10,5 @@ namespace Stockat.Core.IServices;
 
 public interface IProductService
 {
-    Task<GenericResponseDto<PaginatedDto<ProductHomeDto>>> getAllProductsPaginated();
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated(int _size, int _page);
 }

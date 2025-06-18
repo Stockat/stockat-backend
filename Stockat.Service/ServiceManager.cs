@@ -23,7 +23,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IProductService> _productService;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper,
         UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration,
-        IHttpContextAccessor httpContextAccessor, IProductService productService)
+        IHttpContextAccessor httpContextAccessor) //, IProductService productService
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
