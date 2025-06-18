@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stockat.Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -10,6 +11,7 @@ namespace Stockat.Core.Entities
 {
     public class Auction
     {
+        [Key]
         public int Id { get; set; }
 
         [Required, MaxLength(150)]
@@ -38,6 +40,9 @@ namespace Stockat.Core.Entities
         public int ProductId { get; set; }
         public Product Product { get; set; }
 
+        public int StockId { get; set; }
+        public Stock Stock { get; set; }
+
         public string? BuyerId { get; set; }
         public User? BuyerUser { get; set; }
 
@@ -54,6 +59,7 @@ namespace Stockat.Core.Entities
 
     public class AuctionBidRequest
     {
+        [Key]
         public int Id { get; set; }
 
         public int AuctionId { get; set; }
@@ -67,16 +73,11 @@ namespace Stockat.Core.Entities
         public AuctionOrder? AuctionOrder { get; set; }
     }
 
-    public enum OrderStatus
-    {
-        Pending,
-        Shipped,
-        Completed,
-        Cancelled
-    }
+
 
     public class AuctionOrder
     {
+        [Key]
         public int Id { get; set; }
 
         public DateTime OrderDate { get; set; } = DateTime.UtcNow;

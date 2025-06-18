@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
-using Stockat.API.Extensions;
-using Stockat.Core.IServices;
 using Stockat.API.ActionFilters;
+using Stockat.API.Extensions;
 using Stockat.Core.Entities;
+using Stockat.Core.IServices;
+using Stockat.Core.IServices.IAuctionServices;
+using Stockat.Service.MappingProfiles.AuctionMappingProfiles;
+using Stockat.Service.Services.AuctionServices;
 
 namespace Stockat.API;
 
@@ -26,6 +29,11 @@ public class Program
         builder.Services.ConfigureIdentity(); // register identity
         builder.Services.ConfigureJWT(builder.Configuration);
 
+        builder.Services.AddScoped<IAuctionService, AuctionService>();
+        builder.Services.AddScoped<IAuctionBidRequestService, AuctionBidRequestService>();
+        builder.Services.AddScoped<IAuctionOrderService, AuctionOrderService>();
+
+
         builder.Services.ConfigureRepositoryManager(); // adding ef (infra) layer dependencies
         builder.Services.ConfigureServiceManager(); // adding service layer dependencies
 
@@ -46,6 +54,10 @@ public class Program
         builder.Services.AddOpenApi();
         //builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName.StartsWith("Stockat.Service")));
+
+        builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+        builder.Services.AddAutoMapper(typeof(AuctionMappingProfile));
+
 
         var app = builder.Build();
 
