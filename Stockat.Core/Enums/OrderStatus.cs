@@ -6,12 +6,17 @@ using System.Threading.Tasks;
 
 namespace Stockat.Core.Enums
 {
-    public enum OrderStatus
-    {
-        Pending,
-        Shipped,
-        Completed,
-        Cancelled,
-        PaymentFailed
+public enum OrderStatus
+{
+    PendingSeller,
+    PendingBuyer,
+    Processing,
+    Ready,
+    Pending,
+    Shipped,
+    Completed,
+    Cancelled,
+    PaymentFailed,
+    Delivered
     }
 }

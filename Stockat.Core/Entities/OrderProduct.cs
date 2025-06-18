@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stockat.Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -18,7 +19,7 @@ public class OrderProduct
     [Range(1, int.MaxValue, ErrorMessage = "Price must be between 1 : 214783647")]
     public decimal Price { get; set; }
 
-    public string Status { get; set; }
+    public OrderStatus Status { get; set; }
     public DateTime CraetedAt { get; set; } = DateTime.Now;
 
     // Payment Info

@@ -28,13 +28,14 @@ public sealed class ServiceManager : IServiceManager
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor
         , IAuctionService AuctionService)
     {
-        _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration));
-
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
 
         _AuctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper,logger,repositoryManager));
         _AuctionBidRequestService= new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper ));
+
+
+        _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));
 
         // if you wanna use a lazy loading service in another service initilize it first before sending it to the other layer like i did in the _imageSerive and passed to the UserVerificationService
         _userVerificationService = new Lazy<IUserVerificationService>(() => new UserVerificationService(logger, mapper, configuration, _imageService.Value, repositoryManager, httpContextAccessor));
