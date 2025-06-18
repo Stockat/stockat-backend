@@ -22,6 +22,8 @@ public class ProductHomeDto
 
     public bool isDeleted { get; set; } = false;
 
+    public int MinQuantity { get; set; }
+
     //ForeignKey
     public string SellerId { get; set; }
 

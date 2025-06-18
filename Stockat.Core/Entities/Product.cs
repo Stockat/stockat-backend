@@ -27,6 +27,12 @@ public class Product
     [Range(1, float.MaxValue, ErrorMessage = "Price must be between 1 :999999 ")]
     public decimal Price { get; set; }
 
+
+
+    [Required(ErrorMessage = "Minimum Quantity Is Required")]
+    [Range(1, int.MaxValue, ErrorMessage = "Minimum Quantity must be between 1 :999999 ")]
+    public int MinQuantity { get; set; }
+
     public ApprovalStatus ProductStatus { get; set; } = ApprovalStatus.Pending;
 
     public bool isDeleted { get; set; } = false;
@@ -44,6 +50,7 @@ public class Product
     public virtual User User { get; set; }
     public ICollection<Auction> Auctions { get; set; } = new List<Auction>(); //partial 1-M with Auction 
     public virtual ICollection<ProductTag> ProductTags { get; set; }
+    public virtual ICollection<Feature> Features { get; set; }
 
 
 }

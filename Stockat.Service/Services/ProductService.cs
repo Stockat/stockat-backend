@@ -3,6 +3,7 @@ using Stockat.Core;
 using Stockat.Core.Consts;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.ProductDTOs;
+using Stockat.Core.Entities;
 using Stockat.Core.IServices;
 using System;
 using System.Collections.Generic;
@@ -26,13 +27,17 @@ public class ProductService : IProductService
     }
 
 
+
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated(int _size, int _page)
 
     {
         int skip = (_page - 1) * _size;
         int take = _size;
 
-        var res = await _repo.ProductRepository.FindAllAsync(p => p.isDeleted == false, skip, take, o => o.Id, OrderBy.Descending);
+
+
+        //var res = await _repo.ProductRepository.FindAllAsync(p => p.isDeleted == false, skip, take, o => o.Id, OrderBy.Descending);
+        var res = await _repo.ProductRepository.FindAllAsync(p => p.isDeleted == false, null, null, null);
 
         res.TryGetNonEnumeratedCount(out var count);
 
@@ -71,4 +76,15 @@ public class ProductService : IProductService
         };
 
     }
+
+    public async Task<int> AddProductAsync(AddProductDto productDto)
+    {
+        var product = _mapper.Map<Product>(productDto);
+
+        await _repo.ProductRepository.AddAsync(product);
+        return await _repo.CompleteAsync();
+
+    }
+
+
 }
