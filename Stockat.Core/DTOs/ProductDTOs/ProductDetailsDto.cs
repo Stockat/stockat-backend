@@ -1,15 +1,13 @@
-﻿using Stockat.Core.Entities;
-using Stockat.Core.Enums;
+﻿using Stockat.Core.Enums;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Stockat.Core.DTOs.ProductDTOs;
 
-public class ProductHomeDto
+public class ProductDetailsDto
 {
     public int Id { get; set; }
 
@@ -20,11 +18,9 @@ public class ProductHomeDto
 
     public decimal Price { get; set; }
 
-    public bool isDeleted { get; set; } = false;
-
-    //ForeignKey
     public string SellerId { get; set; }
+    public string SellerName { get; set; }
 
     //Array of images
-    public ICollection<string> Images { get; set; }
+    public virtual ICollection<string> ImagesArr { get; set; }
 }

@@ -21,10 +21,18 @@ namespace Stockat.API.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> getAllProductsPaginated(int size, int page)
+        public async Task<IActionResult> getAllProductsPaginatedAsync(int size, int page)
         {
 
             var res = await _serviceManager.ProductService.getAllProductsPaginated(size, page);
+            return Ok(res);
+        }
+
+        [HttpGet("/id")]
+        public async Task<IActionResult> getproductDetailsAsync(int id)
+        {
+
+            var res = await _serviceManager.ProductService.GetProductDetailsAsync(id);
             return Ok(res);
         }
     }

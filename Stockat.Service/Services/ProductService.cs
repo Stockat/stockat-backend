@@ -47,8 +47,6 @@ public class ProductService : IProductService
             Page = _page
         };
 
-
-
         var resDto = new GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>()
         {
             Data = paginatedres,
@@ -60,5 +58,17 @@ public class ProductService : IProductService
         return resDto;
     }
 
+    public async Task<GenericResponseDto<ProductDetailsDto>> GetProductDetailsAsync(int id)
+    {
+        var res = await _repo.ProductRepository.FindProductDetailsAsync(p => p.Id == id, ["Images", "Stocks"]);
 
+        return new GenericResponseDto<ProductDetailsDto>()
+        {
+            Data = res,
+            Message = "Success",
+            Status = 200,
+            RedirectUrl = null,
+        };
+
+    }
 }

@@ -14,6 +14,11 @@ public class ProductProfile : Profile
     public ProductProfile()
     {
         CreateMap<Product, ProductHomeDto>().ReverseMap();
+        CreateMap<Product, ProductDetailsDto>()
+            .ForMember(dest => dest.ImagesArr, src => src.MapFrom(src => src.Images.Select(s => s.ImageUrl)))
+            .ForMember(dest => dest.SellerName, src => src.MapFrom(src => src.User.UserName))
+            .ReverseMap();
+
 
     }
 }
