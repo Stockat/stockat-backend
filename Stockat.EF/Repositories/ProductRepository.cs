@@ -39,4 +39,11 @@ public class ProductRepository : BaseRepository<Product>, IProductRepository
              .SingleOrDefaultAsync();
 
     }
+
+    public async Task<bool> IsProductFoundAsync(Expression<Func<Product, bool>> criteria)
+    {
+        IQueryable<Product> query = _context.Set<Product>();
+
+        return await query.AnyAsync(criteria);
+    }
 }

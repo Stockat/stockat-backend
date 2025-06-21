@@ -14,7 +14,7 @@ public class ProductDetailsDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
 
-    public ApprovalStatus ProductStatus { get; set; } = ApprovalStatus.Pending;
+    public ProductStatus ProductStatus { get; set; } = ProductStatus.Pending;
 
     public decimal Price { get; set; }
 

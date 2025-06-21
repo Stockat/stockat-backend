@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Stockat.Core;
 using Stockat.Core.DTOs.ProductDTOs;
+using Stockat.Core.Enums;
 using Stockat.Core.IServices;
 
 namespace Stockat.API.Controllers;
@@ -22,14 +23,14 @@ public class ProductController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> getAllProductsPaginatedAsync(int size, int page)
+    public async Task<IActionResult> getAllProductsPaginatedAsync(int size = 9, int page = 1)
     {
 
         var res = await _serviceManager.ProductService.getAllProductsPaginated(size, page);
         return Ok(res);
     }
 
-    [HttpGet("/id")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> getproductDetailsAsync(int id)
     {
 
@@ -44,6 +45,20 @@ public class ProductController : ControllerBase
         return Ok(res);
     }
 
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Updateproduct(int id, UpdateProductDto productDto)
+    {
+        var res = await _serviceManager.ProductService.UpdateProduct(id, productDto);
+        return Ok(res);
+    }
 
+
+    [HttpPost("{id:int}")]
+    public async Task<IActionResult> ChaneProductStatus(int id, ProductStatus chosenStatus)
+    {
+        var res = await _serviceManager.ProductService.ChangeProductStatus(id, chosenStatus);
+
+        return Ok(res);
+    }
 
 }

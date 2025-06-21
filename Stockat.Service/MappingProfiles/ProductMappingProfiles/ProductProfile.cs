@@ -30,6 +30,11 @@ public class ProductProfile : Profile
         CreateMap<AddFeatureValuesDto, FeatureValue>().ReverseMap(); ;
         CreateMap<AddProductmageDto, ProductImage>().ReverseMap(); ;
 
+        CreateMap<UpdateProductDto, Product>().ReverseMap(); ;
+        //CreateMap<AddFeatureDto, Feature>().ReverseMap(); ;
+        //CreateMap<AddFeatureValuesDto, FeatureValue>().ReverseMap(); ;
+        //CreateMap<AddProductmageDto, ProductImage>().ReverseMap(); ;
+
 
     }
 }
