@@ -33,7 +33,7 @@ public class Product
     [Range(1, int.MaxValue, ErrorMessage = "Minimum Quantity must be between 1 :999999 ")]
     public int MinQuantity { get; set; }
 
-    public ApprovalStatus ProductStatus { get; set; } = ApprovalStatus.Pending;
+    public ProductStatus ProductStatus { get; set; } = ProductStatus.Pending;
 
     public bool isDeleted { get; set; } = false;
 

@@ -115,17 +115,24 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
         return await _context.Set<T>().Where(criteria).Skip(skip).Take(take).ToListAsync();
     }
 
-    public async Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int? take, int? skip,
-        Expression<Func<T, object>> orderBy = null, string orderByDirection = OrderBy.Ascending)
+    public async Task<IEnumerable<T>> FindAllAsync(
+        Expression<Func<T, bool>> criteria, int? skip, int? take,
+        string[] includes = null, Expression<Func<T, object>> orderBy = null,
+        string orderByDirection = OrderBy.Ascending)
     {
 
         IQueryable<T> query = _context.Set<T>().Where(criteria);
 
-        if (take.HasValue)
-            query = query.Take(take.Value);
+        if (includes != null)
+            foreach (var include in includes)
+                query = query.Include(include);
 
         if (skip.HasValue)
             query = query.Skip(skip.Value);
+
+        if (take.HasValue)
+            query = query.Take(take.Value);
+
 
 
         if (orderBy != null)

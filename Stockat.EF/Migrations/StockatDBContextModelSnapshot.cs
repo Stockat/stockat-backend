@@ -234,7 +234,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("SellerId");
 
-                    b.ToTable("Auction");
+                    b.ToTable("Auction", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.AuctionBidRequest", b =>
@@ -264,7 +264,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("BidderUserId");
 
-                    b.ToTable("AuctionBidRequest");
+                    b.ToTable("AuctionBidRequest", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.AuctionOrder", b =>
@@ -301,7 +301,7 @@ namespace Stockat.EF.Migrations
                     b.HasIndex("AuctionRequestId")
                         .IsUnique();
 
-                    b.ToTable("AuctionOrder");
+                    b.ToTable("AuctionOrder", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
@@ -324,7 +324,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("Features");
+                    b.ToTable("Features", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.FeatureValue", b =>
@@ -347,7 +347,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("FeatureId");
 
-                    b.ToTable("FeatureValues");
+                    b.ToTable("FeatureValues", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.OrderProduct", b =>
@@ -404,7 +404,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("StockId");
 
-                    b.ToTable("OrderProduct");
+                    b.ToTable("OrderProduct", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
@@ -447,7 +447,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("SellerId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.ProductImage", b =>
@@ -469,7 +469,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductImages");
+                    b.ToTable("ProductImages", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.ProductTag", b =>
@@ -492,7 +492,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("ProductTag");
+                    b.ToTable("ProductTag", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Service", b =>
@@ -542,7 +542,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("SellerId");
 
-                    b.ToTable("Services");
+                    b.ToTable("Services", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>
@@ -616,7 +616,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("ServiceId");
 
-                    b.ToTable("ServiceRequests");
+                    b.ToTable("ServiceRequests", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.ServiceRequestUpdate", b =>
@@ -655,7 +655,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("ServiceRequestId");
 
-                    b.ToTable("ServiceRequestUpdates");
+                    b.ToTable("ServiceRequestUpdates", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Stock", b =>
@@ -676,7 +676,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("Stocks");
+                    b.ToTable("Stocks", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.StockDetails", b =>
@@ -704,7 +704,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasIndex("StockId");
 
-                    b.ToTable("StockDetails");
+                    b.ToTable("StockDetails", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Tag", b =>
@@ -721,7 +721,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tag");
+                    b.ToTable("Tag", (string)null);
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.User", b =>
@@ -832,7 +832,7 @@ namespace Stockat.EF.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("UserVerification");
+                    b.ToTable("UserVerification", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
