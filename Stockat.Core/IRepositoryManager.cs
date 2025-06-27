@@ -12,6 +12,7 @@ public interface IRepositoryManager
     IBaseRepository<AuctionBidRequest> AuctionBidRequestRepo { get; }
     IBaseRepository<AuctionOrder> AuctionOrderRepo { get; }
 
+    IProductRepository ProductRepository { get; }
 
 
     int Complete();

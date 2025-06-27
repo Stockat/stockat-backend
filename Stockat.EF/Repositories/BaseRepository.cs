@@ -118,6 +118,7 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
     public async Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int? take, int? skip,
         Expression<Func<T, object>> orderBy = null, string orderByDirection = OrderBy.Ascending)
     {
+
         IQueryable<T> query = _context.Set<T>().Where(criteria);
 
         if (take.HasValue)
@@ -125,6 +126,7 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
 
         if (skip.HasValue)
             query = query.Skip(skip.Value);
+
 
         if (orderBy != null)
         {

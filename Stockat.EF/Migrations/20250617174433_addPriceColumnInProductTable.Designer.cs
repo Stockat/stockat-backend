@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Stockat.EF;
 
@@ -11,9 +12,11 @@ using Stockat.EF;
 namespace Stockat.EF.Migrations
 {
     [DbContext(typeof(StockatDBContext))]
-    partial class StockatDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250617174433_addPriceColumnInProductTable")]
+    partial class addPriceColumnInProductTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -226,9 +229,6 @@ namespace Stockat.EF.Migrations
                     b.Property<decimal>("StartingPrice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("StockId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BuyerUserId");
@@ -236,8 +236,6 @@ namespace Stockat.EF.Migrations
                     b.HasIndex("ProductId");
 
                     b.HasIndex("SellerId");
-
-                    b.HasIndex("StockId");
 
                     b.ToTable("Auction");
                 });
@@ -424,9 +422,6 @@ namespace Stockat.EF.Migrations
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
-
-                    b.Property<int>("MinQuantity")
-                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -909,19 +904,11 @@ namespace Stockat.EF.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Stockat.Core.Entities.Stock", "Stock")
-                        .WithMany("Auctions")
-                        .HasForeignKey("StockId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.Navigation("BuyerUser");
 
                     b.Navigation("Product");
 
                     b.Navigation("SellerUser");
-
-                    b.Navigation("Stock");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.AuctionBidRequest", b =>
@@ -963,7 +950,7 @@ namespace Stockat.EF.Migrations
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
                 {
                     b.HasOne("Stockat.Core.Entities.Product", "Product")
-                        .WithMany("Features")
+                        .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1176,8 +1163,6 @@ namespace Stockat.EF.Migrations
                 {
                     b.Navigation("Auctions");
 
-                    b.Navigation("Features");
-
                     b.Navigation("Images");
 
                     b.Navigation("OrderProducts");
@@ -1194,8 +1179,6 @@ namespace Stockat.EF.Migrations
 
             modelBuilder.Entity("Stockat.Core.Entities.Stock", b =>
                 {
-                    b.Navigation("Auctions");
-
                     b.Navigation("OrderProducts");
 
                     b.Navigation("StockDetails");

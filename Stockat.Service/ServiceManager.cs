@@ -22,6 +22,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IImageService> _imageService;
     private readonly Lazy<IEmailService> _emailService;
     private readonly Lazy<IUserVerificationService> _userVerificationService;
+    private readonly Lazy<IProductService> _productService;
     private readonly Lazy<IAuctionService> _AuctionService;
     private readonly Lazy<IAuctionBidRequestService> _AuctionBidRequestService;
 
@@ -30,6 +31,7 @@ public sealed class ServiceManager : IServiceManager
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
+        _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
 
         _AuctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper,logger,repositoryManager));
         _AuctionBidRequestService= new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper ));
@@ -51,6 +53,8 @@ public sealed class ServiceManager : IServiceManager
     public IImageService ImageService => _imageService.Value;
 
     public IEmailService EmailService => _emailService.Value;
+    public IProductService ProductService => _productService.Value;
+
 
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 }
