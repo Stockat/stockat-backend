@@ -26,6 +26,8 @@ public class Stock
 
     public virtual ICollection<StockDetails> StockDetails { get; set; }
 
+    public ICollection<Auction> Auctions { get; set; } = new List<Auction>();
+
 
 }
 public class StockDetails

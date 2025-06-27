@@ -1,16 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Stockat.Core;
 using Stockat.Core.Entities;
 using Stockat.Core.IServices;
+using Stockat.Core.IServices.IAuctionServices;
 using Stockat.Service.Services;
+using Stockat.Service.Services.AuctionServices;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Stockat.Service;
 
@@ -21,13 +23,18 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IEmailService> _emailService;
     private readonly Lazy<IUserVerificationService> _userVerificationService;
     private readonly Lazy<IProductService> _productService;
-    public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper,
-        UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration,
-        IHttpContextAccessor httpContextAccessor) //, IProductService productService
+    private readonly Lazy<IAuctionService> _AuctionService;
+    private readonly Lazy<IAuctionBidRequestService> _AuctionBidRequestService;
+
+    public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor
+        , IAuctionService AuctionService)
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
         _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
+
+        _AuctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper,logger,repositoryManager));
+        _AuctionBidRequestService= new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper ));
 
 
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));

@@ -7,6 +7,11 @@ namespace Stockat.Core;
 public interface IRepositoryManager
 {
     IBaseRepository<UserVerification> UserVerificationRepo { get; }
+    IBaseRepository<Stock> StockRepo { get; }
+    IBaseRepository<Auction> AuctionRepo { get; }
+    IBaseRepository<AuctionBidRequest> AuctionBidRequestRepo { get; }
+    IBaseRepository<AuctionOrder> AuctionOrderRepo { get; }
+
     IProductRepository ProductRepository { get; }
 
 
@@ -18,4 +23,8 @@ public interface IRepositoryManager
 
 
     Task DisposeAsync();
+
+    Task BeginTransactionAsync();
+    Task CommitTransactionAsync();
+    Task RollbackTransactionAsync();
 }
