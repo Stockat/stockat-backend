@@ -127,7 +127,7 @@ internal sealed class AuthenticationService: IAuthenticationService
     // login
     public async Task<bool> ValidateUser(UserForAuthenticationDto userForAuth)
     {
-        _user = await _userManager.FindByNameAsync(userForAuth.UserName);
+        _user = await _userManager.FindByNameAsync(userForAuth.Email);
 
         var result = _user != null && await _userManager.CheckPasswordAsync(_user, userForAuth.Password);
 

@@ -32,9 +32,7 @@ public interface IBaseRepository<T> where T : class
     T Update(T entity);
     void Delete(T entity);
     void DeleteRange(IEnumerable<T> entities);
-    int Count();
     int Count(Expression<Func<T, bool>> criteria);
-    Task<int> CountAsync();
     Task<int> CountAsync(Expression<Func<T, bool>> criteria);
 
 }
