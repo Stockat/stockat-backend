@@ -20,6 +20,9 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IImageService> _imageService;
     private readonly Lazy<IEmailService> _emailService;
     private readonly Lazy<IUserVerificationService> _userVerificationService;
+    private readonly Lazy<IServiceService> _serviceService;
+    private readonly Lazy<IServiceRequestService> _serviceRequestService;
+    private readonly Lazy<IServiceRequestUpdateService> _serviceRequestUpdateService;
     private readonly Lazy<IProductService> _productService;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper,
         UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration,
@@ -31,6 +34,11 @@ public sealed class ServiceManager : IServiceManager
 
 
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));
+
+        // Service Feature
+        _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
+        _serviceRequestService = new Lazy<IServiceRequestService>(() => new ServiceRequestService(logger, mapper, repositoryManager));
+        _serviceRequestUpdateService = new Lazy<IServiceRequestUpdateService>(() => new ServiceRequestUpdateService(logger, mapper, repositoryManager));
 
         // if you wanna use a lazy loading service in another service initilize it first before sending it to the other layer like i did in the _imageSerive and passed to the UserVerificationService
         _userVerificationService = new Lazy<IUserVerificationService>(() => new UserVerificationService(logger, mapper, configuration, _imageService.Value, repositoryManager, httpContextAccessor));
@@ -50,4 +58,7 @@ public sealed class ServiceManager : IServiceManager
 
 
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+    public IServiceService ServiceService => _serviceService.Value;
+    public IServiceRequestService ServiceRequestService => _serviceRequestService.Value;
+    public IServiceRequestUpdateService ServiceRequestUpdateService => _serviceRequestUpdateService.Value;
 }

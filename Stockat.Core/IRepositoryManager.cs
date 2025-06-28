@@ -7,6 +7,9 @@ namespace Stockat.Core;
 public interface IRepositoryManager
 {
     IBaseRepository<UserVerification> UserVerificationRepo { get; }
+    IBaseRepository<Service> ServiceRepo { get; }
+    IBaseRepository<ServiceRequest> ServiceRequestRepo { get; }
+    IBaseRepository<ServiceRequestUpdate> ServiceRequestUpdateRepo { get; }
     IProductRepository ProductRepository { get; }
 
 
