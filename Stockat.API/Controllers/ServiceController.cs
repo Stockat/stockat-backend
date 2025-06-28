@@ -162,6 +162,4 @@ public class ServiceController : ControllerBase
             return StatusCode(500, $"Image upload failed: {ex.Message}");
         }
     }
-
-
 }

@@ -120,7 +120,7 @@ public class ServiceService : IServiceService
             throw new NotFoundException("Service not found or you are not authorized to modify it.");
         }
 
-        var uploadResult = await _imageService.UploadImageAsync(file);
+        var uploadResult = await _imageService.UploadImageAsync(file, "Services");
 
         service.ImageId = uploadResult.FileId;
         service.ImageUrl = uploadResult.Url;
