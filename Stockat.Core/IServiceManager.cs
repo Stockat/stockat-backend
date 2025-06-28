@@ -15,4 +15,8 @@ public interface IServiceManager
     IEmailService EmailService { get; } 
 
     IUserVerificationService UserVerificationService { get; }
+
+    IServiceService ServiceService { get; }
+    IServiceRequestService ServiceRequestService { get; }
+    IServiceRequestUpdateService ServiceRequestUpdateService { get; }
 }
