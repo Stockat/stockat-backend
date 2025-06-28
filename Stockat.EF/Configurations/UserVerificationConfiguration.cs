@@ -13,7 +13,7 @@ public class UserVerificationConfiguration: IEntityTypeConfiguration<UserVerific
 {
     public void Configure(EntityTypeBuilder<UserVerification> builder)
     {
-        builder.HasKey(e => e.UserId); // use UserId as PK (and FK)
+        builder.HasKey(e => e.UserId); // use UserId as pk and fk
 
         builder.Property(e => e.Status)
               .HasConversion<string>(); 

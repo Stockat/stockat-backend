@@ -12,11 +12,12 @@ public interface IServiceManager
     IAuthenticationService AuthenticationService { get; }
     IImageService ImageService { get; }
 
-    IEmailService EmailService { get; } 
+    IEmailService EmailService { get; }
 
     IUserVerificationService UserVerificationService { get; }
 
     IServiceService ServiceService { get; }
     IServiceRequestService ServiceRequestService { get; }
     IServiceRequestUpdateService ServiceRequestUpdateService { get; }
+    IProductService ProductService { get; }
 }

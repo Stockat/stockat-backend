@@ -10,6 +10,8 @@ public interface IRepositoryManager
     IBaseRepository<Service> ServiceRepo { get; }
     IBaseRepository<ServiceRequest> ServiceRequestRepo { get; }
     IBaseRepository<ServiceRequestUpdate> ServiceRequestUpdateRepo { get; }
+    IProductRepository ProductRepository { get; }
+
 
     int Complete();
     void Dispose();

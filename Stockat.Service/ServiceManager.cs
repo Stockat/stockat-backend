@@ -23,13 +23,17 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IServiceService> _serviceService;
     private readonly Lazy<IServiceRequestService> _serviceRequestService;
     private readonly Lazy<IServiceRequestUpdateService> _serviceRequestUpdateService;
-
-    public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
+    private readonly Lazy<IProductService> _productService;
+    public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper,
+        UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor) //, IProductService productService
     {
-        _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration));
-
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
+        _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
+
+
+        _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));
 
         // Service Feature
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
@@ -50,6 +54,8 @@ public sealed class ServiceManager : IServiceManager
     public IImageService ImageService => _imageService.Value;
 
     public IEmailService EmailService => _emailService.Value;
+    public IProductService ProductService => _productService.Value;
+
 
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
     public IServiceService ServiceService => _serviceService.Value;
