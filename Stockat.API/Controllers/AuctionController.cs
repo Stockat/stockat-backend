@@ -161,7 +161,7 @@ namespace Stockat.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "ثrror occurred");
+                return StatusCode(500, "error occurred");
             }
         }
 
