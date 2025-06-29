@@ -36,10 +36,13 @@ public class Product
     public ProductStatus ProductStatus { get; set; } = ProductStatus.Pending;
 
     public bool isDeleted { get; set; } = false;
+    public bool canBeRequested { get; set; } = true;
+    public ProductLocation Location { get; set; }
 
     //ForeignKey
     [Required(ErrorMessage = "Seller Id is Required")]
     public string SellerId { get; set; }
+    public int CategoryId { get; set; }
 
 
 
@@ -48,6 +51,7 @@ public class Product
     public virtual ICollection<Stock> Stocks { get; set; }
     public virtual ICollection<OrderProduct> OrderProducts { get; set; }
     public virtual User User { get; set; }
+    public virtual Category Category { get; set; }
     public ICollection<Auction> Auctions { get; set; } = new List<Auction>(); //partial 1-M with Auction 
     public virtual ICollection<ProductTag> ProductTags { get; set; }
     public virtual ICollection<Feature> Features { get; set; }

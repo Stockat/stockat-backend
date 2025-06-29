@@ -20,6 +20,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .WithMany(u => u.Products)
             .HasForeignKey(p => p.SellerId);
 
+        builder
+            .HasOne(u => u.Category)
+            .WithMany(u => u.Products)
+            .HasForeignKey(p => p.CategoryId)
+            .OnDelete(DeleteBehavior.NoAction);
+
 
         builder
             .HasMany(p => p.OrderProducts)
@@ -34,6 +40,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(p => p.ProductStatus).HasConversion<string>().HasMaxLength(30);
+        builder.Property(p => p.Location).HasConversion<string>().HasMaxLength(40);
 
 
 

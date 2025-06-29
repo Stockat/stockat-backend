@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.IdentityModel.Tokens;
 using Stockat.Core;
 using Stockat.Core.Consts;
 using Stockat.Core.DTOs;
@@ -31,13 +32,32 @@ public class ProductService : IProductService
 
 
 
-    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated(int _size, int _page)
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated
+        (int _size, int _page, string location, string category, int minQuantity, int minPrice, string[] tags)
 
     {
         int skip = (_page - 1) * _size;
         int take = _size;
 
-        var res = await _repo.ProductRepository.FindAllAsync(p => p.isDeleted == false, skip: skip, take: take, includes: ["Images"], o => o.Id, OrderBy.Descending);
+        var res = await _repo.ProductRepository.FindAllAsync
+            (
+            p => p.isDeleted == false &&
+            p.MinQuantity >= minQuantity &&
+            p.Price >= minPrice &&
+              (
+            tags.Length == 0 ||
+            p.ProductTags.Any(pt => tags.Contains(pt.Tag.Name))
+              ) &&
+             (
+             string.IsNullOrEmpty(location) ||
+             p.Location.ToString().ToUpper() == location.ToUpper()
+             ) &&
+            (
+            string.IsNullOrEmpty(category) ||
+             p.Category.CategoryName.ToUpper() == category.ToUpper()
+             )
+            , skip: skip, take: take, includes: ["Images"], o => o.Id, OrderBy.Descending
+            );
 
         res.TryGetNonEnumeratedCount(out var count);
 
@@ -47,8 +67,8 @@ public class ProductService : IProductService
         {
 
             PaginatedData = productDtos,
-            Size = count,
-            Count = 9,
+            Size = 4,
+            Count = count,
             Page = _page
         };
 
@@ -65,7 +85,11 @@ public class ProductService : IProductService
 
     public async Task<GenericResponseDto<ProductDetailsDto>> GetProductDetailsAsync(int id)
     {
-        var res = await _repo.ProductRepository.FindProductDetailsAsync(p => p.Id == id && p.isDeleted == false, ["Images", "Stocks"]);
+        var res = await _repo.ProductRepository.FindProductDetailsAsync
+            (
+            p => p.Id == id && p.isDeleted == false, ["Images", "Stocks"]
+
+            );
 
         return new GenericResponseDto<ProductDetailsDto>()
         {

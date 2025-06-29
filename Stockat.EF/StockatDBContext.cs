@@ -27,6 +27,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<Auction> Auction { get; set; }
     public virtual DbSet<AuctionBidRequest> AuctionBidRequest { get; set; }
     public virtual DbSet<AuctionOrder> AuctionOrder { get; set; }
+    public virtual DbSet<Category> Categories { get; set; }
 
     public StockatDBContext(DbContextOptions options) : base(options)
     {
