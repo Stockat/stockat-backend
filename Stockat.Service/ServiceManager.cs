@@ -24,6 +24,8 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IServiceRequestService> _serviceRequestService;
     private readonly Lazy<IServiceRequestUpdateService> _serviceRequestUpdateService;
     private readonly Lazy<IProductService> _productService;
+
+    private readonly Lazy<IUserService> _userService;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper,
         UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration,
         IHttpContextAccessor httpContextAccessor) //, IProductService productService
@@ -42,6 +44,8 @@ public sealed class ServiceManager : IServiceManager
 
         // if you wanna use a lazy loading service in another service initilize it first before sending it to the other layer like i did in the _imageSerive and passed to the UserVerificationService
         _userVerificationService = new Lazy<IUserVerificationService>(() => new UserVerificationService(logger, mapper, configuration, _imageService.Value, repositoryManager, httpContextAccessor));
+
+        _userService = new Lazy<IUserService>(() => new UserService(repositoryManager, mapper, httpContextAccessor, _imageService.Value, userManager, _emailService.Value));
     }
 
     public IAuthenticationService AuthenticationService
@@ -61,4 +65,6 @@ public sealed class ServiceManager : IServiceManager
     public IServiceService ServiceService => _serviceService.Value;
     public IServiceRequestService ServiceRequestService => _serviceRequestService.Value;
     public IServiceRequestUpdateService ServiceRequestUpdateService => _serviceRequestUpdateService.Value;
+
+    public IUserService UserService => _userService.Value;
 }

@@ -11,6 +11,9 @@ public class UserForRegistrationDto
     [Required(ErrorMessage = "Email is required")]
     [EmailAddress(ErrorMessage = "Invalid Email Address")]
     public string Email { get; init; }
-    public string UserName => Email; // computed property
+    public string UserName =>
+        !string.IsNullOrEmpty(Email) && Email.Contains('@')
+        ? Email.Split('@')[0]
+        : string.Empty;
     public string PhoneNumber { get; init; }
 }

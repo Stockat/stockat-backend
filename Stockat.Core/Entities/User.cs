@@ -15,6 +15,14 @@ public class User : IdentityUser
     public string FirstName { get; set; }
     public string LastName { get; set; }
 
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? Country { get; set; }
+    public string? PostalCode { get; set; }
+    public string? AboutMe { get; set; }
+
+    public string? ProfileImageId { get; set; }
+    public string? ProfileImageUrl { get; set; }
 
 
     public string? RefreshToken { get; set; }
@@ -22,7 +30,7 @@ public class User : IdentityUser
 
     [NotMapped]
     public bool IsApproved => UserVerification?.Status == VerificationStatus.Approved; // to be reviewed --> defaults to false; will be set to true only after National ID is validated
-
+    public bool IsDeleted {  get; set; } = false;
 
     //  Navigation properties
     public virtual UserVerification UserVerification { get; set; } // make it virtual in case we used lazy loading
