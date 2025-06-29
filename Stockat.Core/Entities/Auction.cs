@@ -66,7 +66,7 @@ namespace Stockat.Core.Entities
         public decimal BidAmount { get; set; }
         public AuctionOrder? AuctionOrder { get; set; }
     }
-
+    // to be moved to the enum folder
     public enum OrderStatus
     {
         Pending,

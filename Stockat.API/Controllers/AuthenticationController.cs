@@ -15,12 +15,7 @@ public class AuthenticationController : ControllerBase
     public AuthenticationController(IServiceManager service) => _service = service;
 
     [HttpPost("register")]
-    [ServiceFilter(typeof(ValidationFilterAttribute))] // custom filter read the below to understand
-    /*
-        Automatically returns 400 if the DTO is null
-        Returns 422 if model validation fails
-        Keeps controllers clean by centralizing validation logic
-     */
+    [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> RegisterUser([FromBody] UserForRegistrationDto userForRegistration)
     {
         var result = await _service.AuthenticationService.RegisterUser(userForRegistration);
@@ -32,7 +27,7 @@ public class AuthenticationController : ControllerBase
             }
             return BadRequest(ModelState);
         }
-        return StatusCode(201); // created
+        return StatusCode(201, new { message = "User registered successfully." });
     }
 
     [HttpPost("login")]
@@ -40,8 +35,8 @@ public class AuthenticationController : ControllerBase
     public async Task<IActionResult> Authenticate([FromBody] UserForAuthenticationDto user)
     {
         if (!await _service.AuthenticationService.ValidateUser(user))
-            return Unauthorized();
-        var tokenDto = await _service.AuthenticationService.CreateToken( true);
+            return Unauthorized(new { message = "Invalid username or password." });
+        var tokenDto = await _service.AuthenticationService.CreateToken(true);
         return Ok(new AuthResponseDto
         {
             Token = tokenDto,
@@ -49,11 +44,13 @@ public class AuthenticationController : ControllerBase
         });
     }
 
-    [HttpPost("googleLogin")] // google external login
+    [HttpPost("googleLogin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> ExternalLogin([FromBody] ExternalAuthDto externalAuth)
     {
         var tokenDto = await _service.AuthenticationService.ExternalLoginAsync(externalAuth);
+        if (tokenDto == null)
+            return BadRequest(new { message = "Google login failed." });
         return Ok(new AuthResponseDto
         {
             Token = tokenDto,
@@ -65,7 +62,7 @@ public class AuthenticationController : ControllerBase
     public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
     {
         await _service.AuthenticationService.ConfirmEmail(userId, token);
-        return Ok("Email confirmed successfully.");
+        return Ok(new { message = "Email confirmed successfully." });
     }
 
     [HttpPost("forgotPassword")]
@@ -73,7 +70,7 @@ public class AuthenticationController : ControllerBase
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
         await _service.AuthenticationService.ForgotPasswordAsync(dto.Email);
-        return Ok("Password reset link sent to email.");
+        return Ok(new { message = "Password reset link sent to email." });
     }
 
     [HttpPost("resetPassword")]
@@ -81,7 +78,7 @@ public class AuthenticationController : ControllerBase
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
         await _service.AuthenticationService.ResetPasswordAsync(dto.Email, dto.Token, dto.Password);
-        return Ok("Password has been reset.");
+        return Ok(new { message = "Password has been reset." });
     }
 
     [Authorize]
@@ -89,8 +86,6 @@ public class AuthenticationController : ControllerBase
     public async Task<IActionResult> Logout()
     {
         await _service.AuthenticationService.LogoutAsync(User.Identity.Name);
-        return Ok("Logged out successfully.");
+        return Ok(new { message = "Logged out successfully." });
     }
-
-
 }

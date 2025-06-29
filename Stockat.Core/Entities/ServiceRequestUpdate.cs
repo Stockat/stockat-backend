@@ -23,11 +23,13 @@ namespace Stockat.Core.Entities
         public int AdditionalQuantity { get; set; } = 0;
 
         [MaxLength(100, ErrorMessage = "Additional time must be at most 100 characters.")]
-        public string? AdditionalTime { get; set; } 
+        public string? AdditionalTime { get; set; }
+        [MaxLength(500)]
+        public string? AdditionalNote { get; set; }  // e.g., "Expedited delivery"
 
         [Required]
         [MaxLength(20)]
-        public ServiceStatus Status { get; set; } = ServiceStatus.Pending;
+        public ApprovalStatus Status { get; set; } = ApprovalStatus.Pending;
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
