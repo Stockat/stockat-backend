@@ -17,7 +17,7 @@ public class AddProductDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
 
-    public ApprovalStatus ProductStatus { get; set; } = ApprovalStatus.Pending;
+    public ProductStatus ProductStatus { get; set; } = ProductStatus.Pending;
 
     public decimal Price { get; set; }
     public int MinQuantity { get; set; }
