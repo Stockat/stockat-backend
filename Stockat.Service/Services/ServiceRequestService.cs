@@ -55,6 +55,11 @@ public class ServiceRequestService : IServiceRequestService
             throw new BadRequestException("Cannot create a service request for your own service.");
         }
 
+        if (dto.RequestedQuantity < service.MinQuantity)
+        {
+            throw new BadRequestException($"Cannot request this quantity. Minimum qunatity is {service.MinQuantity}");
+        }
+
         // Create the request
         var request = new ServiceRequest
         {

@@ -24,7 +24,7 @@ public class ServiceController : ControllerBase
     }
 
     [HttpPost("create")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> CreateService([FromBody] CreateServiceDto dto)
     {
@@ -56,7 +56,7 @@ public class ServiceController : ControllerBase
     }
 
     [HttpDelete("delete/{serviceId:int}")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     public async Task<IActionResult> DeleteService(int serviceId)
     {
         try
@@ -103,7 +103,7 @@ public class ServiceController : ControllerBase
     }
 
     [HttpGet("mine")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     public async Task<IActionResult> GetMyServices()
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -120,7 +120,7 @@ public class ServiceController : ControllerBase
 
 
     [HttpPatch("{serviceId:int}")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> UpdateService(int serviceId, [FromBody] UpdateServiceDto dto)
     {
@@ -134,7 +134,7 @@ public class ServiceController : ControllerBase
 
 
     [HttpPost("{serviceId:int}/upload-image")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     public async Task<IActionResult> UploadServiceImage(int serviceId, IFormFile file)
     {
         if (file == null)

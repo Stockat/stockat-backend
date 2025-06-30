@@ -136,7 +136,7 @@ public class ServiceRequestController : ControllerBase
     }
 
     [HttpPatch("{requestId:int}/seller-offer")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> SetSellerOfferAsync(int requestId, [FromBody] SellerOfferDto dto)
     {
@@ -165,7 +165,7 @@ public class ServiceRequestController : ControllerBase
 
     // update request status
     [HttpPatch("{requestId:int}/status/update")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> UpdateServiceStatusAsync(int requestId, [FromBody] ServiceStatusDto dto)
     {
