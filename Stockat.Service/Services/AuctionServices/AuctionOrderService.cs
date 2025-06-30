@@ -84,6 +84,9 @@ namespace Stockat.Service.Services.AuctionServices
             var order = await _repositoryManager.AuctionOrderRepo.FindAsync(o => o.Id == id,
                 includes: new[] { "Auction", "AuctionRequest", "Auction.SellerUser", "AuctionRequest.BidderUser" });
 
+            if (order != null)
+                throw new NullReferenceException();
+
             return order == null ? null : _mapper.Map<AuctionOrderDto>(order);
         }
 
