@@ -76,7 +76,7 @@ public class UserService : IUserService
         user.Country = dto.Country;
         user.PostalCode = dto.PostalCode;
         user.AboutMe = dto.AboutMe;
-
+        user.PhoneNumber = dto.PhoneNumber;
         _repo.UserRepo.Update(user);
         await _repo.CompleteAsync();
 

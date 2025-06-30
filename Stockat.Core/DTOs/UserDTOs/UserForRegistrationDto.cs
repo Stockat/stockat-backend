@@ -15,5 +15,4 @@ public class UserForRegistrationDto
         !string.IsNullOrEmpty(Email) && Email.Contains('@')
         ? Email.Split('@')[0]
         : string.Empty;
-    public string PhoneNumber { get; init; }
 }
