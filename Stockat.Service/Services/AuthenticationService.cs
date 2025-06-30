@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Stockat.Core.DTOs.UserDTOs;
 using Stockat.Core.Entities;
+using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IServices;
 using System.IdentityModel.Tokens.Jwt;
@@ -55,11 +56,11 @@ internal sealed class AuthenticationService : IAuthenticationService
     }
 
     // google external loging service
-    public async Task<TokenDto> ExternalLoginAsync(ExternalAuthDto externalAuth)
+    public async Task<AuthenticationStatus> ExternalLoginAsync(ExternalAuthDto externalAuth)
     {
         var payload = await VerifyGoogleToken(externalAuth);
         if (payload == null)
-            throw new BadRequestException("Invalid External Authentication.");
+            return AuthenticationStatus.InvalidCredentials;
 
         var loginInfo = new UserLoginInfo(externalAuth.Provider, payload.Subject, externalAuth.Provider);
         var user = await _userManager.FindByLoginAsync(loginInfo.LoginProvider, loginInfo.ProviderKey);
@@ -73,7 +74,7 @@ internal sealed class AuthenticationService : IAuthenticationService
                 user = new User
                 {
                     Email = payload.Email,
-                    UserName = payload.Email.Split('@')[0], // updated here
+                    UserName = payload.Email.Split('@')[0],
                     EmailConfirmed = true,
                     FirstName = payload.GivenName ?? "",
                     LastName = payload.FamilyName ?? ""
@@ -81,7 +82,7 @@ internal sealed class AuthenticationService : IAuthenticationService
 
                 var createResult = await _userManager.CreateAsync(user);
                 if (!createResult.Succeeded)
-                    throw new BadRequestException("Failed to create user from external login.");
+                    return AuthenticationStatus.InvalidCredentials;
 
                 await _userManager.AddToRoleAsync(user, "Buyer");
                 await _userManager.AddLoginAsync(user, loginInfo);
@@ -93,11 +94,20 @@ internal sealed class AuthenticationService : IAuthenticationService
         }
 
         if (await _userManager.IsLockedOutAsync(user))
-            throw new BadRequestException("User account is locked.");
+            return AuthenticationStatus.InvalidCredentials;
+
+
+        if (user.IsDeleted)
+        {
+            _logger.LogWarn("ExternalLoginAsync: Account is soft-deleted.");
+            _user = user;
+            return AuthenticationStatus.AccountDeleted;
+        }
 
         _user = user;
-        return await CreateToken(populateExp: true);
+        return AuthenticationStatus.Success;
     }
+
 
     // register
     public async Task<IdentityResult> RegisterUser(UserForRegistrationDto userForRegistration)
@@ -119,29 +129,35 @@ internal sealed class AuthenticationService : IAuthenticationService
     }
 
     // login
-    public async Task<bool> ValidateUser(UserForAuthenticationDto userForAuth)
+    public async Task<AuthenticationStatus> ValidateUser(UserForAuthenticationDto userForAuth)
     {
         _user = await _userManager.FindByEmailAsync(userForAuth.Email);
 
-        var result = _user != null && await _userManager.CheckPasswordAsync(_user, userForAuth.Password);
+        var isValidUser = _user != null && await _userManager.CheckPasswordAsync(_user, userForAuth.Password);
 
-        if (!result)
+        if (!isValidUser)
         {
-            _logger.LogWarn($"{nameof(ValidateUser)}: Authentication failed. Wrong username or password.");
-            return false;
+            _logger.LogWarn($"{nameof(ValidateUser)}: Invalid credentials.");
+            return AuthenticationStatus.InvalidCredentials;
         }
 
         if (!_user.EmailConfirmed)
         {
             _logger.LogWarn($"{nameof(ValidateUser)}: Email not confirmed.");
-
             await SendConfirmationEmail(_user);
-
-            throw new BadRequestException("Email not confirmed");
+            return AuthenticationStatus.EmailNotConfirmed;
         }
 
-        return true;
+        if (_user.IsDeleted)
+        {
+            _logger.LogWarn($"{nameof(ValidateUser)}: Account is soft-deleted.");
+            return AuthenticationStatus.AccountDeleted;
+        }
+
+        return AuthenticationStatus.Success;
     }
+
+
 
     //
     public async Task ConfirmEmail(string userId, string token)

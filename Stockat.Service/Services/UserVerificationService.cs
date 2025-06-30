@@ -45,7 +45,7 @@ public class UserVerificationService : IUserVerificationService
             throw new InvalidOperationException("User already has a verification entry.");
         }
 
-        var uploadResult = await _imageService.UploadImageAsync(dto.Image);
+        var uploadResult = await _imageService.UploadImageAsync(dto.Image, "UserDocs");
         var entity = new UserVerification
         {
             UserId = userId,
