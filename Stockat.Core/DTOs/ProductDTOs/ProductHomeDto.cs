@@ -16,7 +16,7 @@ public class ProductHomeDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
 
-    public ApprovalStatus ProductStatus { get; set; } = ApprovalStatus.Pending;
+    public ProductStatus ProductStatus { get; set; } = ProductStatus.Pending;
 
     public decimal Price { get; set; }
 
@@ -28,5 +28,5 @@ public class ProductHomeDto
     public string SellerId { get; set; }
 
     //Array of images
-    public ICollection<string> Images { get; set; }
+    public ICollection<string> Images { get; set; } = new List<string>();
 }

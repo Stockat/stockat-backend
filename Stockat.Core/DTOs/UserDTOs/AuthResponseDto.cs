@@ -10,5 +10,6 @@ public class AuthResponseDto
 {
     public TokenDto Token { get; set; }
     public bool IsAuthSuccessful { get; set; }
+    public bool IsDeleted { get; set; }
     public string? Message { get; set; } // optional
 }

@@ -4,10 +4,7 @@ using NLog;
 using Stockat.API.ActionFilters;
 using Stockat.API.Extensions;
 using Stockat.Core.Entities;
-using Stockat.Core.IServices;
-using Stockat.Core.IServices.IAuctionServices;
-using Stockat.Service.MappingProfiles.AuctionMappingProfiles;
-using Stockat.Service.Services.AuctionServices;
+using System.Text.Json.Serialization;
 
 namespace Stockat.API;
 
@@ -39,7 +36,10 @@ public class Program
         });
 
         builder.Services.AddScoped<ValidationFilterAttribute>(); // custom validation
-        builder.Services.AddControllers();
+        builder.Services.AddControllers().AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
 
         // only use IHttpContextAccessor when necessary like accessing user claims, IP address, headers
         builder.Services.AddHttpContextAccessor();

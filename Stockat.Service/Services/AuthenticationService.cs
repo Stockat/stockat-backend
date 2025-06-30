@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Stockat.Core.DTOs.UserDTOs;
 using Stockat.Core.Entities;
+using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IServices;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,9 +14,8 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
-
 namespace Stockat.Service.Services;
-internal sealed class AuthenticationService: IAuthenticationService
+internal sealed class AuthenticationService : IAuthenticationService
 {
     // it would be internal since we will never use this class outside this class library 
     // api layer will only deal with the service manager (unit of work)
@@ -54,12 +54,13 @@ internal sealed class AuthenticationService: IAuthenticationService
             return null;
         }
     }
+
     // google external loging service
-    public async Task<TokenDto> ExternalLoginAsync(ExternalAuthDto externalAuth)
+    public async Task<AuthenticationStatus> ExternalLoginAsync(ExternalAuthDto externalAuth)
     {
         var payload = await VerifyGoogleToken(externalAuth);
         if (payload == null)
-            throw new BadRequestException("Invalid External Authentication.");
+            return AuthenticationStatus.InvalidCredentials;
 
         var loginInfo = new UserLoginInfo(externalAuth.Provider, payload.Subject, externalAuth.Provider);
         var user = await _userManager.FindByLoginAsync(loginInfo.LoginProvider, loginInfo.ProviderKey);
@@ -70,21 +71,20 @@ internal sealed class AuthenticationService: IAuthenticationService
 
             if (user == null)
             {
-                 user = new User
+                user = new User
                 {
                     Email = payload.Email,
-                    UserName = payload.Email,
+                    UserName = payload.Email.Split('@')[0],
                     EmailConfirmed = true,
-                    FirstName = payload.GivenName ?? "", 
-                    LastName = payload.FamilyName ?? ""  
-                                                         
+                    FirstName = payload.GivenName ?? "",
+                    LastName = payload.FamilyName ?? ""
                 };
 
                 var createResult = await _userManager.CreateAsync(user);
                 if (!createResult.Succeeded)
-                    throw new BadRequestException("Failed to create user from external login.");
+                    return AuthenticationStatus.InvalidCredentials;
 
-                await _userManager.AddToRoleAsync(user, "Buyer"); 
+                await _userManager.AddToRoleAsync(user, "Buyer");
                 await _userManager.AddLoginAsync(user, loginInfo);
             }
             else
@@ -94,10 +94,18 @@ internal sealed class AuthenticationService: IAuthenticationService
         }
 
         if (await _userManager.IsLockedOutAsync(user))
-            throw new BadRequestException("User account is locked.");
+            return AuthenticationStatus.InvalidCredentials;
+
+
+        if (user.IsDeleted)
+        {
+            _logger.LogWarn("ExternalLoginAsync: Account is soft-deleted.");
+            _user = user;
+            return AuthenticationStatus.AccountDeleted;
+        }
 
         _user = user;
-        return await CreateToken(populateExp: true);
+        return AuthenticationStatus.Success;
     }
 
 
@@ -106,6 +114,7 @@ internal sealed class AuthenticationService: IAuthenticationService
     {
         var user = _mapper.Map<User>(userForRegistration);
         user.EmailConfirmed = false;
+        user.UserName = userForRegistration.Email.Split('@')[0]; // updated here
 
         var result = await _userManager.CreateAsync(user, userForRegistration.Password);
 
@@ -113,40 +122,44 @@ internal sealed class AuthenticationService: IAuthenticationService
         {
             await _userManager.AddToRoleAsync(user, "Buyer");
 
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = $"http://localhost:4200/confirm-email?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
-
-            var emailMessage = $"<p>Click <a href='{confirmationLink}'>here</a> to confirm your email.</p>";
-            await _emailService.SendEmailAsync(user.Email, "Confirm your email", emailMessage);
+            await SendConfirmationEmail(user);
         }
 
         return result;
     }
 
-
     // login
-    public async Task<bool> ValidateUser(UserForAuthenticationDto userForAuth)
+    public async Task<AuthenticationStatus> ValidateUser(UserForAuthenticationDto userForAuth)
     {
-        _user = await _userManager.FindByNameAsync(userForAuth.UserName);
+        _user = await _userManager.FindByEmailAsync(userForAuth.Email);
 
-        var result = _user != null && await _userManager.CheckPasswordAsync(_user, userForAuth.Password);
+        var isValidUser = _user != null && await _userManager.CheckPasswordAsync(_user, userForAuth.Password);
 
-        if (!result)
+        if (!isValidUser)
         {
-            _logger.LogWarn($"{nameof(ValidateUser)}: Authentication failed. Wrong username or password.");
-            return false;
+            _logger.LogWarn($"{nameof(ValidateUser)}: Invalid credentials.");
+            return AuthenticationStatus.InvalidCredentials;
         }
 
         if (!_user.EmailConfirmed)
         {
             _logger.LogWarn($"{nameof(ValidateUser)}: Email not confirmed.");
-            throw new BadRequestException("Email not confirmed");
+            await SendConfirmationEmail(_user);
+            return AuthenticationStatus.EmailNotConfirmed;
         }
 
-        return true;
+        if (_user.IsDeleted)
+        {
+            _logger.LogWarn($"{nameof(ValidateUser)}: Account is soft-deleted.");
+            return AuthenticationStatus.AccountDeleted;
+        }
+
+        return AuthenticationStatus.Success;
     }
 
-    // 
+
+
+    //
     public async Task ConfirmEmail(string userId, string token)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -169,7 +182,6 @@ internal sealed class AuthenticationService: IAuthenticationService
         await _userManager.UpdateAsync(user);
     }
 
-
     public async Task ForgotPasswordAsync(string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
@@ -182,6 +194,7 @@ internal sealed class AuthenticationService: IAuthenticationService
         var message = $"<p>Click <a href='{resetLink}'>here</a> to reset your password.</p>";
         await _emailService.SendEmailAsync(user.Email, "Reset Password", message);
     }
+
     // will be called to serve the forgot password endpoint
     public async Task ResetPasswordAsync(string email, string token, string newPassword)
     {
@@ -193,8 +206,6 @@ internal sealed class AuthenticationService: IAuthenticationService
         if (!result.Succeeded)
             throw new BadRequestException("Password reset failed");
     }
-
-
 
     public async Task<TokenDto> CreateToken(bool populateExp)
     {
@@ -220,7 +231,6 @@ internal sealed class AuthenticationService: IAuthenticationService
         _user = user;
         return await CreateToken(populateExp: false);
     }
-
 
     // helpers
     private SigningCredentials GetSigningCredentials()
@@ -248,24 +258,21 @@ internal sealed class AuthenticationService: IAuthenticationService
         return claims;
     }
 
-
     private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
 
         var tokenOptions = new JwtSecurityToken
         (
-        issuer: jwtSettings["validIssuer"],
-        audience: jwtSettings["validAudience"],
-        claims: claims,
-        expires: DateTime.Now.AddMinutes(Convert.ToDouble(jwtSettings["expires"])),
-        signingCredentials: signingCredentials
+            issuer: jwtSettings["validIssuer"],
+            audience: jwtSettings["validAudience"],
+            claims: claims,
+            expires: DateTime.Now.AddMinutes(Convert.ToDouble(jwtSettings["expires"])),
+            signingCredentials: signingCredentials
         );
 
         return tokenOptions;
     }
-
-
 
     private string GenerateRefreshToken()
     {
@@ -277,8 +284,6 @@ internal sealed class AuthenticationService: IAuthenticationService
         }
     }
 
-
-
     private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
@@ -288,16 +293,15 @@ internal sealed class AuthenticationService: IAuthenticationService
             ValidateAudience = true,
             ValidateIssuer = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey( Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWTSECRET"))),
-            ValidateLifetime = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWTSECRET"))),
+            ValidateLifetime = false,
             ValidIssuer = jwtSettings["validIssuer"],
             ValidAudience = jwtSettings["validAudience"]
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();
         SecurityToken securityToken;
-        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out
-        securityToken);
+        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
         var jwtSecurityToken = securityToken as JwtSecurityToken;
 
         if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
@@ -307,5 +311,12 @@ internal sealed class AuthenticationService: IAuthenticationService
         return principal;
     }
 
-    
+    private async Task SendConfirmationEmail(User user)
+    {
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var confirmationLink = $"http://localhost:4200/confirm-email?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+
+        var emailMessage = $"<p>Click <a href='{confirmationLink}'>here</a> to confirm your email.</p>";
+        await _emailService.SendEmailAsync(user.Email, "Confirm your email", emailMessage);
+    }
 }

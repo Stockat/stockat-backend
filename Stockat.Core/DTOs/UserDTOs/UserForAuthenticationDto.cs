@@ -8,8 +8,9 @@ using System.Threading.Tasks;
 namespace Stockat.Core.DTOs.UserDTOs;
 public class UserForAuthenticationDto
 {
-    [Required(ErrorMessage = "User name is required")]
-    public string? UserName { get; init; }
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid Email Address")]
+    public string Email { get; init; }
     [Required(ErrorMessage = "Password name is required")]
     public string? Password { get; init; }
 }

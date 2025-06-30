@@ -23,7 +23,7 @@ public interface IBaseRepository<T> where T : class
 
     Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, string[] includes = null);
     Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int skip, int take);
-    Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int? skip, int? take,
+    Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int? skip, int? take, string[] includes = null,
         Expression<Func<T, object>> orderBy = null, string orderByDirection = OrderBy.Ascending);
     T Add(T entity);
     Task<T> AddAsync(T entity);
@@ -32,9 +32,7 @@ public interface IBaseRepository<T> where T : class
     T Update(T entity);
     void Delete(T entity);
     void DeleteRange(IEnumerable<T> entities);
-    int Count();
     int Count(Expression<Func<T, bool>> criteria);
-    Task<int> CountAsync();
     Task<int> CountAsync(Expression<Func<T, bool>> criteria);
 
 }

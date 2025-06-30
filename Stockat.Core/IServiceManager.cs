@@ -16,9 +16,15 @@ public interface IServiceManager
     IEmailService EmailService { get; }
 
     IUserVerificationService UserVerificationService { get; }
+
+    IServiceService ServiceService { get; }
+    IServiceRequestService ServiceRequestService { get; }
+    IServiceRequestUpdateService ServiceRequestUpdateService { get; }
     IProductService ProductService { get; }
 
     public IAuctionService AuctionService {  get; }
     public IAuctionBidRequestService AuctionBidRequestService {  get; }
     public IAuctionOrderService AuctionOrderService {  get; }
+
+    IUserService UserService { get; }
 }

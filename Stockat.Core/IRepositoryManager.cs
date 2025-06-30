@@ -12,9 +12,13 @@ public interface IRepositoryManager
     IBaseRepository<AuctionBidRequest> AuctionBidRequestRepo { get; }
     IBaseRepository<AuctionOrder> AuctionOrderRepo { get; }
 
+    IBaseRepository<Service> ServiceRepo { get; }
+    IBaseRepository<ServiceRequest> ServiceRequestRepo { get; }
+    IBaseRepository<ServiceRequestUpdate> ServiceRequestUpdateRepo { get; }
     IProductRepository ProductRepository { get; }
 
 
+    IBaseRepository<User> UserRepo { get; }
     int Complete();
     void Dispose();
 
