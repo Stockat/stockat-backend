@@ -23,7 +23,7 @@ public class ServiceController : ControllerBase
 
     }
 
-    [HttpPost("create")]
+    [HttpPost]
     [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> CreateService([FromBody] CreateServiceDto dto)
@@ -55,7 +55,7 @@ public class ServiceController : ControllerBase
         }
     }
 
-    [HttpDelete("delete/{serviceId:int}")]
+    [HttpDelete("{serviceId:int}")]
     [Authorize(Roles = "Seller, Admin")]
     public async Task<IActionResult> DeleteService(int serviceId)
     {

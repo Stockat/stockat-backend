@@ -26,4 +26,5 @@ public interface IServiceRequestService
     // System/Admin: Update payment info
     Task<ServiceRequestDto> UpdatePaymentStatusAsync(int requestId, string paymentId, PaymentStatus status);
     Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string sellerId, ServiceStatusDto dto);
+    public Task<IEnumerable<int>> GetBuyerServiceIDsWithPendingRequests(string buyerId);
 }

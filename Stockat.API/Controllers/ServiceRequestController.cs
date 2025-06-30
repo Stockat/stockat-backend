@@ -191,4 +191,23 @@ public class ServiceRequestController : ControllerBase
         }
     }
 
+    [HttpGet("buyer/pending-services")]
+    [Authorize]
+    public async Task<IActionResult> GetBuyerServiceIDsWithPendingRequests()
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User is not authenticated.");
+            var serviceIds = await _serviceManager.ServiceRequestService.GetBuyerServiceIDsWithPendingRequests(userId);
+            return Ok(serviceIds);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        }
+    }
+
+
 }

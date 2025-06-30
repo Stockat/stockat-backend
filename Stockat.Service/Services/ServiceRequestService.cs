@@ -85,6 +85,33 @@ public class ServiceRequestService : IServiceRequestService
         return _mapper.Map<ServiceRequestDto>(request);
     }
 
+    public async Task<IEnumerable<int>> GetBuyerServiceIDsWithPendingRequests(string buyerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.BuyerId == buyerId && r.BuyerApprovalStatus == ApprovalStatus.Pending,
+            ["Buyer", "Service"]
+        );
+        if (requests == null || !requests.Any())
+        {
+            _logger.LogInfo($"No pending service requests found for buyer {buyerId}.");
+            return Enumerable.Empty<int>();
+        }
+        _logger.LogInfo($"Retrieved {requests.Count()} pending service requests for buyer {buyerId}.");
+        return requests.Select(r => r.ServiceId).Distinct();
+    }
+
+    //public async Task<bool> BuyerHasPendingRequestForService(string buyerId, int serviceId)
+    //{
+    //    var hasPendingRequest = await _repo.ServiceRequestRepo.ExistsAsync(
+    //        r => r.BuyerId == buyerId && r.ServiceId == serviceId && r.BuyerApprovalStatus == ApprovalStatus.Pending
+    //    );
+    //    if (hasPendingRequest)
+    //    {
+    //        _logger.LogInfo($"Buyer {buyerId} has a pending request for service {serviceId}.");
+    //        return true;
+    //    }
+    //    return false;
+    //}
 
     public async Task<IEnumerable<ServiceRequestDto>> GetBuyerRequestsAsync(string buyerId)
     {
