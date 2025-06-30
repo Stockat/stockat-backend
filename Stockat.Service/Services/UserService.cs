@@ -147,7 +147,6 @@ public class UserService : IUserService
             };
         }
 
-        // ✅ Send email notification
         var emailBody = $@"
         <p>Your password was successfully changed.</p>
         <p>If you did not perform this action, please <a href='mailto:stockatgroup@gmail.com'>contact support</a> immediately.</p>";

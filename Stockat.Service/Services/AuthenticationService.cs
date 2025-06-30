@@ -278,7 +278,7 @@ internal sealed class AuthenticationService : IAuthenticationService
             ValidateIssuer = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWTSECRET"))),
-            ValidateLifetime = true,
+            ValidateLifetime = false,
             ValidIssuer = jwtSettings["validIssuer"],
             ValidAudience = jwtSettings["validAudience"]
         };
