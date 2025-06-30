@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Stockat.Core;
 using Stockat.Core.DTOs.AuctionDTOs;
 using Stockat.Core.Entities;
+using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IRepositories;
 using Stockat.Core.IServices;
@@ -223,6 +224,7 @@ namespace Stockat.Service.Services.AuctionServices
                 _repositoryManager.AuctionRepo.Delete(auction);
 
                 await _repositoryManager.CompleteAsync();
+
                 await _repositoryManager.CommitTransactionAsync();
             }
             catch (Exception ex)
@@ -231,6 +233,64 @@ namespace Stockat.Service.Services.AuctionServices
                 throw;
             }
         }
+
+        public async Task CloseEndedAuctionsAsync()
+        {
+            await _repositoryManager.BeginTransactionAsync();
+            try
+            {
+
+                var allAuctions = await _repositoryManager.AuctionRepo.GetAllAsync();
+
+                var now = DateTime.UtcNow;
+
+                var endedAuctions = allAuctions.Where(a => !a.IsClosed && a.EndTime <= now && a.BuyerId != null).ToList();
+
+                var allBids = await _repositoryManager.AuctionBidRequestRepo.GetAllAsync();
+
+                foreach (var auction in endedAuctions)
+                {
+                    //get the winning bid
+                    var winningBid = allBids
+                        .Where(b => b.AuctionId == auction.Id && b.BidAmount == auction.CurrentBid)
+                        .OrderByDescending(b => b.BidAmount)
+                        .FirstOrDefault();
+
+                    if (winningBid == null)
+                        continue;
+
+
+                    var existingOrders = await _repositoryManager.AuctionOrderRepo.GetAllAsync();
+
+                    bool alreadyOrdered = existingOrders.Any(o => o.AuctionId == auction.Id);
+
+                    if (alreadyOrdered)
+                        continue;
+
+                    var order = new AuctionOrder
+                    {
+                        AuctionId = auction.Id,
+                        AuctionRequestId = winningBid.Id,
+                        OrderDate = DateTime.UtcNow,
+                        Status = OrderStatus.Pending
+                    };
+
+                    await _repositoryManager.AuctionOrderRepo.AddAsync(order);
+
+
+                    auction.IsClosed = true;
+                }
+
+                await _repositoryManager.CompleteAsync();
+                await _repositoryManager.CommitTransactionAsync();
+            }
+            catch (Exception)
+            {
+                await _repositoryManager.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
 
         public async Task<IEnumerable<AuctionDetailsDto>> SearchAuctionsAsync(
             Expression<Func<Auction, bool>> filter,

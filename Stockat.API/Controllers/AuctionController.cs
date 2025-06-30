@@ -1,12 +1,15 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Stockat.Core;
+using Stockat.Core.DTOs.AuctionDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Exceptions;
-using Stockat.Core.IServices.IAuctionServices;
+using Stockat.Core.Helpers;
+using Stockat.Core.IServices;
+using Stockat.Core.Shared;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
-using Stockat.Core.DTOs.AuctionDTOs;
 
 namespace Stockat.API.Controllers
 {
@@ -14,15 +17,15 @@ namespace Stockat.API.Controllers
     [ApiController]
     public class AuctionsController : ControllerBase
     {
-        private readonly IAuctionService _auctionService;
+        private readonly IServiceManager _serviceManager;
         private readonly ILogger<AuctionsController> _logger;
         private readonly IMapper _mapper;
 
-        public AuctionsController(IAuctionService auctionService,
+        public AuctionsController(IServiceManager serviceManager,
             ILogger<AuctionsController> logger,
             IMapper mapper)
         {
-            _auctionService = auctionService;
+            _serviceManager = serviceManager;
             _logger = logger;
             _mapper = mapper;
         }
@@ -32,10 +35,10 @@ namespace Stockat.API.Controllers
         {
             var auction = _mapper.Map<Auction>(createDto);
             if (auction == null)
-                throw new Exception("Mapping faild");
+                throw new Exception("Mapping failed");
 
-                var result = await _auctionService.AddAuctionAsync(auction);
-                return CreatedAtAction(nameof(GetAuctionById), new { id = result.Id }, result);
+            var result = await _serviceManager.AuctionService.AddAuctionAsync(auction);
+            return CreatedAtAction(nameof(GetAuctionById), new { id = result.Id }, result);
         }
 
         [HttpPut("{id}")]
@@ -45,7 +48,7 @@ namespace Stockat.API.Controllers
             {
                 var auction = _mapper.Map<Auction>(updateDto);
                 auction.Id = id;
-                var result = await _auctionService.EditAuctionAsync(id, updateDto);
+                var result = await _serviceManager.AuctionService.EditAuctionAsync(id, updateDto);
 
                 return Ok(result);
             }
@@ -69,7 +72,7 @@ namespace Stockat.API.Controllers
         {
             try
             {
-                await _auctionService.RemoveAuctionAsync(id);
+                await _serviceManager.AuctionService.RemoveAuctionAsync(id);
                 return NoContent();
             }
             catch (NotFoundException ex)
@@ -88,7 +91,7 @@ namespace Stockat.API.Controllers
         {
             try
             {
-                var auction = await _auctionService.GetAuctionDetailsAsync(id);
+                var auction = await _serviceManager.AuctionService.GetAuctionDetailsAsync(id);
                 return Ok(auction);
             }
             catch (NotFoundException ex)
@@ -120,20 +123,21 @@ namespace Stockat.API.Controllers
                     };
                 }
 
-                //add seller filter
                 if (!string.IsNullOrEmpty(sellerId))
                 {
                     Expression<Func<Auction, bool>> sellerFilter = a => a.SellerId == sellerId;
-
                     filter = filter.And(sellerFilter);
                 }
 
-                var totalCount = await _auctionService.GetAuctionCountAsync(filter);
+                var totalCount = await _serviceManager.AuctionService.GetAuctionCountAsync(filter);
 
-                var auctions = await _auctionService.SearchAuctionsAsync(filter, skip: (pageNumber - 1) * pageSize, take: pageSize, orderBy: a => a.StartTime, orderByDirection: "DESC");
+                var auctions = await _serviceManager.AuctionService.SearchAuctionsAsync(filter,
+                    skip: (pageNumber - 1) * pageSize,
+                    take: pageSize,
+                    orderBy: a => a.StartTime,
+                    orderByDirection: "DESC");
 
-                var response = new PagedResponse<AuctionDetailsDto>( auctions.ToList(), pageNumber, pageSize, totalCount);
-
+                var response = new PagedResponse<AuctionDetailsDto>(auctions.ToList(), pageNumber, pageSize, totalCount);
                 return Ok(response);
             }
             catch (NotFoundException ex)
@@ -149,7 +153,7 @@ namespace Stockat.API.Controllers
         {
             try
             {
-                var auctions = await _auctionService.GetAllAuctionsAsync();
+                var auctions = await _serviceManager.AuctionService.GetAllAuctionsAsync();
 
                 if (!auctions.Any()) return NotFound("No auctions found");
 
@@ -166,8 +170,8 @@ namespace Stockat.API.Controllers
         }
 
         [HttpGet("Query")]
-        public async Task<ActionResult<IEnumerable<AuctionDetailsDto>>> QueryAuctions( string? name, int? productId, string? sellerId,
-               DateTime? startDateFrom, DateTime? startDateTo, bool? isClosed)
+        public async Task<ActionResult<IEnumerable<AuctionDetailsDto>>> QueryAuctions(string? name, int? productId, string? sellerId,
+            DateTime? startDateFrom, DateTime? startDateTo, bool? isClosed)
         {
             try
             {
@@ -179,7 +183,7 @@ namespace Stockat.API.Controllers
                     (!startDateTo.HasValue || auction.StartTime <= startDateTo.Value) &&
                     (!isClosed.HasValue || auction.IsClosed == isClosed.Value);
 
-                var auctions = await _auctionService.QueryAuctionsAsync(filter);
+                var auctions = await _serviceManager.AuctionService.QueryAuctionsAsync(filter);
                 return Ok(auctions);
             }
             catch (NotFoundException ex)
@@ -192,44 +196,31 @@ namespace Stockat.API.Controllers
             }
         }
 
-
-        /// Searches auctions with custom criteria-> paged response
         [HttpPost("search")]
-        public async Task<ActionResult<PagedResponse<AuctionDetailsDto>>> SearchAuctions(
-            [FromBody] AuctionSearchDto searchDto)
+        public async Task<ActionResult<PagedResponse<AuctionDetailsDto>>> SearchAuctions([FromBody] AuctionSearchDto searchDto)
         {
             try
             {
-                // Build complex filter from DTO
                 Expression<Func<Auction, bool>> filter = auction => true;
 
                 if (!string.IsNullOrEmpty(searchDto.Name))
-                {
                     filter = filter.And(a => a.Name.Contains(searchDto.Name));
-                }
 
                 if (searchDto.MinPrice.HasValue)
-                {
                     filter = filter.And(a => a.StartingPrice >= searchDto.MinPrice.Value);
-                }
 
                 if (searchDto.MaxPrice.HasValue)
-                {
                     filter = filter.And(a => a.StartingPrice <= searchDto.MaxPrice.Value);
-                }
 
                 if (searchDto.StartDateFrom.HasValue)
-                {
                     filter = filter.And(a => a.StartTime >= searchDto.StartDateFrom.Value);
-                }
 
                 if (searchDto.StartDateTo.HasValue)
-                {
                     filter = filter.And(a => a.StartTime <= searchDto.StartDateTo.Value);
-                }
 
-                var totalCount = await _auctionService.GetAuctionCountAsync(filter);
-                var auctions = await _auctionService.SearchAuctionsAsync(
+                var totalCount = await _serviceManager.AuctionService.GetAuctionCountAsync(filter);
+
+                var auctions = await _serviceManager.AuctionService.SearchAuctionsAsync(
                     filter,
                     skip: (searchDto.PageNumber - 1) * searchDto.PageSize,
                     take: searchDto.PageSize,
@@ -263,40 +254,4 @@ namespace Stockat.API.Controllers
             };
         }
     }
-
-   
-    public class PagedResponse<T>
-    {
-        public int PageNumber { get; set; }
-        public int PageSize { get; set; }
-        public int TotalCount { get; set; }
-        public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
-        public List<T> Data { get; set; }
-
-        public PagedResponse(List<T> data, int pageNumber, int pageSize, int totalCount)
-        {
-            Data = data;
-            PageNumber = pageNumber;
-            PageSize = pageSize;
-            TotalCount = totalCount;
-        }
-    }
-
-   
-    // Expression helper
-    public static class ExpressionExtensions
-    {
-        public static Expression<Func<T, bool>> And<T>(
-            this Expression<Func<T, bool>> left,
-            Expression<Func<T, bool>> right)
-        {
-            var param = Expression.Parameter(typeof(T), "x");
-            var body = Expression.AndAlso(
-                Expression.Invoke(left, param),
-                Expression.Invoke(right, param)
-            );
-            return Expression.Lambda<Func<T, bool>>(body, param);
-        }
-    }
-
 }

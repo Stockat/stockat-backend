@@ -35,6 +35,8 @@ namespace Stockat.Core.IServices.IAuctionServices
         Task<int> GetAuctionCountAsync();
 
         Task<int> GetAuctionCountAsync(Expression<Func<Auction, bool>> filter);
+
+        public Task CloseEndedAuctionsAsync();
     }
 
 

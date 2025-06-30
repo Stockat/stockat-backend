@@ -29,11 +29,6 @@ public class Program
         builder.Services.ConfigureIdentity(); // register identity
         builder.Services.ConfigureJWT(builder.Configuration);
 
-        builder.Services.AddScoped<IAuctionService, AuctionService>();
-        builder.Services.AddScoped<IAuctionBidRequestService, AuctionBidRequestService>();
-        builder.Services.AddScoped<IAuctionOrderService, AuctionOrderService>();
-
-
         builder.Services.ConfigureRepositoryManager(); // adding ef (infra) layer dependencies
         builder.Services.ConfigureServiceManager(); // adding service layer dependencies
 
@@ -56,8 +51,10 @@ public class Program
         builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName.StartsWith("Stockat.Service")));
 
         builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-        builder.Services.AddAutoMapper(typeof(AuctionMappingProfile));
 
+
+        //BackGround service injection
+        builder.Services.AddHostedService<AuctionMonitorService>();
 
         var app = builder.Build();
 

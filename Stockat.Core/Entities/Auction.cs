@@ -44,6 +44,7 @@ namespace Stockat.Core.Entities
         public Stock Stock { get; set; }
 
         public string? BuyerId { get; set; }
+        [ForeignKey(nameof(BuyerId))]
         public User? BuyerUser { get; set; }
 
         [Required]
@@ -66,6 +67,7 @@ namespace Stockat.Core.Entities
         public Auction Auction { get; set; }
 
         public string BidderId { get; set; }
+        [ForeignKey(nameof(BidderId))]
         public User BidderUser { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]

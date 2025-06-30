@@ -43,23 +43,24 @@ namespace Stockat.Service.Services.AuctionServices
                 
                 if (auction.SellerId == dto.BidderId) throw new BusinessException("Seller cannot place a bid on their own auction");
 
-                //check bid validation
+                //check bid amount validation
                 var minimumValidBid = auction.CurrentBid + auction.IncrementUnit;
 
                 if (dto.BidAmount < minimumValidBid)
                     throw new BusinessException($"Bid must be at least {minimumValidBid}");
 
                 //check for duplication --> maybe removed
-                var existingBid = await _repositoryManager.AuctionBidRequestRepo.FindAsync(
-                    b => b.AuctionId == dto.AuctionId && b.BidderId == dto.BidderId);
+                //var existingBid = await _repositoryManager.AuctionBidRequestRepo.FindAsync(
+                //    b => b.AuctionId == dto.AuctionId && b.BidderId == dto.BidderId);
 
-                if (existingBid != null)
-                    throw new BusinessException("You already placed a bid on this auction");
+                //if (existingBid != null)
+                //    throw new BusinessException("You already placed a bid on this auction");
                
                 var bid = _mapper.Map<AuctionBidRequest>(dto);
                 await _repositoryManager.AuctionBidRequestRepo.AddAsync(bid);
 
                 auction.CurrentBid = dto.BidAmount;
+                auction.BuyerId = dto.BidderId;
 
                 await _repositoryManager.CompleteAsync();
                 await _repositoryManager.CommitTransactionAsync();

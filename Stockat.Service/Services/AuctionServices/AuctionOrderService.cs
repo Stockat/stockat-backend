@@ -41,7 +41,7 @@ namespace Stockat.Service.Services.AuctionServices
                 if (auction.BuyerId == null)
                     throw new InvalidOperationException("Auction has no winner");
 
-                //get winning bid(bid request)
+                //get winning bid
                 var winningBid = auction.AuctionBidRequest
                     .Where(b => b.BidderId == auction.BuyerId)
                     .OrderByDescending(b => b.BidAmount)

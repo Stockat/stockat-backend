@@ -1,4 +1,5 @@
 ﻿using Stockat.Core.IServices;
+using Stockat.Core.IServices.IAuctionServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,4 +17,8 @@ public interface IServiceManager
 
     IUserVerificationService UserVerificationService { get; }
     IProductService ProductService { get; }
+
+    public IAuctionService AuctionService {  get; }
+    public IAuctionBidRequestService AuctionBidRequestService {  get; }
+    public IAuctionOrderService AuctionOrderService {  get; }
 }

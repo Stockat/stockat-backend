@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Stockat.Core;
 using Stockat.Core.DTOs.AuctionDTOs;
-using Stockat.Core.IServices.IAuctionServices;
+using Stockat.Core.IServices;
 
 namespace Stockat.API.Controllers
 {
@@ -9,11 +9,11 @@ namespace Stockat.API.Controllers
     [ApiController]
     public class AuctionOrderController : ControllerBase
     {
-        private readonly IAuctionOrderService _orderService;
+        private readonly IServiceManager _serviceManager;
 
-        public AuctionOrderController(IAuctionOrderService orderService)
+        public AuctionOrderController(IServiceManager serviceManager)
         {
-            _orderService = orderService;
+            _serviceManager = serviceManager;
         }
 
         [HttpPost("auction/{auctionId}")]
@@ -21,8 +21,7 @@ namespace Stockat.API.Controllers
         {
             try
             {
-                var order = await _orderService.CreateOrderForWinningBidAsync(auctionId);
-
+                var order = await _serviceManager.AuctionOrderService.CreateOrderForWinningBidAsync(auctionId);
                 return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
             }
             catch (Exception ex)
@@ -34,16 +33,14 @@ namespace Stockat.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<AuctionOrderDto>> GetOrder(int id)
         {
-            var order = await _orderService.GetOrderByIdAsync(id);
-
+            var order = await _serviceManager.AuctionOrderService.GetOrderByIdAsync(id);
             return order != null ? Ok(order) : NotFound();
         }
 
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<IEnumerable<AuctionOrderDto>>> GetUserOrders(string userId)
         {
-            var orders = await _orderService.GetOrdersByUserAsync(userId);
-
+            var orders = await _serviceManager.AuctionOrderService.GetOrdersByUserAsync(userId);
             return Ok(orders);
         }
 
@@ -52,8 +49,7 @@ namespace Stockat.API.Controllers
         {
             try
             {
-                var order = await _orderService.GetOrderByAuctionIdAsync(auctionId);
-
+                var order = await _serviceManager.AuctionOrderService.GetOrderByAuctionIdAsync(auctionId);
                 return order != null ? Ok(order) : NotFound();
             }
             catch (Exception ex)
@@ -67,7 +63,7 @@ namespace Stockat.API.Controllers
         {
             try
             {
-                await _orderService.ProcessPaymentAsync(orderId, paymentDto);
+                await _serviceManager.AuctionOrderService.ProcessPaymentAsync(orderId, paymentDto);
                 return NoContent();
             }
             catch (Exception ex)
