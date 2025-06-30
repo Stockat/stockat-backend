@@ -12,6 +12,7 @@ public class RepositoryManager : IRepositoryManager
     private readonly StockatDBContext _context;
     private readonly Lazy<IBaseRepository<UserVerification>> _userVerificationRepo;
     private readonly Lazy<ProductRepository> _productRepository;
+    private readonly Lazy<IBaseRepository<Stock>> _stockRepository;
     private readonly IMapper _mapper;
 
     private readonly Lazy<IBaseRepository<Service>> _serviceRepo;
@@ -31,6 +32,7 @@ public class RepositoryManager : IRepositoryManager
         _serviceRepo = new Lazy<IBaseRepository<Service>>(() => new BaseRepository<Service>(_context));
         _serviceRequestRepo = new Lazy<IBaseRepository<ServiceRequest>>(() => new BaseRepository<ServiceRequest>(_context));
         _serviceRequestUpdateRepo = new Lazy<IBaseRepository<ServiceRequestUpdate>>(() => new BaseRepository<ServiceRequestUpdate>(_context));
+        _stockRepository = new Lazy<IBaseRepository<Stock>>(() => new BaseRepository<Stock>(_context));
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
@@ -41,6 +43,7 @@ public class RepositoryManager : IRepositoryManager
     public IProductRepository ProductRepository => _productRepository.Value;
 
     public IBaseRepository<User> UserRepo => _userRepo.Value;
+    public IBaseRepository<Stock> StockRepo => _stockRepository.Value;
 
     public int Complete()
     {
