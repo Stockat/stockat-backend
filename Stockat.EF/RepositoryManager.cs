@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using AutoMapper;
 using Stockat.Core;
 using Stockat.Core.Entities;
 using Stockat.Core.IRepositories;
@@ -11,6 +12,15 @@ public class RepositoryManager : IRepositoryManager
 {
     private readonly StockatDBContext _context;
     private readonly Lazy<IBaseRepository<UserVerification>> _userVerificationRepo;
+    private readonly Lazy<IBaseRepository<Auction>> _AuctionRepo;
+    private readonly Lazy<IBaseRepository<Stock>> _StockRepo;
+    private readonly Lazy<IBaseRepository<AuctionBidRequest>> _auctionBidRequestRepo;
+    private readonly Lazy<IBaseRepository<AuctionOrder>> _auctionOrderRepo;
+
+
+    private IDbContextTransaction _transaction;
+
+    //public RepositoryManager(StockatDBContext context)
     private readonly Lazy<ProductRepository> _productRepository;
     private readonly IMapper _mapper;
 
@@ -26,6 +36,11 @@ public class RepositoryManager : IRepositoryManager
         _mapper = mapper;
 
         _userVerificationRepo = new Lazy<IBaseRepository<UserVerification>>(() => new BaseRepository<UserVerification>(_context));
+        _AuctionRepo= new Lazy<IBaseRepository<Auction>>(() => new BaseRepository<Auction>(_context));
+        _StockRepo = new Lazy<IBaseRepository<Stock>>(() => new BaseRepository<Stock>(_context));
+        _auctionBidRequestRepo = new Lazy<IBaseRepository<AuctionBidRequest>>(() => new BaseRepository<AuctionBidRequest>(_context));
+        _auctionOrderRepo = new Lazy<IBaseRepository<AuctionOrder>>(() => new BaseRepository<AuctionOrder>(_context));
+
         _userRepo = new Lazy<IBaseRepository<User>>(()  => new BaseRepository<User>(_context));
         _productRepository = new Lazy<ProductRepository>(() => new ProductRepository(_context, _mapper));
         _serviceRepo = new Lazy<IBaseRepository<Service>>(() => new BaseRepository<Service>(_context));
@@ -34,6 +49,11 @@ public class RepositoryManager : IRepositoryManager
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
+    public IBaseRepository<Auction> AuctionRepo => _AuctionRepo.Value;
+    public IBaseRepository<Stock> StockRepo => _StockRepo.Value;
+    public IBaseRepository<AuctionBidRequest> AuctionBidRequestRepo => _auctionBidRequestRepo.Value;
+    public IBaseRepository<AuctionOrder> AuctionOrderRepo => _auctionOrderRepo.Value;
+
 
     public IBaseRepository<Service> ServiceRepo => _serviceRepo.Value;
     public IBaseRepository<ServiceRequest> ServiceRequestRepo => _serviceRequestRepo.Value;
@@ -60,5 +80,20 @@ public class RepositoryManager : IRepositoryManager
     public async Task DisposeAsync()
     {
         _context.DisposeAsync();
+    }
+
+    public async Task BeginTransactionAsync() =>
+        _transaction = await _context.Database.BeginTransactionAsync();
+
+    public async Task CommitTransactionAsync()
+    {
+        await _transaction.CommitAsync();
+        await _transaction.DisposeAsync();
+    }
+
+    public async Task RollbackTransactionAsync()
+    {
+        await _transaction.RollbackAsync();
+        await _transaction.DisposeAsync();
     }
 }
