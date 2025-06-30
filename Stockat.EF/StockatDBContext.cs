@@ -5,6 +5,7 @@ using Stockat.EF.Configurations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -27,6 +28,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<Auction> Auction { get; set; }
     public virtual DbSet<AuctionBidRequest> AuctionBidRequest { get; set; }
     public virtual DbSet<AuctionOrder> AuctionOrder { get; set; }
+    public virtual DbSet<Category> Categories { get; set; }
 
     public StockatDBContext(DbContextOptions options) : base(options)
     {
@@ -36,20 +38,20 @@ public class StockatDBContext : IdentityDbContext<User>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyConfiguration(new RoleConfiguration());
-        modelBuilder.ApplyConfiguration(new ServiceConfiguration());
-        modelBuilder.ApplyConfiguration(new ServiceRequestConfiguration());
-        modelBuilder.ApplyConfiguration(new ServiceRequestUpdateConfiguration());
-        modelBuilder.ApplyConfiguration(new FeatureConfiguration());
-        modelBuilder.ApplyConfiguration(new FeatureValueConfiguration());
-        modelBuilder.ApplyConfiguration(new ProductConfiguration());
-        modelBuilder.ApplyConfiguration(new ProductImageConfiguration());
-        modelBuilder.ApplyConfiguration(new StockConfiguration());
-        modelBuilder.ApplyConfiguration(new UserVerificationConfiguration());
-        modelBuilder.ApplyConfiguration(new AuctionConfiguration());
-        modelBuilder.ApplyConfiguration(new AuctionOrderConfiguration());
-        modelBuilder.ApplyConfiguration(new OrderProductConfiguration());
-        modelBuilder.ApplyConfiguration(new TagConfiguration());
-
+        //modelBuilder.ApplyConfiguration(new RoleConfiguration());
+        //modelBuilder.ApplyConfiguration(new ServiceConfiguration());
+        //modelBuilder.ApplyConfiguration(new ServiceRequestConfiguration());
+        //modelBuilder.ApplyConfiguration(new ServiceRequestUpdateConfiguration());
+        //modelBuilder.ApplyConfiguration(new FeatureConfiguration());
+        //modelBuilder.ApplyConfiguration(new FeatureValueConfiguration());
+        //modelBuilder.ApplyConfiguration(new ProductConfiguration());
+        //modelBuilder.ApplyConfiguration(new ProductImageConfiguration());
+        //modelBuilder.ApplyConfiguration(new StockConfiguration());
+        //modelBuilder.ApplyConfiguration(new UserVerificationConfiguration());
+        //modelBuilder.ApplyConfiguration(new AuctionConfiguration());
+        //modelBuilder.ApplyConfiguration(new AuctionOrderConfiguration());
+        //modelBuilder.ApplyConfiguration(new OrderProductConfiguration());
+        //modelBuilder.ApplyConfiguration(new TagConfiguration());
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly()); // better performance
     }
 }

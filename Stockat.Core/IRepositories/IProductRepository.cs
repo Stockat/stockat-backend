@@ -12,4 +12,5 @@ namespace Stockat.Core.IRepositories;
 public interface IProductRepository : IBaseRepository<Product>
 {
     public new Task<ProductDetailsDto> FindProductDetailsAsync(Expression<Func<Product, bool>> criteria, string[] includes = null);
+    public Task<bool> IsProductFoundAsync(Expression<Func<Product, bool>> criteria);
 }

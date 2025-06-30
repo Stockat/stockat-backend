@@ -13,6 +13,7 @@ public interface IRepositoryManager
     IProductRepository ProductRepository { get; }
 
 
+    IBaseRepository<User> UserRepo { get; }
     int Complete();
     void Dispose();
 
