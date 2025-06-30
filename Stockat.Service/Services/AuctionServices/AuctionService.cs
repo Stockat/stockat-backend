@@ -164,7 +164,7 @@ namespace Stockat.Service.Services.AuctionServices
             return _mapper.Map<IEnumerable<AuctionDetailsDto>>(result);
         }
 
-        public async Task<int> GetAuctionCountAsync() => await _repositoryManager.AuctionRepo.CountAsync();
+        public async Task<int> GetAuctionCountAsync() => throw new NotImplementedException();
 
         public async Task<int> GetAuctionCountAsync(Expression<Func<Auction, bool>> filter)
         {
@@ -302,8 +302,14 @@ namespace Stockat.Service.Services.AuctionServices
             if (filter == null)
                 throw new NullObjectParameterException(nameof(filter));
 
-            var result = await _repositoryManager.AuctionRepo.FindAllAsync(filter, skip, take, orderBy, orderByDirection);
-            
+            var result = await _repositoryManager.AuctionRepo.FindAllAsync(
+                filter,
+                skip,
+                take,
+                null,
+                orderBy,
+                orderByDirection);
+
             if (!result.Any())
                 throw new NotFoundException("No Auctions found for filter");
 

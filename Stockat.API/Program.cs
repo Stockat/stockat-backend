@@ -4,6 +4,8 @@ using NLog;
 using Stockat.API.ActionFilters;
 using Stockat.API.Extensions;
 using Stockat.Core.Entities;
+using Stockat.Core.IServices;
+using Stockat.Service.Services.AuctionServices;
 using System.Text.Json.Serialization;
 
 namespace Stockat.API;
@@ -58,7 +60,7 @@ public class Program
 
         var app = builder.Build();
 
-        var logger = app.Services.GetRequiredService<ILoggerManager>();
+        var logger = app.Services.GetRequiredService<ILoggerManager>(); ///
         app.ConfigureExceptionHandler(logger);
 
         // Configure the HTTP request pipeline.
