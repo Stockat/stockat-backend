@@ -71,7 +71,9 @@ public class ServiceRequestService : IServiceRequestService
             BuyerApprovalStatus = ApprovalStatus.Pending,
             ServiceStatus = ServiceStatus.Pending,
             PricePerProduct = service.PricePerProduct, // Include the price from service
-            TotalPrice = 0 // Total to be set after seller/buyer approval logic
+            TotalPrice = 0, // Total to be set after seller/buyer approval logic
+            ImageId = service.ImageId,
+            ImageUrl = service.ImageUrl
         };
 
         await _repo.ServiceRequestRepo.AddAsync(request);
