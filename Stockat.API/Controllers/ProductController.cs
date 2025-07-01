@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Stockat.Core;
+using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.ProductDTOs;
 using Stockat.Core.Enums;
 using Stockat.Core.IServices;
@@ -61,5 +62,7 @@ public class ProductController : ControllerBase
 
         return Ok(res);
     }
+
+   
 
 }

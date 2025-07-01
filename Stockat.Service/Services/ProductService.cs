@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 using Stockat.Core;
 using Stockat.Core.Consts;
 using Stockat.Core.DTOs;
+using Stockat.Core.DTOs.MediaDTOs;
 using Stockat.Core.DTOs.ProductDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
@@ -22,12 +24,14 @@ public class ProductService : IProductService
 
     private readonly ILoggerManager _logger;
     private readonly IMapper _mapper;
+    private IImageService _imageService;
     private readonly IRepositoryManager _repo;
-    public ProductService(ILoggerManager logger, IMapper mapper, IRepositoryManager repo)
+    public ProductService(ILoggerManager logger, IMapper mapper, IRepositoryManager repo, IImageService imageService)
     {
         _logger = logger;
         _mapper = mapper;
         _repo = repo;
+        _imageService = imageService;
     }
 
 
@@ -139,5 +143,18 @@ public class ProductService : IProductService
 
     }
 
+    public async Task<GenericResponseDto<IEnumerable<ImageUploadResultDto>>> UploadProductImages(IFormFile[] imgs)
+    {
 
+        var uploadResult = await _imageService.UploadImagesAsync(imgs, "/ProductImages");
+
+
+        return new GenericResponseDto<IEnumerable<ImageUploadResultDto>>
+        {
+            Message = "Profile image updated successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = uploadResult
+        };
+
+    }
 }

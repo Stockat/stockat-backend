@@ -32,7 +32,7 @@ public sealed class ServiceManager : IServiceManager
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
-        _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
+        _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager, _imageService.Value));
 
 
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));
