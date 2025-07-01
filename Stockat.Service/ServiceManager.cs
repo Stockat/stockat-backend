@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Stockat.Core;
 using Stockat.Core.Entities;
 using Stockat.Core.IServices;
+using Stockat.Infrastructure.Services;
 using Stockat.Service.Services;
 
 namespace Stockat.Service;
@@ -18,12 +19,14 @@ public sealed class ServiceManager : IServiceManager
 {
     private readonly Lazy<IAuthenticationService> _authenticationService;
     private readonly Lazy<IImageService> _imageService;
+    private readonly Lazy<IFileService> _fileService;
     private readonly Lazy<IEmailService> _emailService;
     private readonly Lazy<IUserVerificationService> _userVerificationService;
     private readonly Lazy<IServiceService> _serviceService;
     private readonly Lazy<IServiceRequestService> _serviceRequestService;
     private readonly Lazy<IServiceRequestUpdateService> _serviceRequestUpdateService;
     private readonly Lazy<IProductService> _productService;
+    private readonly Lazy<IChatService> _chatService;
 
     private readonly Lazy<IUserService> _userService;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper,
@@ -32,6 +35,7 @@ public sealed class ServiceManager : IServiceManager
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
+        _fileService = new Lazy<IFileService>(() => new CloudinaryFileService(configuration));
         _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
 
 
@@ -46,6 +50,8 @@ public sealed class ServiceManager : IServiceManager
         _userVerificationService = new Lazy<IUserVerificationService>(() => new UserVerificationService(logger, mapper, configuration, _imageService.Value, repositoryManager, httpContextAccessor));
 
         _userService = new Lazy<IUserService>(() => new UserService(repositoryManager, mapper, httpContextAccessor, _imageService.Value, userManager, _emailService.Value));
+
+        _chatService = new Lazy<IChatService>(() => new ChatService(repositoryManager, mapper, _imageService.Value, _fileService.Value));
     }
 
     public IAuthenticationService AuthenticationService
@@ -56,6 +62,7 @@ public sealed class ServiceManager : IServiceManager
     //public IAuthenticationService AuthenticationService => _authenticationService.Value;
 
     public IImageService ImageService => _imageService.Value;
+    public IFileService FileService => _fileService.Value;
 
     public IEmailService EmailService => _emailService.Value;
     public IProductService ProductService => _productService.Value;
@@ -67,4 +74,6 @@ public sealed class ServiceManager : IServiceManager
     public IServiceRequestUpdateService ServiceRequestUpdateService => _serviceRequestUpdateService.Value;
 
     public IUserService UserService => _userService.Value;
+
+    public IChatService ChatService => _chatService.Value;
 }

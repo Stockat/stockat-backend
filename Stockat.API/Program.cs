@@ -5,6 +5,7 @@ using Stockat.API.Extensions;
 using Stockat.Core.IServices;
 using Stockat.API.ActionFilters;
 using Stockat.Core.Entities;
+using Stockat.API.Hubs;
 using System.Text.Json.Serialization;
 
 namespace Stockat.API;
@@ -45,6 +46,7 @@ public class Program
         // only use IHttpContextAccessor when necessary like accessing user claims, IP address, headers
         builder.Services.AddHttpContextAccessor();
 
+        builder.Services.AddSignalR();
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
@@ -80,6 +82,7 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
 
+        app.MapHub<ChatHub>("/chathub");
         app.MapControllers();
 
         app.Run();

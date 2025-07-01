@@ -39,6 +39,13 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
         return await _context.Set<T>().FindAsync(id);
     }
 
+    // String key overload for entities with string primary key (e.g., User)
+    public async Task<T> GetByIdAsync(string id)
+    {
+        // Only works for entities where the PK is string and named "Id"
+        return await _context.Set<T>().FindAsync(id);
+    }
+
     public T Find(Expression<Func<T, bool>> criteria, string[] includes = null)
     {
         IQueryable<T> query = _context.Set<T>();

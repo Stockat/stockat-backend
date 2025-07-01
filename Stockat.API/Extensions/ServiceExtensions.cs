@@ -144,4 +144,10 @@ public static class ServiceExtensions
             c.RoutePrefix = string.Empty;
         });
     }
+
+    public static void ConfigureServices(this IServiceCollection services)
+    {
+        services.AddSignalR();
+        services.AddHttpContextAccessor();
+    }
 }

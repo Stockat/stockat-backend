@@ -11,6 +11,7 @@ public interface IServiceManager
 {
     IAuthenticationService AuthenticationService { get; }
     IImageService ImageService { get; }
+    IFileService FileService { get; }
 
     IEmailService EmailService { get; }
 
@@ -22,4 +23,6 @@ public interface IServiceManager
     IProductService ProductService { get; }
 
     IUserService UserService { get; }
+
+    IChatService ChatService { get; }
 }
