@@ -121,6 +121,43 @@ public class ChatService : IChatService
         return _mapper.Map<ChatMessageDto>(message);
     }
 
+    public async Task<ChatConversationDto> CreateConversationAsync(string user1Id, string user2Id)
+    {
+        // Prevent duplicate conversations
+        var existing = await _repo.ChatConversationRepo
+            .FindAsync(c => (c.User1Id == user1Id && c.User2Id == user2Id) || (c.User1Id == user2Id && c.User2Id == user1Id));
+        if (existing.Any())
+            throw new InvalidOperationException("Conversation already exists.");
+
+        var conversation = new ChatConversation
+        {
+            User1Id = user1Id,
+            User2Id = user2Id,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        };
+        await _repo.ChatConversationRepo.AddAsync(conversation);
+        await _repo.CompleteAsync();
+
+        return _mapper.Map<ChatConversationDto>(conversation);
+    }
+
+    public async Task<bool> DeleteConversationAsync(int conversationId, string requestingUserId)
+    {
+        var conversation = await _repo.ChatConversationRepo.GetByIdAsync(conversationId);
+        if (conversation == null)
+            return false;
+
+        // Only allow participants to delete
+        if (conversation.User1Id != requestingUserId && conversation.User2Id != requestingUserId)
+            throw new UnauthorizedAccessException("Not a participant of this conversation.");
+
+        // Optionally: delete related messages, reactions, read statuses, etc.
+        _repo.ChatConversationRepo.Delete(conversation);
+        await _repo.CompleteAsync();
+        return true;
+    }
+
     /// <summary>
     /// Get paginated conversations for a user, including the last message for each conversation.
     /// All DateTime values are UTC; frontend should convert to local time zone.

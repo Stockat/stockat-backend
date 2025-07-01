@@ -52,6 +52,33 @@ public class ChatController : ControllerBase
     }
 
     /// <summary>
+    /// Create a new conversation.
+    /// </summary>
+    [HttpPost("conversations")]
+    public async Task<IActionResult> CreateConversation([FromBody] CreateConversationDto dto)
+    {
+        var userId = GetUserId();
+        if (userId == dto.User2Id)
+            return BadRequest("Cannot create conversation with yourself.");
+
+        var conversation = await _serviceManager.ChatService.CreateConversationAsync(userId, dto.User2Id);
+        return Ok(conversation);
+    }
+
+    /// <summary>
+    /// Delete a conversation.
+    /// </summary>
+    [HttpDelete("conversations/{conversationId}")]
+    public async Task<IActionResult> DeleteConversation(int conversationId)
+    {
+        var userId = GetUserId();
+        var result = await _serviceManager.ChatService.DeleteConversationAsync(conversationId, userId);
+        if (!result)
+            return NotFound();
+        return NoContent();
+    }
+
+    /// <summary>
     /// Send a text message.
     /// </summary>
     [HttpPost("messages/text")]

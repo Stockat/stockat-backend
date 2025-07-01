@@ -9,8 +9,8 @@ namespace Stockat.Core.DTOs.ChatDTOs;
 public class ChatConversationDto
 {
     public int ConversationId { get; set; }
-    public UserChatInfoDto User1 { get; set; }
-    public UserChatInfoDto User2 { get; set; }
+    public string User1Id { get; set; }
+    public string User2Id { get; set; }
     public DateTime? LastMessageAt { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -20,4 +20,12 @@ public class ChatConversationDto
     /// The last message in the conversation (for preview in conversation list).
     /// </summary>
     public ChatMessageDto LastMessage { get; set; }
+}
+
+/// <summary>
+/// DTO for creating a new conversation.
+/// </summary>
+public class CreateConversationDto
+{
+    public string User2Id { get; set; }
 }

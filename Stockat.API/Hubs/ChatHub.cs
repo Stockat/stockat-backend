@@ -193,4 +193,33 @@ public class ChatHub : Hub
         }
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"conversation-{conversationId}");
     }
+
+    /// <summary>
+    /// Create a new conversation.
+    /// </summary>
+    public async Task CreateConversation(string user2Id)
+    {
+        var user1Id = GetUserId();
+        var conversation = await _serviceManager.ChatService.CreateConversationAsync(user1Id, user2Id);
+        await Clients.User(user2Id).SendAsync("ConversationCreated", conversation);
+        await Clients.Caller.SendAsync("ConversationCreated", conversation);
+    }
+
+    /// <summary>
+    /// Delete a conversation.
+    /// </summary>
+    public async Task DeleteConversation(int conversationId)
+    {
+        if (conversationId <= 0)
+        {
+            await Clients.Caller.SendAsync("Error", "Invalid conversation id.");
+            return;
+        }
+        var userId = GetUserId();
+        var result = await _serviceManager.ChatService.DeleteConversationAsync(conversationId, userId);
+        if (result)
+        {
+            await Clients.Group($"conversation-{conversationId}").SendAsync("ConversationDeleted", conversationId);
+        }
+    }
 }

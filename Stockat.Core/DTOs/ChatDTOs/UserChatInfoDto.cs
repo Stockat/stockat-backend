@@ -9,5 +9,5 @@ public class UserChatInfoDto
 {
     public string UserId { get; set; }
     public string FullName { get; set; }
-    public string ProfileImageUrl { get; set; }
+    public string? ProfileImageUrl { get; set; }
 }

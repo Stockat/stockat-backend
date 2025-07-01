@@ -38,4 +38,14 @@ public interface IChatService
     /// Get count of unread messages for notification badge.
     /// </summary>
     Task<int> GetUnreadMessageCountAsync(string userId);
+
+    /// <summary>
+    /// Create a new conversation between two users.
+    /// </summary>
+    Task<ChatConversationDto> CreateConversationAsync(string user1Id, string user2Id);
+
+    /// <summary>
+    /// Delete a conversation.
+    /// </summary>
+    Task<bool> DeleteConversationAsync(int conversationId, string requestingUserId);
 }
