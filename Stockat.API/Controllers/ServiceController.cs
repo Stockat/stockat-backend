@@ -103,7 +103,7 @@ public class ServiceController : ControllerBase
     }
 
     [HttpGet("mine")]
-    [Authorize(Roles = "Seller, Admin")]
+    [Authorize(Roles = "Seller")]
     public async Task<IActionResult> GetMyServices()
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -147,6 +147,35 @@ public class ServiceController : ControllerBase
         try
         {
             var result = await _service.ServiceService.UploadServiceImageAsync(serviceId, sellerId, file);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Image upload failed: {ex.Message}");
+        }
+    }
+
+    [HttpPost("upload-image")]
+    [Authorize]
+    public async Task<IActionResult> UploadImage(IFormFile file)
+    {
+        if (file == null)
+            return BadRequest("No file was provided.");
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("You must be logged in to upload an image.");
+
+        try
+        {
+            var result = await _service.ImageService.UploadImageAsync(file, "Services");
             return Ok(result);
         }
         catch (NotFoundException ex)

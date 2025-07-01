@@ -19,7 +19,7 @@ public class ServiceRequestUpdateController : ControllerBase
     }
 
     [HttpPost("{requestId:int}")]
-    [Authorize(Roles = "Buyer, Admin")]
+    [Authorize(Roles = "Buyer")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> CreateUpdateAsync(int requestId, [FromBody] CreateServiceRequestUpdateDto dto)
     {
@@ -48,7 +48,7 @@ public class ServiceRequestUpdateController : ControllerBase
     }
 
     [HttpPatch("seller-approval/{updateId:int}")]
-    [Authorize(Roles = "Seller, Admin")]
+    [Authorize(Roles = "Seller")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> HandleSellerApprovalAsync(int updateId, [FromBody] ServiceRequestUpdateApprovalDto dto)
     {
@@ -121,7 +121,7 @@ public class ServiceRequestUpdateController : ControllerBase
     }
 
     [HttpPatch("{updateId:int}/cancel")]
-    [Authorize(Roles = "Buyer, Admin")]
+    [Authorize(Roles = "Buyer")]
     public async Task<IActionResult> CancelUpdateAsync(int updateId)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
