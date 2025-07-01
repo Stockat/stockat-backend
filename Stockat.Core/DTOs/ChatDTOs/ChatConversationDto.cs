@@ -20,6 +20,12 @@ public class ChatConversationDto
     /// The last message in the conversation (for preview in conversation list).
     /// </summary>
     public ChatMessageDto LastMessage { get; set; }
+
+    // New properties for user info
+    public string User1FullName { get; set; }
+    public string User2FullName { get; set; }
+    public string? User1ProfileImageUrl { get; set; }
+    public string? User2ProfileImageUrl { get; set; }
 }
 
 /// <summary>

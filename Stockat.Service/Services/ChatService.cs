@@ -61,6 +61,11 @@ public class ChatService : IChatService
             SentAt = DateTime.UtcNow
         };
         await _repo.ChatMessageRepo.AddAsync(message);
+
+        // Update LastMessageAt
+        conversation.LastMessageAt = message.SentAt;
+        _repo.ChatConversationRepo.Update(conversation);
+
         await _repo.CompleteAsync();
         return _mapper.Map<ChatMessageDto>(message);
     }
@@ -89,6 +94,11 @@ public class ChatService : IChatService
             SentAt = DateTime.UtcNow
         };
         await _repo.ChatMessageRepo.AddAsync(message);
+
+        // Update LastMessageAt
+        conversation.LastMessageAt = message.SentAt;
+        _repo.ChatConversationRepo.Update(conversation);
+
         await _repo.CompleteAsync();
         return _mapper.Map<ChatMessageDto>(message);
     }
@@ -117,6 +127,11 @@ public class ChatService : IChatService
             SentAt = DateTime.UtcNow
         };
         await _repo.ChatMessageRepo.AddAsync(message);
+
+        // Update LastMessageAt
+        conversation.LastMessageAt = message.SentAt;
+        _repo.ChatConversationRepo.Update(conversation);
+
         await _repo.CompleteAsync();
         return _mapper.Map<ChatMessageDto>(message);
     }
@@ -125,8 +140,8 @@ public class ChatService : IChatService
     {
         // Prevent duplicate conversations
         var existing = await _repo.ChatConversationRepo
-            .FindAsync(c => (c.User1Id == user1Id && c.User2Id == user2Id) || (c.User1Id == user2Id && c.User2Id == user1Id));
-        if (existing.Any())
+            .FindAllAsync(c => (c.User1Id == user1Id && c.User2Id == user2Id) || (c.User1Id == user2Id && c.User2Id == user1Id));
+        if (existing != null && existing.Any())
             throw new InvalidOperationException("Conversation already exists.");
 
         var conversation = new ChatConversation
@@ -170,7 +185,7 @@ public class ChatService : IChatService
             c => (c.User1Id == userId || c.User2Id == userId) && !c.User1.IsDeleted && !c.User2.IsDeleted,
             skip: skip,
             take: pageSize,
-            includes: new[] { "User1", "User2" },
+            includes: new[] { "User1", "User2" }, // Ensure users are included for mapping
             orderBy: c => c.LastMessageAt,
             orderByDirection: "Descending"
         );
@@ -217,8 +232,8 @@ public class ChatService : IChatService
             orderBy: m => m.SentAt,
             orderByDirection: "Descending"
         );
-        // Return in ascending order for chat display
-        return _mapper.Map<IEnumerable<ChatMessageDto>>(messages.OrderBy(m => m.SentAt));
+        // Return in descending order for chat display (latest first)
+        return _mapper.Map<IEnumerable<ChatMessageDto>>(messages);
     }
 
     public async Task<IEnumerable<UserChatInfoDto>> SearchUsersAsync(string searchTerm, string currentUserId)
