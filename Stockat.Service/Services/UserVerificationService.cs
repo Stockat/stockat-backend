@@ -45,7 +45,7 @@ public class UserVerificationService : IUserVerificationService
             throw new InvalidOperationException("User already has a verification entry.");
         }
 
-        var uploadResult = await _imageService.UploadImageAsync(dto.Image);
+        var uploadResult = await _imageService.UploadImageAsync(dto.Image, "UserDocs");
         var entity = new UserVerification
         {
             UserId = userId,
@@ -109,7 +109,7 @@ public class UserVerificationService : IUserVerificationService
             if (!string.IsNullOrEmpty(entity.ImageId))
                 await _imageService.DeleteImageAsync(entity.ImageId);
 
-            var uploadResult = await _imageService.UploadImageAsync(dto.Image);
+            var uploadResult = await _imageService.UploadImageAsync(dto.Image, "UserDocs");
             entity.ImageId = uploadResult.FileId;
             entity.ImageURL = uploadResult.Url;
             isModified = true;

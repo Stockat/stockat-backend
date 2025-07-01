@@ -76,7 +76,7 @@ public class UserService : IUserService
         user.Country = dto.Country;
         user.PostalCode = dto.PostalCode;
         user.AboutMe = dto.AboutMe;
-
+        user.PhoneNumber = dto.PhoneNumber;
         _repo.UserRepo.Update(user);
         await _repo.CompleteAsync();
 
@@ -161,7 +161,38 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<GenericResponseDto<string>> DeactivateAsync()
+    //public async Task<GenericResponseDto<string>> DeactivateAsync()
+    //{
+    //    var userId = GetCurrentUserId();
+
+    //    var user = await _repo.UserRepo.FindAsync(u => u.Id == userId);
+    //    if (user == null)
+    //        throw new NotFoundException("User not found.");
+
+    //    if (user.IsDeleted)
+    //    {
+    //        return new GenericResponseDto<string>
+    //        {
+    //            Message = "User is already deactivated.",
+    //            Status = StatusCodes.Status400BadRequest,
+    //            Data = "Already deactivated"
+    //        };
+    //    }
+
+    //    user.IsDeleted = true;
+
+    //    _repo.UserRepo.Update(user);
+    //    await _repo.CompleteAsync();
+
+    //    return new GenericResponseDto<string>
+    //    {
+    //        Message = "User deactivated successfully.",
+    //        Status = StatusCodes.Status200OK,
+    //        Data = user.Id
+    //    };
+    //}
+
+    public async Task<GenericResponseDto<string>> ToggleActivationAsync()
     {
         var userId = GetCurrentUserId();
 
@@ -169,28 +200,21 @@ public class UserService : IUserService
         if (user == null)
             throw new NotFoundException("User not found.");
 
-        if (user.IsDeleted)
-        {
-            return new GenericResponseDto<string>
-            {
-                Message = "User is already deactivated.",
-                Status = StatusCodes.Status400BadRequest,
-                Data = "Already deactivated"
-            };
-        }
-
-        user.IsDeleted = true;
+        user.IsDeleted = !user.IsDeleted;
 
         _repo.UserRepo.Update(user);
         await _repo.CompleteAsync();
 
         return new GenericResponseDto<string>
         {
-            Message = "User deactivated successfully.",
+            Message = user.IsDeleted
+                ? "User deactivated successfully."
+                : "User reactivated successfully.",
             Status = StatusCodes.Status200OK,
             Data = user.Id
         };
     }
+
 
 
 

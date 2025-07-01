@@ -9,5 +9,5 @@ public interface IUserService
     Task<GenericResponseDto<UserReadDto>> UpdateAsync(UserUpdateDto dto);
     Task<GenericResponseDto<string>> UpdateProfileImageAsync(UserImageUpdateDto dto);
     Task<GenericResponseDto<string>> ChangePasswordAsync(ChangePasswordDto dto);
-    Task<GenericResponseDto<string>> DeactivateAsync();
+    Task<GenericResponseDto<string>> ToggleActivationAsync();
 }
