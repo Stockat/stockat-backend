@@ -209,5 +209,29 @@ public class ServiceRequestController : ControllerBase
         }
     }
 
-
+    [HttpPatch("{requestId:int}/buyer-cancel")]
+    [Authorize]
+    public async Task<IActionResult> CancelBuyerRequestAsync(int requestId)
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User is not authenticated.");
+            var result = await _serviceManager.ServiceRequestService.CancelBuyerRequest(requestId, userId);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        }
+    }
 }

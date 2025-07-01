@@ -70,7 +70,7 @@ public class ServiceRequestService : IServiceRequestService
             SellerApprovalStatus = ApprovalStatus.Pending,
             BuyerApprovalStatus = ApprovalStatus.Pending,
             ServiceStatus = ServiceStatus.Pending,
-            PricePerProduct = service.PricePerProduct, // Include the price from service
+            PricePerProduct = 0, // Include the price from service
             TotalPrice = 0, // Total to be set after seller/buyer approval logic
             ImageId = service.ImageId,
             ImageUrl = service.ImageUrl
@@ -249,6 +249,33 @@ public class ServiceRequestService : IServiceRequestService
         await _repo.CompleteAsync();
 
         _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");
+        return _mapper.Map<ServiceRequestDto>(request);
+    }
+
+    public async Task<ServiceRequestDto> CancelBuyerRequest(int requestId, string buyerId)
+    {
+        var request = await _repo.ServiceRequestRepo.FindAsync(
+            r => r.Id == requestId && r.BuyerId == buyerId,
+            ["Service"]);
+
+        if (request == null)
+        {
+            _logger.LogError($"Service request with ID {requestId} not found for buyer {buyerId}.");
+            throw new NotFoundException($"Service request with ID {requestId} not found for buyer {buyerId}.");
+        }
+
+        // Prevent cancellation if the request has already been approved by the seller
+        if (request.SellerApprovalStatus != ApprovalStatus.Pending)
+        {
+            _logger.LogError($"Service request with ID {requestId} cannot be cancelled as it has already been approved by the seller.");
+            throw new BadRequestException("You can only cancel requests that are still pending.");
+        }
+
+        // Set the status to cancelled
+        request.ServiceStatus = ServiceStatus.Cancelled;
+        _repo.ServiceRequestRepo.Update(request);
+        await _repo.CompleteAsync();
+        _logger.LogInfo($"Service request with ID {requestId} cancelled by buyer {buyerId}.");
         return _mapper.Map<ServiceRequestDto>(request);
     }
 }
