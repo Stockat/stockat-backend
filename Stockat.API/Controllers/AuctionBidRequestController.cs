@@ -33,8 +33,15 @@ namespace Stockat.API.Controllers
         [HttpGet("auction/{auctionId}")]
         public async Task<ActionResult<IEnumerable<AuctionBidRequestDto>>> GetBidsForAuction(int auctionId)
         {
-            var bids = await _serviceManager.AuctionBidRequestService.GetBidsByAuctionAsync(auctionId);
-            return Ok(bids);
+            try
+            {
+                var bids = await _serviceManager.AuctionBidRequestService.GetBidsByAuctionAsync(auctionId);
+                return Ok(bids);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
         }
 
         [HttpDelete("{id}")]

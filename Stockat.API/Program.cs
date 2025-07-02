@@ -60,7 +60,7 @@ public class Program
 
         var app = builder.Build();
 
-        var logger = app.Services.GetRequiredService<ILoggerManager>(); ///
+        var logger = app.Services.GetRequiredService<ILoggerManager>();
         app.ConfigureExceptionHandler(logger);
 
         // Configure the HTTP request pipeline.
