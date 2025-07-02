@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using AutoMapper;
 using Stockat.Core;
 using Stockat.Core.DTOs.ServiceRequestDTOs;
@@ -14,16 +15,22 @@ public class ServiceRequestService : IServiceRequestService
     private readonly ILoggerManager _logger;
     private readonly IMapper _mapper;
     private readonly IRepositoryManager _repo;
+    private readonly IEmailService _emailService;
+    private readonly IUserService _userService;
 
     public ServiceRequestService(
         ILoggerManager logger,
         IMapper mapper,
-        IRepositoryManager repo
+        IRepositoryManager repo,
+        IEmailService emailService,
+        IUserService userService
         )
     {
         _logger = logger;
         _mapper = mapper;
         _repo = repo;
+        _emailService = emailService;
+        _userService = userService;
     }
 
     public async Task<ServiceRequestDto> CreateAsync(CreateServiceRequestDto dto, string buyerId)
@@ -41,7 +48,7 @@ public class ServiceRequestService : IServiceRequestService
         }
 
         // Fetch the service
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == dto.ServiceId);
+        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == dto.ServiceId, ["Seller"]);
         if (service == null)
         {
             _logger.LogError($"Service with ID {dto.ServiceId} not found.");
@@ -79,6 +86,25 @@ public class ServiceRequestService : IServiceRequestService
         await _repo.ServiceRequestRepo.AddAsync(request);
         await _repo.CompleteAsync();
 
+        _logger.LogInfo($"Service request created successfully for service {dto.ServiceId} by buyer {buyerId}.");
+
+        var buyer = await _userService.GetUserAsync(buyerId);
+
+        await _emailService.SendEmailAsync(
+            service.Seller.Email,
+            "New Service Request",
+            $"You have a new service request for '{service.Name}' from {request.Buyer.FirstName} {request.Buyer.LastName}. " +
+            $"Please review the request and respond accordingly."
+        );
+
+        await _emailService.SendEmailAsync(
+            buyer.Data.Email,
+            "Service Request Created",
+            $"Your service request for '{service.Name}' has been created successfully. " +
+            $"You will be notified once the seller responds."
+        );
+
+
         // Manually populate navigation properties (avoids extra query)
         request.Service = service;
 
@@ -99,19 +125,6 @@ public class ServiceRequestService : IServiceRequestService
         _logger.LogInfo($"Retrieved {requests.Count()} pending service requests for buyer {buyerId}.");
         return requests.Select(r => r.ServiceId).Distinct();
     }
-
-    //public async Task<bool> BuyerHasPendingRequestForService(string buyerId, int serviceId)
-    //{
-    //    var hasPendingRequest = await _repo.ServiceRequestRepo.ExistsAsync(
-    //        r => r.BuyerId == buyerId && r.ServiceId == serviceId && r.BuyerApprovalStatus == ApprovalStatus.Pending
-    //    );
-    //    if (hasPendingRequest)
-    //    {
-    //        _logger.LogInfo($"Buyer {buyerId} has a pending request for service {serviceId}.");
-    //        return true;
-    //    }
-    //    return false;
-    //}
 
     public async Task<IEnumerable<ServiceRequestDto>> GetBuyerRequestsAsync(string buyerId)
     {
@@ -164,7 +177,7 @@ public class ServiceRequestService : IServiceRequestService
     {
         var request = await _repo.ServiceRequestRepo.FindAsync(
             r => r.Id == requestId && r.Service.SellerId == sellerId,
-            ["Buyer", "Service"]
+            ["Buyer", "Service", "Service.Seller"]
         );
 
         if (request == null)
@@ -197,6 +210,13 @@ public class ServiceRequestService : IServiceRequestService
         _repo.ServiceRequestRepo.Update(request);
         await _repo.CompleteAsync();
 
+        await _emailService.SendEmailAsync(
+            request.Buyer.Email,
+            "New Service Request Offer",
+            $"Your service request for '{request.Service.Name}' has a new offer from {request.Service.Seller.FirstName} {request.Service.Seller.LastName}. " +
+            $"Price per product: {dto.PricePerProduct}, Estimated time: {dto.EstimatedTime}."
+        );
+
         return _mapper.Map<ServiceRequestDto>(request);
     }
 
@@ -204,7 +224,7 @@ public class ServiceRequestService : IServiceRequestService
     {
         var request = await _repo.ServiceRequestRepo.FindAsync(
             r => r.Id == requestId && r.BuyerId == buyerId,
-            ["Buyer", "Service"]
+            ["Buyer", "Service", "Service.Seller"]
         );
 
         if (request == null)
@@ -239,6 +259,13 @@ public class ServiceRequestService : IServiceRequestService
         _repo.ServiceRequestRepo.Update(request);
         await _repo.CompleteAsync();
 
+        // Notify the seller about the buyer's status update
+        await _emailService.SendEmailAsync(
+            request.Service.Seller.Email,
+            "Service Request Buyer Status Update",
+            $"The buyer {request.Buyer.FirstName} {request.Buyer.LastName} has updated the status for your service request '{request.Service.Name}' to {statusDto.Status}."
+        );
+
         _logger.LogInfo($"Buyer status for service request {requestId} updated to {statusDto.Status} by buyer {buyerId}.");
         return _mapper.Map<ServiceRequestDto>(request);
     }
@@ -253,7 +280,7 @@ public class ServiceRequestService : IServiceRequestService
     {
         var request = await _repo.ServiceRequestRepo.FindAsync(
             r => r.Id == requestId && r.Service.SellerId == sellerId,
-            ["Service"]
+            ["Service", "Buyer", "Service.Seller"]
         );
 
         if (request == null)
@@ -268,9 +295,17 @@ public class ServiceRequestService : IServiceRequestService
             throw new BadRequestException("You cannot update the service status as the request has not been approved by both parties.");
         }
 
+
         request.ServiceStatus = dto.Status;
         _repo.ServiceRequestRepo.Update(request);
         await _repo.CompleteAsync();
+
+        // Notify the buyer about the service status update
+        await _emailService.SendEmailAsync(
+            request.Buyer.Email,
+            "Service Request Status Update",
+            $"The status of your service request '{request.Service.Name}' has been updated to {dto.Status} by the seller {request.Service.Seller.FirstName} {request.Service.Seller.LastName}."
+        );
 
         _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");
         return _mapper.Map<ServiceRequestDto>(request);

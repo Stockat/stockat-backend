@@ -14,16 +14,19 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
     private readonly ILoggerManager _logger;
     private readonly IMapper _mapper;
     private readonly IRepositoryManager _repo;
+    private readonly IEmailService _emailService;
 
     public ServiceRequestUpdateService(
         ILoggerManager logger,
         IMapper mapper,
-        IRepositoryManager repo
+        IRepositoryManager repo,
+        IEmailService emailService
         )
     {
         _logger = logger;
         _mapper = mapper;
         _repo = repo;
+        _emailService = emailService;
     }
 
     public async Task<bool> CancelUpdateAsync(int updateId, string buyerId)
@@ -69,7 +72,7 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
 
         var request = await _repo.ServiceRequestRepo.FindAsync(
             r => r.Id == requestId && r.BuyerId == buyerId,
-            ["Buyer", "Service"]
+            ["Buyer", "Service", "Service.Seller"]
         );
 
         if (request == null)
@@ -103,6 +106,13 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
 
         await _repo.ServiceRequestUpdateRepo.AddAsync(update);
         await _repo.CompleteAsync();
+
+        // Send email notification to seller
+        await _emailService.SendEmailAsync(
+            request.Service.Seller.Email,
+            "New Service Request Update",
+            $"A new update has been requested for your service request '{request.Service.Name}'. Please review it in your dashboard."
+        );
         return _mapper.Map<ServiceRequestUpdateDto>(update);
     }
 
@@ -110,7 +120,7 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
     {
         var update = await _repo.ServiceRequestUpdateRepo.FindAsync(
             u => u.Id == updateId && u.ServiceRequest.Service.SellerId == sellerId,
-            ["ServiceRequest", "ServiceRequest.Service"]
+            ["ServiceRequest", "ServiceRequest.Service", "ServiceRequest.Buyer"]
         );
 
         if (update == null)
@@ -163,6 +173,13 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
 
         _repo.ServiceRequestUpdateRepo.Update(update);
         await _repo.CompleteAsync();
+
+        // Send email notification to buyer
+        await _emailService.SendEmailAsync(
+            request.Buyer.Email,
+            "Service Request Update Status",
+            $"Your service request update has been {(approved ? "approved" : "rejected")} by the seller. Please check your dashboard for details."
+        );
 
         return _mapper.Map<ServiceRequestDto>(request);
     }
