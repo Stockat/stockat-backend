@@ -22,9 +22,11 @@ public interface IServiceManager
     IServiceRequestUpdateService ServiceRequestUpdateService { get; }
     IProductService ProductService { get; }
 
-    public IAuctionService AuctionService {  get; }
-    public IAuctionBidRequestService AuctionBidRequestService {  get; }
-    public IAuctionOrderService AuctionOrderService {  get; }
+    public IAuctionService AuctionService { get; }
+    public IAuctionBidRequestService AuctionBidRequestService { get; }
+    public IAuctionOrderService AuctionOrderService { get; }
+    public ICategoryService CategoryService { get; }
+    public ITagService TagService { get; }
 
     IUserService UserService { get; }
 }

@@ -21,5 +21,5 @@ public interface IProductService
     public Task<int> UpdateProduct(int id, UpdateProductDto productDto);
     public Task<int> ChangeProductStatus(int id, ProductStatus chosenStatus);
 
-    public Task<GenericResponseDto<IEnumerable<ImageUploadResultDto>>> UploadProductImages(IFormFile[] imgs);
+    public Task<GenericResponseDto<IEnumerable<string>>> UploadProductImages(IFormFile[] imgs);
 }

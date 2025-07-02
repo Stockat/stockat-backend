@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Stockat.Core;
 using Stockat.Core.DTOs;
+using Stockat.Core.DTOs.MediaDTOs;
 using Stockat.Core.DTOs.ProductDTOs;
+using Stockat.Core.DTOs.ProductImageDto;
 using Stockat.Core.Enums;
 using Stockat.Core.IServices;
+using System.Text.Json;
 
 namespace Stockat.API.Controllers;
 
@@ -41,8 +44,26 @@ public class ProductController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Addproduct(AddProductDto productDto)
+    public async Task<IActionResult> Addproduct([FromForm] string productJson, [FromForm] IFormFile[] images)
     {
+
+        var imgUrls = await _serviceManager.ProductService.UploadProductImages(images);
+
+
+        var productDto = JsonSerializer.Deserialize<AddProductDto>(
+     productJson,
+     new JsonSerializerOptions
+     {
+         PropertyNameCaseInsensitive = true
+     });
+
+        foreach (var img in imgUrls.Data)
+        {
+            productDto.Images.Add(new AddProductmageDto() { ImageUrl = img });
+        }
+
+
+
         var res = await _serviceManager.ProductService.AddProductAsync(productDto);
         return Ok(res);
     }
@@ -55,14 +76,14 @@ public class ProductController : ControllerBase
     }
 
 
-    [HttpPost("{id:int}")]
-    public async Task<IActionResult> ChaneProductStatus(int id, ProductStatus chosenStatus)
-    {
-        var res = await _serviceManager.ProductService.ChangeProductStatus(id, chosenStatus);
+    //[HttpPost("{id:int}")]
+    //public async Task<IActionResult> ChaneProductStatus(int id, ProductStatus chosenStatus)
+    //{
+    //    var res = await _serviceManager.ProductService.ChangeProductStatus(id, chosenStatus);
 
-        return Ok(res);
-    }
+    //    return Ok(res);
+    //}
 
-   
+
 
 }

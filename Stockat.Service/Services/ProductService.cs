@@ -91,7 +91,7 @@ public class ProductService : IProductService
     {
         var res = await _repo.ProductRepository.FindProductDetailsAsync
             (
-            p => p.Id == id && p.isDeleted == false, ["Images", "Stocks"]
+            p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category"]
 
             );
 
@@ -143,17 +143,17 @@ public class ProductService : IProductService
 
     }
 
-    public async Task<GenericResponseDto<IEnumerable<ImageUploadResultDto>>> UploadProductImages(IFormFile[] imgs)
+    public async Task<GenericResponseDto<IEnumerable<string>>> UploadProductImages(IFormFile[] imgs)
     {
 
         var uploadResult = await _imageService.UploadImagesAsync(imgs, "/ProductImages");
 
 
-        return new GenericResponseDto<IEnumerable<ImageUploadResultDto>>
+        return new GenericResponseDto<IEnumerable<string>>
         {
             Message = "Profile image updated successfully.",
             Status = StatusCodes.Status200OK,
-            Data = uploadResult
+            Data = uploadResult.Select(s => s.Url)
         };
 
     }

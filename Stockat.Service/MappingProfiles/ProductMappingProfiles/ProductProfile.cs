@@ -3,6 +3,7 @@ using Stockat.Core.DTOs.FeatureDtos;
 using Stockat.Core.DTOs.FeatureValueDto;
 using Stockat.Core.DTOs.ProductDTOs;
 using Stockat.Core.DTOs.ProductImageDto;
+using Stockat.Core.DTOs.TagsDtos;
 using Stockat.Core.Entities;
 using System;
 using System.Collections.Generic;
@@ -22,15 +23,18 @@ public class ProductProfile : Profile
 
         CreateMap<Product, ProductDetailsDto>()
             .ForMember(dest => dest.ImagesArr, src => src.MapFrom(src => src.Images.Select(s => s.ImageUrl)))
+            .ForMember(dest => dest.CategoryName, src => src.MapFrom(src => src.Category.CategoryName))
             .ForMember(dest => dest.SellerName, src => src.MapFrom(src => src.User.UserName))
             .ReverseMap();
 
-        CreateMap<AddProductDto, Product>().ReverseMap(); ;
-        CreateMap<AddFeatureDto, Feature>().ReverseMap(); ;
-        CreateMap<AddFeatureValuesDto, FeatureValue>().ReverseMap(); ;
-        CreateMap<AddProductmageDto, ProductImage>().ReverseMap(); ;
+        CreateMap<AddProductDto, Product>().ReverseMap();
+        CreateMap<AddFeatureDto, Feature>().ReverseMap();
+        CreateMap<AddTagDto, ProductTag>().ReverseMap();
 
-        CreateMap<UpdateProductDto, Product>().ReverseMap(); ;
+        CreateMap<AddFeatureValuesDto, FeatureValue>().ReverseMap();
+        CreateMap<AddProductmageDto, ProductImage>().ReverseMap();
+
+        CreateMap<UpdateProductDto, Product>().ReverseMap();
         //CreateMap<AddFeatureDto, Feature>().ReverseMap(); ;
         //CreateMap<AddFeatureValuesDto, FeatureValue>().ReverseMap(); ;
         //CreateMap<AddProductmageDto, ProductImage>().ReverseMap(); ;
