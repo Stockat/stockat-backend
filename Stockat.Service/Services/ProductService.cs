@@ -37,7 +37,7 @@ public class ProductService : IProductService
 
 
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated
-        (int _size, int _page, string location, string category, int minQuantity, int minPrice, string[] tags)
+        (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
 
     {
         int skip = (_page - 1) * _size;
@@ -50,17 +50,19 @@ public class ProductService : IProductService
             p.Price >= minPrice &&
               (
             tags.Length == 0 ||
-            p.ProductTags.Any(pt => tags.Contains(pt.Tag.Name))
+             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
               ) &&
              (
              string.IsNullOrEmpty(location) ||
              p.Location.ToString().ToUpper() == location.ToUpper()
              ) &&
             (
-            string.IsNullOrEmpty(category) ||
-             p.Category.CategoryName.ToUpper() == category.ToUpper()
-             )
-            , skip: skip, take: take, includes: ["Images"], o => o.Id, OrderBy.Descending
+                category == 0 ||
+                p.CategoryId == category
+             ) &&
+             (p.ProductStatus == ProductStatus.Approved || p.ProductStatus == ProductStatus.Activated)
+
+            , skip: skip, take: take, includes: ["Images", "ProductTags.Tag"], o => o.Id, OrderBy.Descending
             );
 
         res.TryGetNonEnumeratedCount(out var count);

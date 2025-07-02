@@ -28,7 +28,7 @@ public class ProductController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> getAllProductsPaginatedAsync
-        ([FromQuery] string[] tags, string location = "", string category = "", int minQuantity = 0, int minPrice = 0, int size = 9, int page = 1)
+        ([FromQuery] int[] tags, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, int size = 9, int page = 1)
     {
 
         var res = await _serviceManager.ProductService.getAllProductsPaginated(size, page, location, category, minQuantity, minPrice, tags);

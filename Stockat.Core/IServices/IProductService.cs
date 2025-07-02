@@ -15,7 +15,7 @@ namespace Stockat.Core.IServices;
 
 public interface IProductService
 {
-    Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated(int _size, int _page, string location, string category, int minQuantity, int minPrice, string[] tags);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated(int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags);
     Task<GenericResponseDto<ProductDetailsDto>> GetProductDetailsAsync(int id);
     public Task<int> AddProductAsync(AddProductDto productDto);
     public Task<int> UpdateProduct(int id, UpdateProductDto productDto);
