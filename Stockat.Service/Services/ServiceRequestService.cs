@@ -55,6 +55,11 @@ public class ServiceRequestService : IServiceRequestService
             throw new BadRequestException("Cannot create a service request for your own service.");
         }
 
+        if (dto.RequestedQuantity < service.MinQuantity)
+        {
+            throw new BadRequestException($"Cannot request this quantity. Minimum qunatity is {service.MinQuantity}");
+        }
+
         // Create the request
         var request = new ServiceRequest
         {
@@ -65,8 +70,10 @@ public class ServiceRequestService : IServiceRequestService
             SellerApprovalStatus = ApprovalStatus.Pending,
             BuyerApprovalStatus = ApprovalStatus.Pending,
             ServiceStatus = ServiceStatus.Pending,
-            PricePerProduct = service.PricePerProduct, // Include the price from service
-            TotalPrice = 0 // Total to be set after seller/buyer approval logic
+            PricePerProduct = 0, // Include the price from service
+            TotalPrice = 0, // Total to be set after seller/buyer approval logic
+            ImageId = service.ImageId,
+            ImageUrl = service.ImageUrl
         };
 
         await _repo.ServiceRequestRepo.AddAsync(request);
@@ -78,10 +85,37 @@ public class ServiceRequestService : IServiceRequestService
         return _mapper.Map<ServiceRequestDto>(request);
     }
 
+    public async Task<IEnumerable<int>> GetBuyerServiceIDsWithPendingRequests(string buyerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.BuyerId == buyerId && r.BuyerApprovalStatus == ApprovalStatus.Pending && r.ServiceStatus == ServiceStatus.Pending,
+            ["Buyer", "Service"]
+        );
+        if (requests == null || !requests.Any())
+        {
+            _logger.LogInfo($"No pending service requests found for buyer {buyerId}.");
+            return Enumerable.Empty<int>();
+        }
+        _logger.LogInfo($"Retrieved {requests.Count()} pending service requests for buyer {buyerId}.");
+        return requests.Select(r => r.ServiceId).Distinct();
+    }
+
+    //public async Task<bool> BuyerHasPendingRequestForService(string buyerId, int serviceId)
+    //{
+    //    var hasPendingRequest = await _repo.ServiceRequestRepo.ExistsAsync(
+    //        r => r.BuyerId == buyerId && r.ServiceId == serviceId && r.BuyerApprovalStatus == ApprovalStatus.Pending
+    //    );
+    //    if (hasPendingRequest)
+    //    {
+    //        _logger.LogInfo($"Buyer {buyerId} has a pending request for service {serviceId}.");
+    //        return true;
+    //    }
+    //    return false;
+    //}
 
     public async Task<IEnumerable<ServiceRequestDto>> GetBuyerRequestsAsync(string buyerId)
     {
-        var requests = await _repo.ServiceRequestRepo.FindAllAsync(r => r.BuyerId == buyerId, ["Buyer", "Service"]);
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(r => r.BuyerId == buyerId, ["Buyer", "Service", "Service.Seller"]);
         if (requests == null || !requests.Any())
         {
             _logger.LogInfo($"No service requests found for buyer {buyerId}.");
@@ -98,7 +132,7 @@ public class ServiceRequestService : IServiceRequestService
             ? req => req.Id == requestId && (req.Service.SellerId == userId || req.BuyerId == userId)
             : req => req.Id == requestId && req.BuyerId == userId;
 
-        var request = await _repo.ServiceRequestRepo.FindAsync(predicate, ["Buyer", "Service"]);
+        var request = await _repo.ServiceRequestRepo.FindAsync(predicate, ["Buyer", "Service", "Service.Seller"]);
         if (request == null)
         {
             var role = isSeller ? "Seller" : "Buyer";
@@ -136,14 +170,29 @@ public class ServiceRequestService : IServiceRequestService
         if (request == null)
             throw new NotFoundException($"Service request {requestId} not found for this seller.");
 
-        if (request.SellerApprovalStatus != ApprovalStatus.Pending)
-            throw new BadRequestException("Seller already submitted an offer.");
+        // Check if the seller has exceeded the maximum attempts
+        if (request.SellerOfferAttempts >= 3)
+            throw new BadRequestException("You have reached the maximum number of offer attempts for this request.");
+
+
+        if (request.SellerApprovalStatus == ApprovalStatus.Approved && request.BuyerApprovalStatus == ApprovalStatus.Pending)
+            throw new BadRequestException("Waiting for buyer's response on the last offer.");
+
+        if (request.BuyerApprovalStatus == ApprovalStatus.Rejected)
+        {
+            // Reset statuses to allow re-negotiation
+            request.BuyerApprovalStatus = ApprovalStatus.Pending;
+            request.SellerApprovalStatus = ApprovalStatus.Pending;
+        }
+
 
         // Seller sets the initial offer
         request.PricePerProduct = dto.PricePerProduct;
         request.EstimatedTime = dto.EstimatedTime;
         request.TotalPrice = request.RequestedQuantity * dto.PricePerProduct;
         request.SellerApprovalStatus = ApprovalStatus.Approved;
+
+        request.SellerOfferAttempts += 1;
 
         _repo.ServiceRequestRepo.Update(request);
         await _repo.CompleteAsync();
@@ -177,7 +226,16 @@ public class ServiceRequestService : IServiceRequestService
         }
 
         request.BuyerApprovalStatus = statusDto.Status;
-      
+
+        if (statusDto.Status == ApprovalStatus.Rejected)
+        {
+            if (request.SellerOfferAttempts >= 3)
+            {
+                request.ServiceStatus = ServiceStatus.Cancelled;
+            }
+        }
+
+
         _repo.ServiceRequestRepo.Update(request);
         await _repo.CompleteAsync();
 
@@ -215,6 +273,33 @@ public class ServiceRequestService : IServiceRequestService
         await _repo.CompleteAsync();
 
         _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");
+        return _mapper.Map<ServiceRequestDto>(request);
+    }
+
+    public async Task<ServiceRequestDto> CancelBuyerRequest(int requestId, string buyerId)
+    {
+        var request = await _repo.ServiceRequestRepo.FindAsync(
+            r => r.Id == requestId && r.BuyerId == buyerId,
+            ["Service"]);
+
+        if (request == null)
+        {
+            _logger.LogError($"Service request with ID {requestId} not found for buyer {buyerId}.");
+            throw new NotFoundException($"Service request with ID {requestId} not found for buyer {buyerId}.");
+        }
+
+        // Prevent cancellation if the request has already been approved by the seller
+        if (request.SellerApprovalStatus != ApprovalStatus.Pending)
+        {
+            _logger.LogError($"Service request with ID {requestId} cannot be cancelled as it has already been approved by the seller.");
+            throw new BadRequestException("You can only cancel requests that are still pending.");
+        }
+
+        // Set the status to cancelled
+        request.ServiceStatus = ServiceStatus.Cancelled;
+        _repo.ServiceRequestRepo.Update(request);
+        await _repo.CompleteAsync();
+        _logger.LogInfo($"Service request with ID {requestId} cancelled by buyer {buyerId}.");
         return _mapper.Map<ServiceRequestDto>(request);
     }
 }
