@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Stockat.Core.Entities.Chat;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -43,6 +44,21 @@ public class User : IdentityUser
     public ICollection<Auction> CreatedAuctions { get; set; } = new List<Auction>();
 
     public ICollection<AuctionBidRequest> AuctionBidRequests { get; set; }
+
+
+    // Chat system navigation
+    public virtual ICollection<ChatMessage> SentMessages { get; set; } = new List<ChatMessage>();
+
+    public virtual ICollection<ChatConversation> ConversationsAsUser1 { get; set; } = new List<ChatConversation>();
+    public virtual ICollection<ChatConversation> ConversationsAsUser2 { get; set; } = new List<ChatConversation>();
+
+    public virtual ICollection<MessageReaction> MessageReactions { get; set; } = new List<MessageReaction>();
+
+    public virtual ICollection<MessageReadStatus> MessageReadStatuses { get; set; } = new List<MessageReadStatus>();
+    [NotMapped]
+    public IEnumerable<ChatConversation> AllConversations => ConversationsAsUser1.Concat(ConversationsAsUser2);
+
+
 }
 
 public class UserVerification
