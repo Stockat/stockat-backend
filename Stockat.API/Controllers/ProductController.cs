@@ -25,6 +25,7 @@ public class ProductController : ControllerBase
         _serviceManager = serviceManager;
     }
 
+    // Anonymous  Users ---------------------------------------------------------------------------------------------------------
 
     [HttpGet]
     public async Task<IActionResult> getAllProductsPaginatedAsync
@@ -42,6 +43,11 @@ public class ProductController : ControllerBase
         var res = await _serviceManager.ProductService.GetProductDetailsAsync(id);
         return Ok(res);
     }
+
+
+
+
+    // Seller Region [Authorized] ----------------------------------WatchOut--------------------------------------------------------
 
     [HttpPost]
     public async Task<IActionResult> Addproduct([FromForm] string productJson, [FromForm] IFormFile[] images)
@@ -69,12 +75,44 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Updateproduct(int id, UpdateProductDto productDto)
+    public async Task<IActionResult> Updateproduct([FromRoute] int id, [FromForm] string productJson, [FromForm] IFormFile[] images)
     {
+        var imgUrls = await _serviceManager.ProductService.UploadProductImages(images);
+
+
+        var productDto = JsonSerializer.Deserialize<UpdateProductDto>(
+     productJson,
+     new JsonSerializerOptions
+     {
+         PropertyNameCaseInsensitive = true
+     });
+
+        foreach (var img in imgUrls.Data)
+        {
+            productDto.Images.Add(new UpdateProductImageDto() { ImageUrl = img });
+        }
+
         var res = await _serviceManager.ProductService.UpdateProduct(id, productDto);
         return Ok(res);
     }
 
+
+    [HttpGet("seller/{id:int}")]
+    public async Task<IActionResult> getproductForUpdatesAsync(int id)
+    {
+
+        var res = await _serviceManager.ProductService.GetProductForUpdateAsync(id);
+        return Ok(res);
+    }
+
+    [HttpGet("seller")]
+    public async Task<IActionResult> getAllproductForSellerAsync
+    ([FromQuery] int[] tags, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, int size = 9, int page = 1)
+    {
+
+        var res = await _serviceManager.ProductService.GetAllProductForSellerAsync(size, page, location, category, minQuantity, minPrice, tags);
+        return Ok(res);
+    }
 
     //[HttpPost("{id:int}")]
     //public async Task<IActionResult> ChaneProductStatus(int id, ProductStatus chosenStatus)

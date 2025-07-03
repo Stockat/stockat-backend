@@ -107,6 +107,76 @@ public class ProductService : IProductService
 
     }
 
+    public async Task<GenericResponseDto<UpdateProductDto>> GetProductForUpdateAsync(int id)
+    {
+        var res = await _repo.ProductRepository.GetProductForUpdateAsync
+            (
+            p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category"]
+
+            );
+
+        return new GenericResponseDto<UpdateProductDto>()
+        {
+            Data = res,
+            Message = "Success",
+            Status = 200,
+            RedirectUrl = null,
+        };
+
+    }
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<GetSellerProductDto>>>> GetAllProductForSellerAsync
+        (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
+    {
+        var sellerId = "64c5d9f7-690e-42d4-b035-1945ab3476db";
+
+        int skip = (_page - 1) * _size;
+        int take = _size;
+
+        var res = await _repo.ProductRepository.FindAllAsync
+            (
+            p => p.SellerId == sellerId &&
+            p.MinQuantity >= minQuantity &&
+            p.Price >= minPrice &&
+              (
+            tags.Length == 0 ||
+             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
+              ) &&
+             (
+             string.IsNullOrEmpty(location) ||
+             p.Location.ToString().ToUpper() == location.ToUpper()
+             ) &&
+            (
+                category == 0 ||
+                p.CategoryId == category
+             )
+
+            , skip: skip, take: take, includes: ["Images"], o => o.Id, OrderBy.Descending
+            );
+
+        res.TryGetNonEnumeratedCount(out var count);
+
+        var productDtos = _mapper.Map<IEnumerable<GetSellerProductDto>>(res);
+
+        var paginatedres = new PaginatedDto<IEnumerable<GetSellerProductDto>>()
+        {
+
+            PaginatedData = productDtos,
+            Size = 4,
+            Count = count,
+            Page = _page
+        };
+
+        var resDto = new GenericResponseDto<PaginatedDto<IEnumerable<GetSellerProductDto>>>()
+        {
+            Data = paginatedres,
+            Message = "Success",
+            Status = 200,
+            RedirectUrl = null,
+        };
+
+        return resDto;
+    }
+
     public async Task<int> AddProductAsync(AddProductDto productDto)
     {
         var product = _mapper.Map<Product>(productDto);
@@ -119,7 +189,7 @@ public class ProductService : IProductService
     {
         //var isProductFound = await _repo.ProductRepository.IsProductFoundAsync(p => p.Id == id);
 
-        var oldProduct = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false, ["Images", "Stocks"]);
+        var oldProduct = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category", "Features", "ProductTags"]);
 
         if (oldProduct == null)
             throw new NotFoundException($"Product With Id:{id} Not Found, please Contact with Admin for further information");

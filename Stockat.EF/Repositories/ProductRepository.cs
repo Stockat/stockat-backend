@@ -39,6 +39,36 @@ public class ProductRepository : BaseRepository<Product>, IProductRepository
              .SingleOrDefaultAsync();
 
     }
+    public new async Task<UpdateProductDto> GetProductForUpdateAsync(Expression<Func<Product, bool>> criteria, string[] includes = null)
+    {
+        IQueryable<Product> query = _context.Set<Product>();
+
+        if (includes != null)
+            foreach (var incluse in includes)
+                query = query.Include(incluse);
+
+        query = query.Where(criteria);
+
+        return await query
+             .ProjectTo<UpdateProductDto>(_mapper.ConfigurationProvider)
+             .SingleOrDefaultAsync();
+
+    }
+    //public new async Task<IEnumerable<GetSellerProductDto>> GetAllProductForSellerAsync(Expression<Func<Product, bool>> criteria, string[] includes = null)
+    //{
+    //    IQueryable<Product> query = _context.Set<Product>();
+
+    //    if (includes != null)
+    //        foreach (var incluse in includes)
+    //            query = query.Include(incluse);
+
+    //    query = query.Where(criteria);
+
+    //    return await query
+    //         .ProjectTo<GetSellerProductDto>(_mapper.ConfigurationProvider).ToListAsync();
+
+
+    //}
 
     public async Task<bool> IsProductFoundAsync(Expression<Func<Product, bool>> criteria)
     {

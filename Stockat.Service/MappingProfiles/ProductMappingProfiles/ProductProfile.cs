@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Stockat.Service.MappingProfiles.ProductMappingProfiles;
 
@@ -27,17 +28,30 @@ public class ProductProfile : Profile
             .ForMember(dest => dest.SellerName, src => src.MapFrom(src => src.User.UserName))
             .ReverseMap();
 
+        // Add Product From Mapping 
         CreateMap<AddProductDto, Product>().ReverseMap();
         CreateMap<AddFeatureDto, Feature>().ReverseMap();
         CreateMap<AddTagDto, ProductTag>().ReverseMap();
-
-        CreateMap<AddFeatureValuesDto, FeatureValue>().ReverseMap();
+        CreateMap<AddFeatureValuesDto, FeatureValue>()
+            .ForMember(dest => dest.Value, src => src.MapFrom(src => src.Name))
+            .ReverseMap();
         CreateMap<AddProductmageDto, ProductImage>().ReverseMap();
 
-        CreateMap<UpdateProductDto, Product>().ReverseMap();
-        //CreateMap<AddFeatureDto, Feature>().ReverseMap(); ;
-        //CreateMap<AddFeatureValuesDto, FeatureValue>().ReverseMap(); ;
-        //CreateMap<AddProductmageDto, ProductImage>().ReverseMap(); ;
+
+        // Update Product From Mapping 
+        CreateMap<UpdateProductDto, Product>()
+            .ReverseMap();
+        CreateMap<UpdateFeatureDto, Feature>().ReverseMap();
+        CreateMap<UpdateTagDto, ProductTag>().ReverseMap();
+        CreateMap<UpdateFeatureValueDto, FeatureValue>()
+            .ForMember(dest => dest.Value, src => src.MapFrom(src => src.Name))
+            .ReverseMap();
+        CreateMap<UpdateProductImageDto, ProductImage>().ReverseMap();
+
+
+        // View Seller Product
+        CreateMap<Product, GetSellerProductDto>()
+                 .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.Images.Select(img => img.ImageUrl)));
 
 
     }
