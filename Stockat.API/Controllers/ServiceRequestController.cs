@@ -165,7 +165,7 @@ public class ServiceRequestController : ControllerBase
 
     // update request status
     [HttpPatch("{requestId:int}/status/update")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> UpdateServiceStatusAsync(int requestId, [FromBody] ServiceStatusDto dto)
     {
@@ -191,4 +191,47 @@ public class ServiceRequestController : ControllerBase
         }
     }
 
+    [HttpGet("buyer/pending-services")]
+    [Authorize]
+    public async Task<IActionResult> GetBuyerServiceIDsWithPendingRequests()
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User is not authenticated.");
+            var serviceIds = await _serviceManager.ServiceRequestService.GetBuyerServiceIDsWithPendingRequests(userId);
+            return Ok(serviceIds);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    [HttpPatch("{requestId:int}/buyer-cancel")]
+    [Authorize]
+    public async Task<IActionResult> CancelBuyerRequestAsync(int requestId)
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User is not authenticated.");
+            var result = await _serviceManager.ServiceRequestService.CancelBuyerRequest(requestId, userId);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        }
+    }
 }
