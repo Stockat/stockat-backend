@@ -134,7 +134,8 @@ public class ProductService : IProductService
 
         var res = await _repo.ProductRepository.FindAllAsync
             (
-            p => p.SellerId == sellerId &&
+            p => p.isDeleted == false &&
+            p.SellerId == sellerId &&
             p.MinQuantity >= minQuantity &&
             p.Price >= minPrice &&
               (
@@ -202,7 +203,7 @@ public class ProductService : IProductService
 
     }
 
-    public async Task<int> ChangeProductStatus(int id, ProductStatus chosenStatus)
+    public async Task<GenericResponseDto<string>> ChangeProductStatus(int id, ProductStatus chosenStatus)
     {
         var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false);
 
@@ -211,8 +212,50 @@ public class ProductService : IProductService
 
         product.ProductStatus = chosenStatus;
 
-        return await _repo.CompleteAsync();
+        await _repo.CompleteAsync();
 
+        return new GenericResponseDto<string>()
+        {
+            Data = "",
+            Message = "Product Status Updated",
+            Status = 200
+        };
+    }
+    public async Task<GenericResponseDto<string>> RemoveProduct(int id)
+    {
+        var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false);
+
+        if (product == null)
+            throw new NotFoundException($"Product With Id:{id} Not Found, please Contact with Admin for further information");
+
+        product.isDeleted = true;
+
+        await _repo.CompleteAsync();
+
+        return new GenericResponseDto<string>()
+        {
+            Data = "",
+            Message = "Product Deleted Successfully",
+            Status = 200
+        };
+    }
+    public async Task<GenericResponseDto<string>> ChangeCanBeRequested(int id)
+    {
+        var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false);
+
+        if (product == null)
+            throw new NotFoundException($"Product With Id:{id} Not Found, please Contact with Admin for further information");
+
+        product.canBeRequested = !product.canBeRequested;
+
+        await _repo.CompleteAsync();
+
+        return new GenericResponseDto<string>()
+        {
+            Data = "",
+            Message = "Product Updated Successfully",
+            Status = 200
+        };
     }
 
     public async Task<GenericResponseDto<IEnumerable<string>>> UploadProductImages(IFormFile[] imgs)

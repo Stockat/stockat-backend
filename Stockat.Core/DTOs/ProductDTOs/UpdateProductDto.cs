@@ -33,3 +33,8 @@ public class UpdateProductDto
     public virtual ICollection<UpdateTagDto> ProductTags { get; set; } = new List<UpdateTagDto>();
 
 }
+
+public class ChangeProductStatusDto
+{
+    public ProductStatus ChosenStatus { get; set; }
+}

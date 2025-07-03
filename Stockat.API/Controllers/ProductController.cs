@@ -114,13 +114,28 @@ public class ProductController : ControllerBase
         return Ok(res);
     }
 
-    //[HttpPost("{id:int}")]
-    //public async Task<IActionResult> ChaneProductStatus(int id, ProductStatus chosenStatus)
-    //{
-    //    var res = await _serviceManager.ProductService.ChangeProductStatus(id, chosenStatus);
+    [HttpPost("{id:int}")]
+    public async Task<IActionResult> ChangeProductStatus(int id, [FromBody] ChangeProductStatusDto dto)
 
-    //    return Ok(res);
-    //}
+    {
+        var res = await _serviceManager.ProductService.ChangeProductStatus(id, dto.ChosenStatus);
+
+        return Ok(res);
+    }
+    [HttpPost("seller/delete")]
+    public async Task<IActionResult> removeSellerProduct([FromBody] int id)
+
+    {
+        var res = await _serviceManager.ProductService.RemoveProduct(id);
+        return Ok(res);
+    }
+    [HttpPost("seller/edit-canBeRequested")]
+    public async Task<IActionResult> changeCanBeRequsted([FromBody] int id)
+
+    {
+        var res = await _serviceManager.ProductService.ChangeCanBeRequested(id);
+        return Ok(res);
+    }
 
 
 

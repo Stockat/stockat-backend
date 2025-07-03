@@ -23,7 +23,9 @@ public interface IProductService
         (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags);
     public Task<int> AddProductAsync(AddProductDto productDto);
     public Task<int> UpdateProduct(int id, UpdateProductDto productDto);
-    public Task<int> ChangeProductStatus(int id, ProductStatus chosenStatus);
+    public Task<GenericResponseDto<string>> ChangeProductStatus(int id, ProductStatus chosenStatus);
+    public Task<GenericResponseDto<string>> RemoveProduct(int id);
+    public Task<GenericResponseDto<string>> ChangeCanBeRequested(int id);
 
     public Task<GenericResponseDto<IEnumerable<string>>> UploadProductImages(IFormFile[] imgs);
 }
