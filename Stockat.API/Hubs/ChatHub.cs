@@ -7,10 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
-/// <summary>
-/// SignalR hub for real-time chat events.
-/// All DateTime values are UTC. The frontend should convert to the user's local time zone.
-/// </summary>
 namespace Stockat.API.Hubs;
 
 [Authorize]
@@ -28,10 +24,6 @@ public class ChatHub : Hub
     private string GetUserId() =>
         _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Context.UserIdentifier;
 
-    /// <summary>
-    /// Send a text message to a conversation group.
-    /// Allows self-messaging (user can send messages to themselves).
-    /// </summary>
     public async Task SendMessage(SendMessageDto dto)
     {
         if (dto == null || dto.ConversationId <= 0)
@@ -54,9 +46,6 @@ public class ChatHub : Hub
         }
     }
 
-    /// <summary>
-    /// Send an image message to a conversation group.
-    /// </summary>
     public async Task SendImageMessage(SendImageMessageDto dto, IFormFile image)
     {
         if (dto == null || dto.ConversationId <= 0 || image == null)
@@ -69,7 +58,8 @@ public class ChatHub : Hub
         {
             var message = await _serviceManager.ChatService.SendImageMessageAsync(dto, senderId, image);
             await Clients.Group($"conversation-{dto.ConversationId}").SendAsync("ReceiveMessage", message);
-            await Clients.User(message.Sender.UserId).SendAsync("IncrementUnread");
+            if (message.Sender.UserId != senderId)
+                await Clients.User(message.Sender.UserId).SendAsync("IncrementUnread");
         }
         catch (System.Exception ex)
         {
@@ -77,9 +67,6 @@ public class ChatHub : Hub
         }
     }
 
-    /// <summary>
-    /// Send a voice message to a conversation group.
-    /// </summary>
     public async Task SendVoiceMessage(SendVoiceMessageDto dto, IFormFile voice)
     {
         if (dto == null || dto.ConversationId <= 0 || voice == null)
@@ -92,7 +79,8 @@ public class ChatHub : Hub
         {
             var message = await _serviceManager.ChatService.SendVoiceMessageAsync(dto, senderId, voice);
             await Clients.Group($"conversation-{dto.ConversationId}").SendAsync("ReceiveMessage", message);
-            await Clients.User(message.Sender.UserId).SendAsync("IncrementUnread");
+            if (message.Sender.UserId != senderId)
+                await Clients.User(message.Sender.UserId).SendAsync("IncrementUnread");
         }
         catch (System.Exception ex)
         {
@@ -100,9 +88,6 @@ public class ChatHub : Hub
         }
     }
 
-    /// <summary>
-    /// React to a message in a conversation.
-    /// </summary>
     public async Task ReactToMessage(ReactToMessageDto dto)
     {
         if (dto == null || dto.MessageId <= 0 || string.IsNullOrWhiteSpace(dto.ReactionType))
@@ -110,14 +95,42 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", "Invalid reaction data.");
             return;
         }
-        var userId = GetUserId();
-        var reaction = await _serviceManager.ChatService.ReactToMessageAsync(dto, userId);
-        await Clients.Group($"conversation-{reaction.MessageId}").SendAsync("ReceiveReaction", reaction);
-    }
 
-    /// <summary>
-    /// Mark a message as read.
-    /// </summary>
+        var userId = GetUserId();
+        await _serviceManager.ChatService.ReactToMessageAsync(dto, userId);
+
+        var updatedMessage = await _serviceManager.ChatService.GetMessageByIdAsync(dto.MessageId);
+
+        var groupName = $"conversation-{dto.ConversationId}";
+        await Clients.Group(groupName).SendAsync("ReceiveMessageUpdate", updatedMessage);
+    }
+    //public async Task ReactToMessage(ReactToMessageDto dto)
+    //{
+    //    if (dto == null || dto.MessageId <= 0 || string.IsNullOrWhiteSpace(dto.ReactionType))
+    //    {
+    //        await Clients.Caller.SendAsync("Error", "Invalid reaction data.");
+    //        return;
+    //    }
+
+    //    var userId = GetUserId();
+    //    // This should add or remove the reaction and return the new state (null if removed)
+    //    var reaction = await _serviceManager.ChatService.ReactToMessageAsync(dto, userId);
+
+    //    // Use conversationId for the group name
+    //    var groupName = $"conversation-{dto.ConversationId}";
+
+    //    await Clients.Group(groupName).SendAsync("ReceiveReaction", new
+    //    {
+    //        MessageId = dto.MessageId,
+    //        UserId = userId,
+    //        ReactionType = dto.ReactionType,
+    //        IsRemoved = reaction == null, // true if removed, false if added
+    //        Reaction = reaction, // Should include userId, reactionType, etc.
+    //        ConversationId = dto.ConversationId
+    //    });
+    //}
+
+
     public async Task MarkMessageAsRead(int messageId)
     {
         if (messageId <= 0)
@@ -125,14 +138,27 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", "Invalid message id.");
             return;
         }
+        var message = await _serviceManager.ChatService.GetMessageByIdAsync(messageId);
+        if (message == null) return;
+
+
         var userId = GetUserId();
-        await _serviceManager.ChatService.MarkMessageAsReadAsync(messageId, userId);
-        await Clients.All.SendAsync("MessageRead", messageId, userId);
+        var (isRead, readAt) = await _serviceManager.ChatService.MarkMessageAsReadAsync(messageId, userId);
+        //message = await _serviceManager.ChatService.GetMessageByIdAsync(messageId);
+        if (isRead)
+        {
+            await Clients.Group($"conversation-{message.ConversationId}")
+                     .SendAsync("MessageRead", messageId, userId, isRead, readAt);
+        }
+        else
+        {
+            await Clients.Group($"conversation-{message.ConversationId}")
+                    .SendAsync("MessageRead", messageId, userId, isRead, null);
+        }
+        
+        //await Clients.All.SendAsync("MessageRead", messageId, userId);
     }
 
-    /// <summary>
-    /// Edit a message.
-    /// </summary>
     public async Task EditMessage(int messageId, string newText)
     {
         if (messageId <= 0 || string.IsNullOrWhiteSpace(newText))
@@ -150,9 +176,6 @@ public class ChatHub : Hub
         await Clients.Group($"conversation-{message.ConversationId}").SendAsync("MessageEdited", message);
     }
 
-    /// <summary>
-    /// Delete a message.
-    /// </summary>
     public async Task DeleteMessage(int messageId)
     {
         if (messageId <= 0)
@@ -168,9 +191,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", "Message not found or not allowed.");
     }
 
-    /// <summary>
-    /// Join a conversation group for real-time updates.
-    /// </summary>
     public async Task JoinConversation(int conversationId)
     {
         if (conversationId <= 0)
@@ -181,9 +201,6 @@ public class ChatHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, $"conversation-{conversationId}");
     }
 
-    /// <summary>
-    /// Leave a conversation group.
-    /// </summary>
     public async Task LeaveConversation(int conversationId)
     {
         if (conversationId <= 0)
@@ -194,9 +211,6 @@ public class ChatHub : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"conversation-{conversationId}");
     }
 
-    /// <summary>
-    /// Create a new conversation.
-    /// </summary>
     public async Task CreateConversation(string user2Id)
     {
         var user1Id = GetUserId();
@@ -205,9 +219,6 @@ public class ChatHub : Hub
         await Clients.Caller.SendAsync("ConversationCreated", conversation);
     }
 
-    /// <summary>
-    /// Delete a conversation.
-    /// </summary>
     public async Task DeleteConversation(int conversationId)
     {
         if (conversationId <= 0)
@@ -222,4 +233,19 @@ public class ChatHub : Hub
             await Clients.Group($"conversation-{conversationId}").SendAsync("ConversationDeleted", conversationId);
         }
     }
+
+    public async Task Typing(int conversationId)
+    {
+        var userId = GetUserId();
+        await Clients.Group($"conversation-{conversationId}")
+             .SendAsync("Typing", conversationId, userId);
+    }
+
+    public async Task Recording(int conversationId)
+    {
+        var userId = GetUserId();
+        await Clients.Group($"conversation-{conversationId}")
+             .SendAsync("Recording", conversationId, userId);
+    }
+
 }

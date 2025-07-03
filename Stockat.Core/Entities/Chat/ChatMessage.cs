@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Stockat.Core.Entities;
+using Stockat.Core.Entities.Chat;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Stockat.Core.Entities.Chat;
-
 public class ChatMessage
 {
     [Key]
@@ -37,5 +36,6 @@ public class ChatMessage
     public virtual User Sender { get; set; }
 
     public virtual ICollection<MessageReaction> Reactions { get; set; } = new List<MessageReaction>();
-    public virtual ICollection<MessageReadStatus> ReadStatuses { get; set; } = new List<MessageReadStatus>();
+
+    public virtual MessageReadStatus ReadStatus { get; set; } // 1-to-1
 }

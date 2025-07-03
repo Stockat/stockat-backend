@@ -13,14 +13,29 @@ public class ChatMappingProfile : Profile
 {
     public ChatMappingProfile()
     {
-        CreateMap<User, UserChatInfoDto>()
-            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FirstName + " " + src.LastName))
-            .ForMember(dest => dest.ProfileImageUrl, opt => opt.MapFrom(src => src.ProfileImageUrl));
+         // User → UserChatInfoDto
+            CreateMap<User, UserChatInfoDto>()
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FirstName + " " + src.LastName))
+                .ForMember(dest => dest.ProfileImageUrl, opt => opt.MapFrom(src => src.ProfileImageUrl));
 
+        // ChatMessage → ChatMessageDto
         CreateMap<ChatMessage, ChatMessageDto>()
+            .ForMember(dest => dest.MessageId, opt => opt.MapFrom(src => src.MessageId))
+            .ForMember(dest => dest.ConversationId, opt => opt.MapFrom(src => src.ConversationId))
             .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.Sender))
-            .ForMember(dest => dest.Reactions, opt => opt.MapFrom(src => src.Reactions));
+            .ForMember(dest => dest.MessageText, opt => opt.MapFrom(src => src.MessageText))
+            .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl))
+            .ForMember(dest => dest.VoiceUrl, opt => opt.MapFrom(src => src.VoiceUrl))
+            .ForMember(dest => dest.IsEdited, opt => opt.MapFrom(src => src.IsEdited))
+            .ForMember(dest => dest.IsRead, opt => opt.MapFrom(src => src.IsRead))
+            .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.SentAt))
+            .ForMember(dest => dest.Reactions, opt => opt.MapFrom(src => src.Reactions))
+            .ForMember(dest => dest.ReadAt, opt => opt.MapFrom(src => src.ReadStatus != null ? src.ReadStatus.ReadAt : (DateTime?)null));
+
+
+        // MessageReaction → MessageReactionDto
+        CreateMap<MessageReaction, MessageReactionDto>();
 
         CreateMap<ChatConversation, ChatConversationDto>()
             .ForMember(dest => dest.User1Id, opt => opt.MapFrom(src => src.User1Id))

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Stockat.Core.DTOs.ChatDTOs;
+using Stockat.Core.Entities.Chat;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -25,7 +26,7 @@ public interface IChatService
     Task<IEnumerable<ChatMessageDto>> GetConversationMessagesAsync(int conversationId, string userId, int page = 1, int pageSize = 30);
 
     Task<MessageReactionDto> ReactToMessageAsync(ReactToMessageDto dto, string userId);
-    Task<bool> MarkMessageAsReadAsync(int messageId, string userId);
+    Task<(bool, DateTime?)> MarkMessageAsReadAsync(int messageId, string userId);
     Task<bool> DeleteMessageAsync(int messageId, string userId);
     Task<ChatMessageDto> EditMessageAsync(int messageId, string userId, string newText);
 
@@ -48,4 +49,10 @@ public interface IChatService
     /// Delete a conversation.
     /// </summary>
     Task<bool> DeleteConversationAsync(int conversationId, string requestingUserId);
+
+
+
+
+
+    Task<ChatMessageDto> GetMessageByIdAsync(int messageId);
 }

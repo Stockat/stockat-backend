@@ -1,9 +1,10 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Stockat.Core;
+using Stockat.Core.Consts;
 using Stockat.Core.DTOs.ChatDTOs;
-using Stockat.Core.Entities.Chat;
 using Stockat.Core.Entities;
+using Stockat.Core.Entities.Chat;
 using Stockat.Core.IServices;
 using System;
 using System.Collections.Generic;
@@ -32,10 +33,8 @@ public class ChatService : IChatService
         _fileService = fileService;
     }
 
-    // Helper: Check if user is deleted
     private async Task<bool> IsUserDeletedAsync(string userId)
     {
-        // Use string overload for User entity
         var user = await _repo.UserRepo.GetByIdAsync(userId);
         return user?.IsDeleted ?? true;
     }
@@ -52,17 +51,17 @@ public class ChatService : IChatService
 
         if (await IsUserDeletedAsync(recipientId))
             throw new Exception("Cannot send message to a deleted user.");
-
+        var sender = await _repo.UserRepo.GetByIdAsync(senderId);
         var message = new ChatMessage
         {
             ConversationId = dto.ConversationId,
             SenderId = senderId,
             MessageText = dto.MessageText,
-            SentAt = DateTime.UtcNow
+            SentAt = DateTime.UtcNow,
+            Sender = sender
         };
         await _repo.ChatMessageRepo.AddAsync(message);
 
-        // Update LastMessageAt
         conversation.LastMessageAt = message.SentAt;
         _repo.ChatConversationRepo.Update(conversation);
 
@@ -84,6 +83,7 @@ public class ChatService : IChatService
             throw new Exception("Cannot send message to a deleted user.");
 
         var uploadResult = await _imageService.UploadImageAsync(image, "/ChatImages");
+        var sender = await _repo.UserRepo.GetByIdAsync(senderId);
         var message = new ChatMessage
         {
             ConversationId = dto.ConversationId,
@@ -95,7 +95,6 @@ public class ChatService : IChatService
         };
         await _repo.ChatMessageRepo.AddAsync(message);
 
-        // Update LastMessageAt
         conversation.LastMessageAt = message.SentAt;
         _repo.ChatConversationRepo.Update(conversation);
 
@@ -117,6 +116,7 @@ public class ChatService : IChatService
             throw new Exception("Cannot send message to a deleted user.");
 
         var uploadResult = await _fileService.UploadFileAsync(voice);
+        var sender = await _repo.UserRepo.GetByIdAsync(senderId);
         var message = new ChatMessage
         {
             ConversationId = dto.ConversationId,
@@ -128,7 +128,6 @@ public class ChatService : IChatService
         };
         await _repo.ChatMessageRepo.AddAsync(message);
 
-        // Update LastMessageAt
         conversation.LastMessageAt = message.SentAt;
         _repo.ChatConversationRepo.Update(conversation);
 
@@ -138,18 +137,22 @@ public class ChatService : IChatService
 
     public async Task<ChatConversationDto> CreateConversationAsync(string user1Id, string user2Id)
     {
-        // Prevent duplicate conversations
         var existing = await _repo.ChatConversationRepo
             .FindAllAsync(c => (c.User1Id == user1Id && c.User2Id == user2Id) || (c.User1Id == user2Id && c.User2Id == user1Id));
         if (existing != null && existing.Any())
             throw new InvalidOperationException("Conversation already exists.");
+
+        var user1 = await _repo.UserRepo.GetByIdAsync(user1Id);
+        var user2 = await _repo.UserRepo.GetByIdAsync(user2Id);
 
         var conversation = new ChatConversation
         {
             User1Id = user1Id,
             User2Id = user2Id,
             CreatedAt = DateTime.UtcNow,
-            IsActive = true
+            IsActive = true,
+            User1 = user1,
+            User2 = user2
         };
         await _repo.ChatConversationRepo.AddAsync(conversation);
         await _repo.CompleteAsync();
@@ -163,7 +166,6 @@ public class ChatService : IChatService
         if (conversation == null)
             return false;
 
-        // Only allow participants to delete
         if (conversation.User1Id != requestingUserId && conversation.User2Id != requestingUserId)
             throw new UnauthorizedAccessException("Not a participant of this conversation.");
 
@@ -173,10 +175,6 @@ public class ChatService : IChatService
         return true;
     }
 
-    /// <summary>
-    /// Get paginated conversations for a user, including the last message for each conversation.
-    /// All DateTime values are UTC; frontend should convert to local time zone.
-    /// </summary>
     public async Task<IEnumerable<ChatConversationDto>> GetUserConversationsAsync(string userId, int page = 1, int pageSize = 20)
     {
         var skip = (page - 1) * pageSize;
@@ -187,7 +185,7 @@ public class ChatService : IChatService
             take: pageSize,
             includes: new[] { "User1", "User2" }, // Ensure users are included for mapping
             orderBy: c => c.LastMessageAt,
-            orderByDirection: "Descending"
+            orderByDirection: OrderBy.Descending
         );
 
         var conversationList = conversations.ToList();
@@ -199,9 +197,9 @@ public class ChatService : IChatService
                 m => m.ConversationId == conv.ConversationId,
                 skip: 0,
                 take: 1,
-                includes: new[] { "Sender", "Reactions", "ReadStatuses" },
+                includes: new[] { "Sender", "Reactions", "ReadStatus" },
                 orderBy: m => m.SentAt,
-                orderByDirection: "Descending"
+                orderByDirection: OrderBy.Descending
             )).FirstOrDefault();
 
             if (lastMsg != null)
@@ -217,10 +215,6 @@ public class ChatService : IChatService
         return _mapper.Map<IEnumerable<ChatConversationDto>>(conversationList);
     }
 
-    /// <summary>
-    /// Get paginated messages for a conversation.
-    /// All DateTime values are UTC; frontend should convert to local time zone.
-    /// </summary>
     public async Task<IEnumerable<ChatMessageDto>> GetConversationMessagesAsync(int conversationId, string userId, int page = 1, int pageSize = 30)
     {
         var skip = (page - 1) * pageSize;
@@ -228,17 +222,15 @@ public class ChatService : IChatService
             m => m.ConversationId == conversationId,
             skip: skip,
             take: pageSize,
-            includes: new[] { "Sender", "Reactions", "ReadStatuses" },
+            includes: new[] { "Sender", "Reactions", "ReadStatus" },
             orderBy: m => m.SentAt,
-            orderByDirection: "Descending"
+            orderByDirection: OrderBy.Descending
         );
-        // Return in descending order for chat display (latest first)
         return _mapper.Map<IEnumerable<ChatMessageDto>>(messages);
     }
 
     public async Task<IEnumerable<UserChatInfoDto>> SearchUsersAsync(string searchTerm, string currentUserId)
     {
-        // Use FindAllAsync for filtering
         var users = await _repo.UserRepo.FindAllAsync(
             u => (u.FirstName + " " + u.LastName).Contains(searchTerm) && u.Id != currentUserId && !u.IsDeleted
         );
@@ -253,32 +245,109 @@ public class ChatService : IChatService
         return count;
     }
 
-    public async Task<MessageReactionDto> ReactToMessageAsync(ReactToMessageDto dto, string userId)
+    //public async Task<MessageReactionDto?> ReactToMessageAsync(ReactToMessageDto dto, string userId)
+    //{
+    //    var existing = await _repo.MessageReactionRepo.FindAsync(
+    //        r => r.MessageId == dto.MessageId &&
+    //             r.UserId == userId &&
+    //             r.ReactionType == dto.ReactionType);
+
+    //    if (existing != null)
+    //    {
+    //        _repo.MessageReactionRepo.Delete(existing);
+    //        await _repo.CompleteAsync();
+    //        return null; // toggled off
+    //    }
+
+    //    var newReaction = new MessageReaction
+    //    {
+    //        MessageId = dto.MessageId,
+    //        UserId = userId,
+    //        ReactionType = dto.ReactionType,
+    //        CreatedAt = DateTime.UtcNow
+    //    };
+
+    //    await _repo.MessageReactionRepo.AddAsync(newReaction);
+    //    await _repo.CompleteAsync();
+
+    //    return _mapper.Map<MessageReactionDto>(newReaction);
+    //}
+
+    public async Task<MessageReactionDto?> ReactToMessageAsync(ReactToMessageDto dto, string userId)
     {
-        var reaction = new MessageReaction
+        var existing = await _repo.MessageReactionRepo.FindAsync(
+            r => r.MessageId == dto.MessageId &&
+                 r.UserId == userId);
+
+        if (existing != null)
         {
-            MessageId = dto.MessageId,
-            UserId = userId,
-            ReactionType = dto.ReactionType,
-            CreatedAt = DateTime.UtcNow
-        };
-        await _repo.MessageReactionRepo.AddAsync(reaction);
-        await _repo.CompleteAsync();
-        return _mapper.Map<MessageReactionDto>(reaction);
+            if (existing.ReactionType == dto.ReactionType)
+            {
+                _repo.MessageReactionRepo.Delete(existing);
+                await _repo.CompleteAsync();
+                return null;
+            }
+
+            existing.ReactionType = dto.ReactionType;
+            await _repo.CompleteAsync();
+            return _mapper.Map<MessageReactionDto>(existing);
+        }
+        else
+        {
+            var newReaction = new MessageReaction
+            {
+                MessageId = dto.MessageId,
+                UserId = userId,
+                ReactionType = dto.ReactionType,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _repo.MessageReactionRepo.AddAsync(newReaction);
+            await _repo.CompleteAsync();
+            return _mapper.Map<MessageReactionDto>(newReaction);
+        }
     }
 
-    public async Task<bool> MarkMessageAsReadAsync(int messageId, string userId)
+
+
+
+    public async Task<(bool, DateTime?)> MarkMessageAsReadAsync(int messageId, string userId)
     {
+        var message = await _repo.ChatMessageRepo.FindAsync(m => m.MessageId == messageId, ["ReadStatus"]);
+        if (message.IsRead) return (true, message.ReadStatus.ReadAt) ;
+
+        if (message is null || message.SenderId == userId) return (false, null);
+
+        var exists = await _repo.MessageReadStatusRepo.FindAsync(
+            r => r.MessageId == messageId && r.UserId == userId);
+
+        if (exists is not null)
+            return (true, exists.ReadAt); // already marked as read before
+
         var readStatus = new MessageReadStatus
         {
             MessageId = messageId,
             UserId = userId,
             ReadAt = DateTime.UtcNow
         };
+
+        message.IsRead = true;
+
         await _repo.MessageReadStatusRepo.AddAsync(readStatus);
         await _repo.CompleteAsync();
-        return true;
+        return (true, DateTime.UtcNow);
     }
+
+        //var readStatus = new MessageReadStatus
+        //{
+        //    MessageId = messageId,
+        //    UserId = userId,
+        //    ReadAt = DateTime.UtcNow
+        //};
+        //await _repo.MessageReadStatusRepo.AddAsync(readStatus);
+        //await _repo.CompleteAsync();
+        //return true;
+    //}
 
     public async Task<bool> DeleteMessageAsync(int messageId, string userId)
     {
@@ -299,6 +368,12 @@ public class ChatService : IChatService
         message.IsEdited = true;
         _repo.ChatMessageRepo.Update(message);
         await _repo.CompleteAsync();
+        return _mapper.Map<ChatMessageDto>(message);
+    }
+
+    public async Task<ChatMessageDto> GetMessageByIdAsync(int messageId)
+    {
+        var message =  await _repo.ChatMessageRepo.FindAsync(cm => cm.MessageId == messageId, new[] { "Sender", "Reactions", "ReadStatus" });
         return _mapper.Map<ChatMessageDto>(message);
     }
 }

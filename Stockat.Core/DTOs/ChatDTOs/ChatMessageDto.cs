@@ -18,5 +18,6 @@ public class ChatMessageDto
     public bool IsEdited { get; set; }
     public bool IsRead { get; set; }
     public DateTime SentAt { get; set; }
+    public DateTime? ReadAt { get; set; }
     public List<MessageReactionDto> Reactions { get; set; } = new();
 }

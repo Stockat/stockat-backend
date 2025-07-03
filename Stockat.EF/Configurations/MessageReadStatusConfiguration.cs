@@ -8,19 +8,23 @@ public class MessageReadStatusConfiguration : IEntityTypeConfiguration<MessageRe
 {
     public void Configure(EntityTypeBuilder<MessageReadStatus> builder)
     {
-        builder.HasKey(r => r.ReadStatusId);
+        builder.HasKey(r => r.MessageId); // MessageId is both PK and FK (1-to-1)
 
         builder.Property(r => r.ReadAt)
                .HasColumnType("datetime");
 
         builder.HasOne(r => r.Message)
-               .WithMany(m => m.ReadStatuses)
-               .HasForeignKey(r => r.MessageId)
-               .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete to avoid multiple cascade paths
+               .WithOne(m => m.ReadStatus)
+               .HasForeignKey<MessageReadStatus>(r => r.MessageId)
+                .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(r => r.User)
-               .WithMany(u => u.MessageReadStatuses)
+               .WithMany(u => u.MessageReadStatuses) // assuming User has a collection
                .HasForeignKey(r => r.UserId)
                .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(r => new { r.UserId, r.MessageId });
+
     }
 }
+

@@ -89,12 +89,6 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
     {
         IQueryable<T> query = _context.Set<T>().Where(criteria);
 
-        if (skip.HasValue)
-            query = query.Skip(skip.Value);
-
-        if (take.HasValue)
-            query = query.Take(take.Value);
-
         if (orderBy != null)
         {
             if (orderByDirection == OrderBy.Ascending)
@@ -102,6 +96,12 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
             else
                 query = query.OrderByDescending(orderBy);
         }
+        if (skip.HasValue)
+            query = query.Skip(skip.Value);
+
+        if (take.HasValue)
+            query = query.Take(take.Value);
+
 
         return query.ToList();
     }
@@ -134,6 +134,13 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
             foreach (var include in includes)
                 query = query.Include(include);
 
+        if (orderBy != null)
+        {
+            if (orderByDirection == OrderBy.Ascending)
+                query = query.OrderBy(orderBy);
+            else
+                query = query.OrderByDescending(orderBy);
+        }
         if (skip.HasValue)
             query = query.Skip(skip.Value);
 
@@ -142,13 +149,6 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
 
 
 
-        if (orderBy != null)
-        {
-            if (orderByDirection == OrderBy.Ascending)
-                query = query.OrderBy(orderBy);
-            else
-                query = query.OrderByDescending(orderBy);
-        }
 
         return await query.ToListAsync();
     }
