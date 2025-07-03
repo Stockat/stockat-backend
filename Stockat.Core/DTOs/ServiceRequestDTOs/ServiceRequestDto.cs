@@ -32,6 +32,9 @@ public class ServiceRequestDto
     public string BuyerApprovalStatus { get; set; }
     public string ServiceStatus { get; set; }
     public string PaymentStatus { get; set; }
+    public string SelledId { get; set; }
+    public string SellerName { get; set; }
+    public int SellerOfferAttempts { get; set; }
 
     public List<ServiceRequestUpdateDto> RequestUpdates { get; set; } = new();
 }

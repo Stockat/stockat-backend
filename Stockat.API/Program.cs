@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
+using Stockat.API.ActionFilters;
 using Stockat.API.Extensions;
+using Stockat.Core.Entities;
 using Stockat.Core.IServices;
 using Stockat.API.ActionFilters;
 using Stockat.Core.Entities;
 using Stockat.API.Hubs;
+using Stockat.Service.Services.AuctionServices;
 using System.Text.Json.Serialization;
 
 namespace Stockat.API;
@@ -53,9 +56,15 @@ public class Program
         //builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName.StartsWith("Stockat.Service")));
 
+        builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+
+        //BackGround service injection
+        builder.Services.AddHostedService<AuctionMonitorService>();
+
         var app = builder.Build();
 
-        var logger = app.Services.GetRequiredService<ILoggerManager>();
+        var logger = app.Services.GetRequiredService<ILoggerManager>(); ///
         app.ConfigureExceptionHandler(logger);
 
         // Configure the HTTP request pipeline.

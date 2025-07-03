@@ -35,9 +35,10 @@ public class UserService : IUserService
          _emailService = emailService;
     }
 
-    public async Task<GenericResponseDto<UserReadDto>> GetCurrentUserAsync()
+    public async Task<GenericResponseDto<UserReadDto>> GetUserAsync(string userId = null)
     {
-        var userId = GetCurrentUserId();
+        if(userId is null)
+            userId = GetCurrentUserId();
 
         var includes = new[] { nameof(User.UserVerification) };
 

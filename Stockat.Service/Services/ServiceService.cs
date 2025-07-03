@@ -58,7 +58,7 @@ public class ServiceService : IServiceService
 
     public async Task<IEnumerable<ServiceDto>> GetAllAvailableServicesAsync()
     {
-        var services = await _repo.ServiceRepo.GetAllAsync();
+        var services = await _repo.ServiceRepo.GetAllAvailableServicesWithSeller();
         if (services == null)
         {
             _logger.LogInfo("No available services found.");
@@ -84,7 +84,7 @@ public class ServiceService : IServiceService
 
     public async Task<ServiceDto> GetServiceByIdAsync(int serviceId)
     {
-        var service = await _repo.ServiceRepo.GetByIdAsync(serviceId);
+        var service = await _repo.ServiceRepo.GetByIdWithSeller(serviceId);
         if (service == null)
         {
             _logger.LogError($"Service with ID {serviceId} not found.");

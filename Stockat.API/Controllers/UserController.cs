@@ -17,13 +17,19 @@ public class UserController : ControllerBase
     {
         _serviceManager = serviceManager;
     }
-
+    // GET: api/user/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUserById(string id)
+    {
+        var response = await _serviceManager.UserService.GetUserAsync(id);
+        return StatusCode(response.Status, response);
+    }
     // GET: api/User
     [HttpGet]
     public async Task<IActionResult> GetCurrentUser()
     
     {
-        var response = await _serviceManager.UserService.GetCurrentUserAsync();
+        var response = await _serviceManager.UserService.GetUserAsync(); // Get current user by token
         return StatusCode(response.Status, response);
     }
 
