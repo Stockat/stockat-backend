@@ -65,7 +65,7 @@ public class ProductController : ControllerBase
 
         foreach (var img in imgUrls.Data)
         {
-            productDto.Images.Add(new AddProductmageDto() { ImageUrl = img });
+            productDto.Images.Add(new AddProductmageDto() { ImageUrl = img.Url, FileId = img.FileId });
         }
 
 
@@ -75,7 +75,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Updateproduct([FromRoute] int id, [FromForm] string productJson, [FromForm] IFormFile[] images)
+    public async Task<IActionResult> Updateproduct([FromRoute] int id, [FromForm] string productJson, [FromForm] IFormFile[] images, [FromForm] string removedimages)
     {
         var imgUrls = await _serviceManager.ProductService.UploadProductImages(images);
 
@@ -86,10 +86,21 @@ public class ProductController : ControllerBase
      {
          PropertyNameCaseInsensitive = true
      });
+        var removedimagesdto = JsonSerializer.Deserialize<IEnumerable<UpdateProductImageDto>>(
+     removedimages,
+     new JsonSerializerOptions
+     {
+         PropertyNameCaseInsensitive = true
+     });
+
+        foreach (var img in removedimagesdto)
+        {
+            await _serviceManager.ImageService.DeleteImageAsync(img.FileId);
+        }
 
         foreach (var img in imgUrls.Data)
         {
-            productDto.Images.Add(new UpdateProductImageDto() { ImageUrl = img });
+            productDto.Images.Add(new UpdateProductImageDto() { ImageUrl = img.Url, FileId = img.FileId });
         }
 
         var res = await _serviceManager.ProductService.UpdateProduct(id, productDto);

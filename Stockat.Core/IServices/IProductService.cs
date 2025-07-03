@@ -27,5 +27,5 @@ public interface IProductService
     public Task<GenericResponseDto<string>> RemoveProduct(int id);
     public Task<GenericResponseDto<string>> ChangeCanBeRequested(int id);
 
-    public Task<GenericResponseDto<IEnumerable<string>>> UploadProductImages(IFormFile[] imgs);
+    public Task<GenericResponseDto<IEnumerable<ImageUploadResultDto>>> UploadProductImages(IFormFile[] imgs);
 }

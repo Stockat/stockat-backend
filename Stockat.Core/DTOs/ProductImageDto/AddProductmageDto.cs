@@ -8,5 +8,7 @@ namespace Stockat.Core.DTOs.ProductImageDto;
 
 public class AddProductmageDto
 {
+
+    public string FileId { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
 }

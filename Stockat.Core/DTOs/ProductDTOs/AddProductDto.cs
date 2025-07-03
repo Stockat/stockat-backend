@@ -24,9 +24,7 @@ public class AddProductDto
     public int CategoryId { get; set; }
 
     public string SellerId { get; set; }
-    //public string[] Images { get; set; }
-
-
+    public string Location { get; set; }
 
     public virtual ICollection<AddFeatureDto> Features { get; set; } = new List<AddFeatureDto>();
     public virtual ICollection<AddProductmageDto> Images { get; set; } = new List<AddProductmageDto>();

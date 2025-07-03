@@ -67,6 +67,8 @@ public class ProductImage
     [Required(ErrorMessage = "ImageUrl is Required")]
     public string ImageUrl { get; set; } = string.Empty;
 
+    public string FileId { get; set; } = string.Empty;
+
     //Foreign Key
     [Required(ErrorMessage = "Product Id is Required")]
     public int ProductId { get; set; }

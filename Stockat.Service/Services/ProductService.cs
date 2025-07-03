@@ -258,17 +258,17 @@ public class ProductService : IProductService
         };
     }
 
-    public async Task<GenericResponseDto<IEnumerable<string>>> UploadProductImages(IFormFile[] imgs)
+    public async Task<GenericResponseDto<IEnumerable<ImageUploadResultDto>>> UploadProductImages(IFormFile[] imgs)
     {
 
         var uploadResult = await _imageService.UploadImagesAsync(imgs, "/ProductImages");
 
 
-        return new GenericResponseDto<IEnumerable<string>>
+        return new GenericResponseDto<IEnumerable<ImageUploadResultDto>>
         {
             Message = "Profile image updated successfully.",
             Status = StatusCodes.Status200OK,
-            Data = uploadResult.Select(s => s.Url)
+            Data = uploadResult
         };
 
     }
