@@ -1,4 +1,5 @@
 ﻿using Stockat.Core.IServices;
+using Stockat.Core.IServices.IAuctionServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,7 @@ public interface IServiceManager
 {
     IAuthenticationService AuthenticationService { get; }
     IImageService ImageService { get; }
+    IFileService FileService { get; }
 
     IEmailService EmailService { get; }
 
@@ -22,5 +24,11 @@ public interface IServiceManager
     IProductService ProductService { get; }
     IStockService StockService { get; }
 
+    public IAuctionService AuctionService {  get; }
+    public IAuctionBidRequestService AuctionBidRequestService {  get; }
+    public IAuctionOrderService AuctionOrderService {  get; }
+
     IUserService UserService { get; }
+
+    IChatService ChatService { get; }
 }

@@ -63,6 +63,7 @@ namespace Stockat.Core.Entities
         [Required]
         [MaxLength(20)]
         public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
+        public int SellerOfferAttempts { get; set; } = 0;
 
         public ICollection<ServiceRequestUpdate> RequestUpdates { get; set; } = new List<ServiceRequestUpdate>();
     }

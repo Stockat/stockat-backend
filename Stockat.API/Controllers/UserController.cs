@@ -17,12 +17,19 @@ public class UserController : ControllerBase
     {
         _serviceManager = serviceManager;
     }
-
+    // GET: api/user/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUserById(string id)
+    {
+        var response = await _serviceManager.UserService.GetUserAsync(id);
+        return StatusCode(response.Status, response);
+    }
     // GET: api/User
     [HttpGet]
     public async Task<IActionResult> GetCurrentUser()
+    
     {
-        var response = await _serviceManager.UserService.GetCurrentUserAsync();
+        var response = await _serviceManager.UserService.GetUserAsync(); // Get current user by token
         return StatusCode(response.Status, response);
     }
 
@@ -53,11 +60,11 @@ public class UserController : ControllerBase
         return StatusCode(response.Status, response);
     }
 
-    // PUT: api/User/deactivate
-    [HttpPut("deactivate")]
-    public async Task<IActionResult> DeactivateUser()
+    // PUT: api/User/toggle-activation
+    [HttpPut("toggle-activation")]
+    public async Task<IActionResult> ToggleActivation()
     {
-        var response = await _serviceManager.UserService.DeactivateAsync();
+        var response = await _serviceManager.UserService.ToggleActivationAsync();
         return StatusCode(response.Status, response);
     }
 }

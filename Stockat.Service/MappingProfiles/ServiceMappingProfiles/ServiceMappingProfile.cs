@@ -8,7 +8,10 @@ public class ServiceMappingProfile : Profile
 {
     public ServiceMappingProfile() {
         CreateMap<CreateServiceDto, Stockat.Core.Entities.Service>();
-        CreateMap<Stockat.Core.Entities.Service, ServiceDto>();
+        CreateMap<Stockat.Core.Entities.Service, ServiceDto>()
+            .ForMember(dest => dest.SellerName,
+                       opt => opt.MapFrom(src => src.Seller.FirstName + " " + src.Seller.LastName));
+
         CreateMap<UpdateServiceDto, Stockat.Core.Entities.Service>()
             .ForMember(dest => dest.Name, opt => opt.Condition(src => !string.IsNullOrEmpty(src.Name)))
             .ForMember(dest => dest.Description, opt => opt.Condition(src => !string.IsNullOrEmpty(src.Description)))

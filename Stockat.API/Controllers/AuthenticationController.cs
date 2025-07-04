@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using Stockat.API.ActionFilters;
 using Stockat.Core;
 using Stockat.Core.DTOs.UserDTOs;
+using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
 
 namespace Stockat.API.Controllers;
@@ -34,29 +36,78 @@ public class AuthenticationController : ControllerBase
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> Authenticate([FromBody] UserForAuthenticationDto user)
     {
-        if (!await _service.AuthenticationService.ValidateUser(user))
-            return Unauthorized(new { message = "Invalid username or password." });
-        var tokenDto = await _service.AuthenticationService.CreateToken(true);
-        return Ok(new AuthResponseDto
+        var status = await _service.AuthenticationService.ValidateUser(user);
+        TokenDto tokenDto;
+
+        switch (status)
         {
-            Token = tokenDto,
-            IsAuthSuccessful = true
-        });
+            case AuthenticationStatus.InvalidCredentials:
+                return Unauthorized(new { message = "Invalid username or password." });
+
+            case AuthenticationStatus.EmailNotConfirmed:
+                return BadRequest(new { message = "Email not confirmed." });
+
+            case AuthenticationStatus.AccountDeleted:
+                tokenDto = await _service.AuthenticationService.CreateToken(true);
+                return Ok(new AuthResponseDto
+                {
+                    Token = tokenDto,
+                    IsAuthSuccessful = true,
+                    IsDeleted = true
+                });
+
+            case AuthenticationStatus.Success:
+                tokenDto = await _service.AuthenticationService.CreateToken(true);
+                return Ok(new AuthResponseDto
+                {
+                    Token = tokenDto,
+                    IsAuthSuccessful = true,
+                    IsDeleted = false
+                });
+
+            default:
+                return StatusCode(500, "Unexpected authentication error.");
+        }
     }
+
+
+
 
     [HttpPost("googleLogin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> ExternalLogin([FromBody] ExternalAuthDto externalAuth)
     {
-        var tokenDto = await _service.AuthenticationService.ExternalLoginAsync(externalAuth);
-        if (tokenDto == null)
-            return BadRequest(new { message = "Google login failed." });
-        return Ok(new AuthResponseDto
+        var status = await _service.AuthenticationService.ExternalLoginAsync(externalAuth);
+        TokenDto tokenDto;
+
+        switch (status)
         {
-            Token = tokenDto,
-            IsAuthSuccessful = true
-        });
+            case AuthenticationStatus.InvalidCredentials:
+                return Unauthorized(new { message = "Google login failed." });
+
+            case AuthenticationStatus.AccountDeleted:
+                tokenDto = await _service.AuthenticationService.CreateToken(true);
+                return Ok(new AuthResponseDto
+                {
+                    Token = tokenDto,
+                    IsAuthSuccessful = true,
+                    IsDeleted = true
+                });
+
+            case AuthenticationStatus.Success:
+                tokenDto = await _service.AuthenticationService.CreateToken(true);
+                return Ok(new AuthResponseDto
+                {
+                    Token = tokenDto,
+                    IsAuthSuccessful = true,
+                    IsDeleted = false
+                });
+
+            default:
+                return StatusCode(500, "Unexpected external login error.");
+        }
     }
+
 
     [HttpGet("confirmEmail")]
     public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
