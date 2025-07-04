@@ -11,6 +11,7 @@ namespace Stockat.Core.DTOs.StockDTOs
     {
         public int ProductId { get; set; }
         public int Quantity { get; set; }
+        public List<StockDetailsDTO> StockDetails { get; set; } = new List<StockDetailsDTO>();
     }
 
     public class StockDetailsDTO

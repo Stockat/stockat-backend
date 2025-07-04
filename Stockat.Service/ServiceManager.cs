@@ -24,6 +24,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IServiceRequestService> _serviceRequestService;
     private readonly Lazy<IServiceRequestUpdateService> _serviceRequestUpdateService;
     private readonly Lazy<IProductService> _productService;
+    private readonly Lazy<IStockService> _stockService;
 
     private readonly Lazy<IUserService> _userService;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper,
@@ -33,6 +34,9 @@ public sealed class ServiceManager : IServiceManager
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
         _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
+
+        // Stock Service
+        _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
 
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));
@@ -59,6 +63,8 @@ public sealed class ServiceManager : IServiceManager
 
     public IEmailService EmailService => _emailService.Value;
     public IProductService ProductService => _productService.Value;
+
+    public IStockService StockService => _stockService.Value;
 
 
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;

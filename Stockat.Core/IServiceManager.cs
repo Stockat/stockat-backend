@@ -20,6 +20,7 @@ public interface IServiceManager
     IServiceRequestService ServiceRequestService { get; }
     IServiceRequestUpdateService ServiceRequestUpdateService { get; }
     IProductService ProductService { get; }
+    IStockService StockService { get; }
 
     IUserService UserService { get; }
 }

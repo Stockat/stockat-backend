@@ -17,4 +17,5 @@ public interface IProductService
     public Task<int> AddProductAsync(AddProductDto productDto);
     public Task<int> UpdateProduct(int id, UpdateProductDto productDto);
     public Task<int> ChangeProductStatus(int id, ProductStatus chosenStatus);
+    public Task<GenericResponseDto<ProductWithFeaturesDTO>> GetProductWithFeaturesAsync(int id);
 }
