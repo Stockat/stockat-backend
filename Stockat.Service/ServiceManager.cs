@@ -89,4 +89,8 @@ public sealed class ServiceManager : IServiceManager
     public IUserService UserService => _userService.Value;
 
     public IChatService ChatService => _chatService.Value;
+
+    public IAuctionOrderService AuctionOrderService => _auctionOrderService.Value;
+
+    public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 }

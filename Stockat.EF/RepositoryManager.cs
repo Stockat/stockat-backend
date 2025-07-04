@@ -79,7 +79,6 @@ public class RepositoryManager : IRepositoryManager
     public IProductRepository ProductRepository => _productRepository.Value;
 
     public IBaseRepository<User> UserRepo => _userRepo.Value;
-    public IBaseRepository<Stock> StockRepo => _stockRepository.Value;
     public IBaseRepository<StockDetails> StockDetailsRepo => _stockDetailsRepository.Value;
 
     public IBaseRepository<ChatConversation> ChatConversationRepo => _chatConversationRepo.Value;
