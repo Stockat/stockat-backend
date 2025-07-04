@@ -40,8 +40,25 @@ public class ProductService : IProductService
         (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
 
     {
-        int skip = (_page - 1) * _size;
+        int skip = (_page) * _size;
         int take = _size;
+
+        var counting = await _repo.ProductRepository.CountAsync(p => p.isDeleted == false &&
+            p.MinQuantity >= minQuantity &&
+            p.Price >= minPrice &&
+              (
+            tags.Length == 0 ||
+             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
+              ) &&
+             (
+             string.IsNullOrEmpty(location) ||
+             p.Location.ToString().ToUpper() == location.ToUpper()
+             ) &&
+            (
+                category == 0 ||
+                p.CategoryId == category
+             ) &&
+             (p.ProductStatus == ProductStatus.Approved || p.ProductStatus == ProductStatus.Activated));
 
         var res = await _repo.ProductRepository.FindAllAsync
             (
@@ -65,7 +82,7 @@ public class ProductService : IProductService
             , skip: skip, take: take, includes: ["Images", "ProductTags.Tag"], o => o.Id, OrderBy.Descending
             );
 
-        res.TryGetNonEnumeratedCount(out var count);
+        //res.TryGetNonEnumeratedCount(out var count);
 
         var productDtos = _mapper.Map<IEnumerable<ProductHomeDto>>(res);
 
@@ -73,8 +90,8 @@ public class ProductService : IProductService
         {
 
             PaginatedData = productDtos,
-            Size = 4,
-            Count = count,
+            Size = _size,
+            Count = counting,
             Page = _page
         };
 
@@ -129,8 +146,29 @@ public class ProductService : IProductService
     {
         var sellerId = "64c5d9f7-690e-42d4-b035-1945ab3476db";
 
-        int skip = (_page - 1) * _size;
+        int skip = (_page) * _size;
         int take = _size;
+
+        var counting = await _repo.ProductRepository.CountAsync(
+            p => p.isDeleted == false &&
+            p.SellerId == sellerId &&
+            p.MinQuantity >= minQuantity &&
+            p.Price >= minPrice &&
+              (
+            tags.Length == 0 ||
+             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
+              ) &&
+             (
+             string.IsNullOrEmpty(location) ||
+             p.Location.ToString().ToUpper() == location.ToUpper()
+             ) &&
+            (
+                category == 0 ||
+                p.CategoryId == category
+             )
+     );
+
+
 
         var res = await _repo.ProductRepository.FindAllAsync
             (
@@ -154,7 +192,7 @@ public class ProductService : IProductService
             , skip: skip, take: take, includes: ["Images"], o => o.Id, OrderBy.Descending
             );
 
-        res.TryGetNonEnumeratedCount(out var count);
+        //res.TryGetNonEnumeratedCount(out var count);
 
         var productDtos = _mapper.Map<IEnumerable<GetSellerProductDto>>(res);
 
@@ -162,8 +200,8 @@ public class ProductService : IProductService
         {
 
             PaginatedData = productDtos,
-            Size = 4,
-            Count = count,
+            Size = _size,
+            Count = counting,
             Page = _page
         };
 

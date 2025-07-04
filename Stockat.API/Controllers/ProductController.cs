@@ -29,7 +29,7 @@ public class ProductController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> getAllProductsPaginatedAsync
-        ([FromQuery] int[] tags, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, int size = 9, int page = 1)
+        ([FromQuery] int size, [FromQuery] int[] tags, [FromQuery] int page = 0, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0)
     {
 
         var res = await _serviceManager.ProductService.getAllProductsPaginated(size, page, location, category, minQuantity, minPrice, tags);
@@ -118,7 +118,7 @@ public class ProductController : ControllerBase
 
     [HttpGet("seller")]
     public async Task<IActionResult> getAllproductForSellerAsync
-    ([FromQuery] int[] tags, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, int size = 9, int page = 1)
+    ([FromQuery] int[] tags, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, int size = 8, int page = 0)
     {
 
         var res = await _serviceManager.ProductService.GetAllProductForSellerAsync(size, page, location, category, minQuantity, minPrice, tags);
