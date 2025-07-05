@@ -25,6 +25,7 @@ public class RepositoryManager : IRepositoryManager
     private readonly Lazy<ProductRepository> _productRepository;
     private readonly Lazy<IBaseRepository<Stock>> _stockRepository;
     private readonly Lazy<IBaseRepository<StockDetails>> _stockDetailsRepository;
+    private readonly Lazy<IBaseRepository<OrderProduct>> _OrderRepo; 
     private readonly IMapper _mapper;
 
     private readonly Lazy<ServiceRepository> _serviceRepo;
@@ -58,6 +59,7 @@ public class RepositoryManager : IRepositoryManager
         _serviceRequestUpdateRepo = new Lazy<IBaseRepository<ServiceRequestUpdate>>(() => new BaseRepository<ServiceRequestUpdate>(_context));
         _stockRepository = new Lazy<IBaseRepository<Stock>>(() => new BaseRepository<Stock>(_context));
         _stockDetailsRepository = new Lazy<IBaseRepository<StockDetails>>(() => new BaseRepository<StockDetails>(_context));
+        _OrderRepo = new Lazy<IBaseRepository<OrderProduct>>(() => new BaseRepository<OrderProduct>(_context));
 
         _chatConversationRepo = new Lazy<IBaseRepository<ChatConversation>>(() => new BaseRepository<ChatConversation>(_context));
         _chatMessageRepo = new Lazy<IBaseRepository<ChatMessage>>(() => new BaseRepository<ChatMessage>(_context));
@@ -80,6 +82,7 @@ public class RepositoryManager : IRepositoryManager
 
     public IBaseRepository<User> UserRepo => _userRepo.Value;
     public IBaseRepository<StockDetails> StockDetailsRepo => _stockDetailsRepository.Value;
+    public IBaseRepository<OrderProduct> OrderRepo => _OrderRepo.Value;
 
     public IBaseRepository<ChatConversation> ChatConversationRepo => _chatConversationRepo.Value;
     public IBaseRepository<ChatMessage> ChatMessageRepo => _chatMessageRepo.Value;

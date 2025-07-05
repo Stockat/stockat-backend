@@ -94,6 +94,33 @@ namespace Stockat.API.Controllers
             }
         }
 
+        // Get All Stocks For a Specific Product
+        [HttpGet("for-product/{productid}")]
+        public async Task<IActionResult> GetStocksForProductAsync(int productId)
+        {
+            if (productId <= 0)
+            {
+                _logger.LogError("GetStocksForProductAsync: Invalid product ID.");
+                return BadRequest("Invalid product ID.");
+            }
+            try
+            {
+                var response = await _serviceManager.StockService.GetStocksByProductIdAsync(productId);
+                if (response == null || response.Data == null || !response.Data.Any())
+                {
+                    _logger.LogError($"GetStocksForProductAsync: No stocks found for product ID {productId}.");
+                    return NotFound($"No stocks found for product ID {productId}.");
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"GetStocksForProductAsync: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving stocks for the product.");
+            }
+        }
+        
+
         // Update Stock
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStockAsync(int id, [FromBody] UpdateStockDTO stockDto)
