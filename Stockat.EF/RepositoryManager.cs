@@ -2,6 +2,7 @@
 using AutoMapper;
 using Stockat.Core;
 using Stockat.Core.Entities;
+using Stockat.Core.Entities.Chat;
 using Stockat.Core.IRepositories;
 using Stockat.Core.IServices;
 using Stockat.EF.Repositories;
@@ -24,11 +25,20 @@ public class RepositoryManager : IRepositoryManager
 
     //public RepositoryManager(StockatDBContext context)
     private readonly Lazy<ProductRepository> _productRepository;
+    private readonly Lazy<IBaseRepository<Stock>> _stockRepository;
+    private readonly Lazy<IBaseRepository<StockDetails>> _stockDetailsRepository;
     private readonly IMapper _mapper;
 
     private readonly Lazy<ServiceRepository> _serviceRepo;
     private readonly Lazy<IBaseRepository<ServiceRequest>> _serviceRequestRepo;
     private readonly Lazy<IBaseRepository<ServiceRequestUpdate>> _serviceRequestUpdateRepo;
+
+
+    private readonly Lazy<IBaseRepository<ChatConversation>> _chatConversationRepo;
+    private readonly Lazy<IBaseRepository<ChatMessage>> _chatMessageRepo;
+    private readonly Lazy<IBaseRepository<MessageReadStatus>> _messageReadStatusRepo;
+    private readonly Lazy<IBaseRepository<MessageReaction>> _messageReactionRepo;
+
 
 
     private readonly Lazy<IBaseRepository<User>> _userRepo;
@@ -50,6 +60,14 @@ public class RepositoryManager : IRepositoryManager
         _serviceRepo = new Lazy<ServiceRepository>(() => new ServiceRepository(_context));
         _serviceRequestRepo = new Lazy<IBaseRepository<ServiceRequest>>(() => new BaseRepository<ServiceRequest>(_context));
         _serviceRequestUpdateRepo = new Lazy<IBaseRepository<ServiceRequestUpdate>>(() => new BaseRepository<ServiceRequestUpdate>(_context));
+        _stockRepository = new Lazy<IBaseRepository<Stock>>(() => new BaseRepository<Stock>(_context));
+        _stockDetailsRepository = new Lazy<IBaseRepository<StockDetails>>(() => new BaseRepository<StockDetails>(_context));
+
+        _chatConversationRepo = new Lazy<IBaseRepository<ChatConversation>>(() => new BaseRepository<ChatConversation>(_context));
+        _chatMessageRepo = new Lazy<IBaseRepository<ChatMessage>>(() => new BaseRepository<ChatMessage>(_context));
+        _messageReadStatusRepo = new Lazy<IBaseRepository<MessageReadStatus>>(() => new BaseRepository<MessageReadStatus>(_context));
+        _messageReactionRepo = new Lazy<IBaseRepository<MessageReaction>>(() => new BaseRepository<MessageReaction>(_context));
+
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
@@ -67,6 +85,12 @@ public class RepositoryManager : IRepositoryManager
     public IProductRepository ProductRepository => _productRepository.Value;
 
     public IBaseRepository<User> UserRepo => _userRepo.Value;
+    public IBaseRepository<StockDetails> StockDetailsRepo => _stockDetailsRepository.Value;
+
+    public IBaseRepository<ChatConversation> ChatConversationRepo => _chatConversationRepo.Value;
+    public IBaseRepository<ChatMessage> ChatMessageRepo => _chatMessageRepo.Value;
+    public IBaseRepository<MessageReadStatus> MessageReadStatusRepo => _messageReadStatusRepo.Value;
+    public IBaseRepository<MessageReaction> MessageReactionRepo => _messageReactionRepo.Value;
 
 
     public int Complete()

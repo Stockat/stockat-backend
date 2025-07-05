@@ -82,7 +82,7 @@ public class ServiceRequestController : ControllerBase
 
     [HttpGet("mine")]
     [Authorize]
-    public async Task<IActionResult> GetBuyerRequestsAsync()
+    public async Task<IActionResult> GetBuyerRequestsAsync([FromQuery] int page = 1, [FromQuery] int size = 10)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
@@ -90,20 +90,20 @@ public class ServiceRequestController : ControllerBase
             return Unauthorized("User is not authenticated.");
         }
 
-        var requests = await _serviceManager.ServiceRequestService.GetBuyerRequestsAsync(userId);
+        var requests = await _serviceManager.ServiceRequestService.GetBuyerRequestsAsync(userId, page, size);
         return Ok(requests);
     }
 
     [HttpGet("{serviceId:int}/incoming")]
     [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> GetSellerRequestsAsync(int serviceId)
+    public async Task<IActionResult> GetSellerRequestsAsync(int serviceId, [FromQuery] int page = 1, [FromQuery] int size = 10)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized("User is not authenticated.");
         }
-        var requests = await _serviceManager.ServiceRequestService.GetSellerRequestsAsync(userId, serviceId);
+        var requests = await _serviceManager.ServiceRequestService.GetSellerRequestsAsync(userId, serviceId, page, size);
         return Ok(requests);
     }
 
