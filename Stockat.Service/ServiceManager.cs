@@ -45,7 +45,6 @@ public sealed class ServiceManager : IServiceManager
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
         _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager, _imageService.Value));
         _fileService = new Lazy<IFileService>(() => new CloudinaryFileService(configuration));
-        _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
 
         // Stock Service
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
@@ -99,7 +98,6 @@ public sealed class ServiceManager : IServiceManager
 
     public IAuctionOrderService AuctionOrderService => _auctionOrderService.Value;
 
-    public IUserService UserService => _userService.Value;
     public ICategoryService CategoryService => _categoryService.Value;
     public ITagService TagService => _tagService.Value;
 
