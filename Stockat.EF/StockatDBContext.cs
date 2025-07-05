@@ -31,6 +31,9 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<AuctionOrder> AuctionOrder { get; set; }
     public virtual DbSet<Category> Categories { get; set; }
 
+    public virtual DbSet<OrderProduct> OrderProduct { get; set; }
+    public virtual DbSet<RequestProduct> RequestProduct { get; set; }
+
 
 
     public DbSet<ChatConversation> ChatConversations { get; set; }

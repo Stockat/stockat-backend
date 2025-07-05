@@ -148,6 +148,14 @@ public class ProductController : ControllerBase
         return Ok(res);
     }
 
+    // Get product with features by ID
+    [HttpGet("with-features/{id:int}")]
+    public async Task<IActionResult> GetProductWithFeatures(int id)
+    {
+        var res = await _serviceManager.ProductService.GetProductWithFeaturesAsync(id);
+        return Ok(res);
+    }
+
 
 
 }
