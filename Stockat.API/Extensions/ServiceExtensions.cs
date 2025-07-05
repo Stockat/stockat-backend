@@ -21,9 +21,12 @@ public static class ServiceExtensions
         services.AddCors(options =>
         {
             options.AddPolicy("CorsPolicy", builder =>
-            builder.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader());
+                builder
+                    .WithOrigins("http://localhost:4200") // <-- Your frontend URL
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials() // <-- This is required for SignalR with auth
+            );
         });
     }
     // register iis
@@ -93,6 +96,19 @@ public static class ServiceExtensions
                 ValidAudience = jwtSettings["validAudience"],
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
             };
+            options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chathub"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
         });
     }
 
@@ -143,5 +159,11 @@ public static class ServiceExtensions
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "V1");
             c.RoutePrefix = string.Empty;
         });
+    }
+
+    public static void ConfigureServices(this IServiceCollection services)
+    {
+        services.AddSignalR();
+        services.AddHttpContextAccessor();
     }
 }

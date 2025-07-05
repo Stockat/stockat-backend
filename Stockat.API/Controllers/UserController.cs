@@ -27,6 +27,7 @@ public class UserController : ControllerBase
     // GET: api/User
     [HttpGet]
     public async Task<IActionResult> GetCurrentUser()
+    
     {
         var response = await _serviceManager.UserService.GetUserAsync(); // Get current user by token
         return StatusCode(response.Status, response);
