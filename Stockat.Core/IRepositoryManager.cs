@@ -17,6 +17,9 @@ public interface IRepositoryManager
     IBaseRepository<ServiceRequest> ServiceRequestRepo { get; }
     IBaseRepository<ServiceRequestUpdate> ServiceRequestUpdateRepo { get; }
     IProductRepository ProductRepository { get; }
+    IBaseRepository<StockDetails> StockDetailsRepo { get; }
+
+
 
 
     IBaseRepository<User> UserRepo { get; }

@@ -100,14 +100,14 @@ public class ServiceRequestUpdateController : ControllerBase
 
     [HttpGet("request/{requestId:int}")]
     [Authorize]
-    public async Task<IActionResult> GetUpdatesByRequestIdAsync(int requestId)
+    public async Task<IActionResult> GetUpdatesByRequestIdAsync(int requestId, [FromQuery] int page = 1, [FromQuery] int size = 10)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized("You must be logged in to view updates.");
         try
         {
-            var updates = await _serviceManager.ServiceRequestUpdateService.GetUpdatesByRequestIdAsync(requestId, userId);
+            var updates = await _serviceManager.ServiceRequestUpdateService.GetUpdatesByRequestIdAsync(requestId, userId, page, size);
             return Ok(updates);
         }
         catch (NotFoundException ex)

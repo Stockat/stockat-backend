@@ -28,6 +28,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IServiceRequestService> _serviceRequestService;
     private readonly Lazy<IServiceRequestUpdateService> _serviceRequestUpdateService;
     private readonly Lazy<IProductService> _productService;
+    private readonly Lazy<IStockService> _stockService;
     private readonly Lazy<IChatService> _chatService;
 
     private readonly Lazy<IAuctionService> _auctionService;
@@ -43,9 +44,10 @@ public sealed class ServiceManager : IServiceManager
         _fileService = new Lazy<IFileService>(() => new CloudinaryFileService(configuration));
         _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
 
-        _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));
+        // Stock Service
+        _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
-        // Service Feature
+        _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
         _serviceRequestService = new Lazy<IServiceRequestService>(() => new ServiceRequestService(logger, mapper, repositoryManager, _emailService.Value, _userService.Value));
         _serviceRequestUpdateService = new Lazy<IServiceRequestUpdateService>(() => new ServiceRequestUpdateService(logger, mapper, repositoryManager, _emailService.Value));
@@ -76,16 +78,19 @@ public sealed class ServiceManager : IServiceManager
     public IEmailService EmailService => _emailService.Value;
     public IProductService ProductService => _productService.Value;
 
+    public IStockService StockService => _stockService.Value;
+
     public IAuctionService AuctionService => _auctionService.Value;
     public IAuctionBidRequestService AuctionBidRequestService => _auctionBidRequestService.Value;
-    public IAuctionOrderService AuctionOrderService => _auctionOrderService.Value;
 
-    public IUserVerificationService UserVerificationService => _userVerificationService.Value;
     public IServiceService ServiceService => _serviceService.Value;
     public IServiceRequestService ServiceRequestService => _serviceRequestService.Value;
     public IServiceRequestUpdateService ServiceRequestUpdateService => _serviceRequestUpdateService.Value;
-
     public IUserService UserService => _userService.Value;
 
     public IChatService ChatService => _chatService.Value;
+
+    public IAuctionOrderService AuctionOrderService => _auctionOrderService.Value;
+
+    public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 }
