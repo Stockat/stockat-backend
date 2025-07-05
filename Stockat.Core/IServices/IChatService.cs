@@ -51,7 +51,7 @@ public interface IChatService
     Task<bool> DeleteConversationAsync(int conversationId, string requestingUserId);
 
 
-
+    Task<ChatConversationDto> GetConversationByTwoUsersIdsAsync(string user1Id, string user2Id);
 
 
     Task<ChatMessageDto> GetMessageByIdAsync(int messageId);
