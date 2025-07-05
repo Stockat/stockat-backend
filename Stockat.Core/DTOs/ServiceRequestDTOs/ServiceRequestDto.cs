@@ -35,6 +35,7 @@ public class ServiceRequestDto
     public string SelledId { get; set; }
     public string SellerName { get; set; }
     public int SellerOfferAttempts { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<ServiceRequestUpdateDto> RequestUpdates { get; set; } = new();
 }

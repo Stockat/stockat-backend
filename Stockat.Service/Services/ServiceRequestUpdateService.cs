@@ -102,7 +102,8 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
             AdditionalTime = dto.AdditionalTime,
             Status = ApprovalStatus.Pending,
             CreatedAt = DateTime.UtcNow,
-            ServiceRequestId = requestId
+            ServiceRequestId = requestId,
+            AdditionalNote = dto.AdditionalNote
         };
 
         await _repo.ServiceRequestUpdateRepo.AddAsync(update);
