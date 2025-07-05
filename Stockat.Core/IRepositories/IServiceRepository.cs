@@ -9,8 +9,9 @@ namespace Stockat.Core.IRepositories;
 
 public interface IServiceRepository : IBaseRepository<Stockat.Core.Entities.Service>
 {
-    Task<IEnumerable<Stockat.Core.Entities.Service>> GetAllAvailableServicesWithSeller();
+    Task<IEnumerable<Stockat.Core.Entities.Service>> GetAllAvailableServicesWithSeller(int skip, int take);
     public Task<Service> GetByIdWithSeller(int id);
+    public Task<int> CountAllAvailableServicesAsync();
 
 
 }

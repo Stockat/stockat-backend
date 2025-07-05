@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using Stockat.Core.Entities;
 using Stockat.Core.IRepositories;
 
@@ -10,13 +11,12 @@ public class ServiceRepository : BaseRepository<Stockat.Core.Entities.Service>, 
     public ServiceRepository(StockatDBContext context) : base(context)
     {
         _context = context;
-
     }
-  
 
-    public async Task<IEnumerable<Service>> GetAllAvailableServicesWithSeller()
+    public async Task<IEnumerable<Service>> GetAllAvailableServicesWithSeller(int skip, int take)
     {
         return await _context.Set<Service>()
+            .Skip(skip).Take(take)
             .Include(s => s.Seller)
             .ToListAsync();
     }
@@ -26,5 +26,10 @@ public class ServiceRepository : BaseRepository<Stockat.Core.Entities.Service>, 
         return await _context.Set<Service>()
             .Include(s => s.Seller)
             .FirstOrDefaultAsync(s => s.Id == id);
+    }
+
+    public async Task<int> CountAllAvailableServicesAsync()
+    {
+        return await _context.Set<Service>().CountAsync();
     }
 }

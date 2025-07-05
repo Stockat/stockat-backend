@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using AutoMapper;
 using Stockat.Core;
+using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.ServiceRequestDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
@@ -126,18 +127,35 @@ public class ServiceRequestService : IServiceRequestService
         return requests.Select(r => r.ServiceId).Distinct();
     }
 
-    public async Task<IEnumerable<ServiceRequestDto>> GetBuyerRequestsAsync(string buyerId)
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestDto>>>> GetBuyerRequestsAsync(string buyerId, int page, int size)
     {
-        var requests = await _repo.ServiceRequestRepo.FindAllAsync(r => r.BuyerId == buyerId, ["Buyer", "Service", "Service.Seller"]);
-        if (requests == null || !requests.Any())
-        {
-            _logger.LogInfo($"No service requests found for buyer {buyerId}.");
-            return Enumerable.Empty<ServiceRequestDto>();
-        }
+        int skip = (page - 1) * size;
 
-        _logger.LogInfo($"Retrieved {requests.Count()} service requests for buyer {buyerId}.");
-        return _mapper.Map<IEnumerable<ServiceRequestDto>>(requests);
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.BuyerId == buyerId,
+            skip,
+            size,
+            includes: ["Buyer", "Service", "Service.Seller"]
+        );
+
+        int totalCount = await _repo.ServiceRequestRepo.CountAsync(r => r.BuyerId == buyerId);
+
+        var result = new PaginatedDto<IEnumerable<ServiceRequestDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = totalCount,
+            PaginatedData = _mapper.Map<IEnumerable<ServiceRequestDto>>(requests)
+        };
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestDto>>>
+        {
+            Status = 200,
+            Message = "Buyer requests retrieved successfully.",
+            Data = result
+        };
     }
+
 
     public async Task<ServiceRequestDto> GetByIdAsync(int requestId, string userId, bool isSeller)
     {
@@ -157,21 +175,35 @@ public class ServiceRequestService : IServiceRequestService
         return _mapper.Map<ServiceRequestDto>(request);
     }
 
-    public async Task<IEnumerable<ServiceRequestDto>> GetSellerRequestsAsync(string sellerId, int serviceId)
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestDto>>>> GetSellerRequestsAsync(string sellerId, int serviceId, int page, int size)
     {
+        int skip = (page - 1) * size;
+
         var requests = await _repo.ServiceRequestRepo.FindAllAsync(
             r => r.Service.SellerId == sellerId && r.ServiceId == serviceId,
-            ["Buyer", "Service"]
+            skip,
+            size,
+            includes: ["Buyer", "Service"]
         );
 
-        if (requests == null || !requests.Any())
+        int totalCount = await _repo.ServiceRequestRepo.CountAsync(r => r.Service.SellerId == sellerId && r.ServiceId == serviceId);
+
+        var result = new PaginatedDto<IEnumerable<ServiceRequestDto>>
         {
-            _logger.LogInfo($"No service requests found for seller {sellerId}.");
-            return Enumerable.Empty<ServiceRequestDto>();
-        }
-        _logger.LogInfo($"Retrieved {requests.Count()} service requests for seller {sellerId}.");
-        return _mapper.Map<IEnumerable<ServiceRequestDto>>(requests);
+            Page = page,
+            Size = size,
+            Count = totalCount,
+            PaginatedData = _mapper.Map<IEnumerable<ServiceRequestDto>>(requests)
+        };
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestDto>>>
+        {
+            Status = 200,
+            Message = "Seller service requests retrieved successfully.",
+            Data = result
+        };
     }
+
 
     public async Task<ServiceRequestDto> SetSellerOfferAsync(int requestId, string sellerId, SellerOfferDto dto)
     {

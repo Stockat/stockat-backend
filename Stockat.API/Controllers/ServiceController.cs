@@ -81,22 +81,22 @@ public class ServiceController : ControllerBase
 
     [HttpGet]
     [Authorize]
-    public async Task<IActionResult> GetAllAvailableServices()
+    public async Task<IActionResult> GetAllAvailableServices([FromQuery] int page = 0, [FromQuery] int size = 10)
     {
-        var services = await _service.ServiceService.GetAllAvailableServicesAsync();
+        var services = await _service.ServiceService.GetAllAvailableServicesAsync(page,size);
         return Ok(services);
     }
 
     [HttpGet("seller/{sellerId}")]
     [Authorize]
-    public async Task<IActionResult> GetSellerServices(string sellerId)
+    public async Task<IActionResult> GetSellerServices(string sellerId, [FromQuery] int page = 0, [FromQuery] int size = 10)
     {
         if (string.IsNullOrEmpty(sellerId))
             return BadRequest("Seller ID is required.");
 
 
-        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId);
-        if (services == null || !services.Any())
+        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId, page, size);
+        if (services == null)
             return NotFound($"No services found for seller with ID {sellerId}.");
 
         return Ok(services);
@@ -104,15 +104,15 @@ public class ServiceController : ControllerBase
 
     [HttpGet("mine")]
     [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> GetMyServices()
+    public async Task<IActionResult> GetMyServices([FromQuery] int page = 0, [FromQuery] int size = 10)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(sellerId))
             return Unauthorized("Seller ID is required.");
 
-        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId);
-        if (services == null || !services.Any())
+        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId, page, size);
+        if (services == null)
             return NotFound("No services found for the current seller.");
 
         return Ok(services);
