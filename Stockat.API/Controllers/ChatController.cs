@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Stockat.API.Hubs;
 using Stockat.Core;
 using Stockat.Core.DTOs.ChatDTOs;
@@ -59,6 +60,22 @@ public class ChatController : ControllerBase
         if (!result)
             return NotFound();
         return NoContent();
+    }
+
+
+    [HttpGet("conversations/with/{userId}")]
+    public async Task<ActionResult<ChatConversationDto>> GetConversationWithUser(string userId)
+    {
+        var currentUserId = GetUserId();
+        if (string.IsNullOrEmpty(currentUserId))
+            return Unauthorized();
+
+        var converation = await _serviceManager.ChatService.GetConversationByTwoUsersIdsAsync(currentUserId, userId);
+
+        if (converation is null)
+            return NotFound();
+
+        return Ok(converation);
     }
 
     [HttpPost("messages/text")]

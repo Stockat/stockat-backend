@@ -25,9 +25,11 @@ public interface IServiceManager
     IStockService StockService { get; }
     IOrderService OrderService { get; }
 
-    public IAuctionService AuctionService {  get; }
-    public IAuctionBidRequestService AuctionBidRequestService {  get; }
-    public IAuctionOrderService AuctionOrderService {  get; }
+    public IAuctionService AuctionService { get; }
+    public IAuctionBidRequestService AuctionBidRequestService { get; }
+    public IAuctionOrderService AuctionOrderService { get; }
+    public ICategoryService CategoryService { get; }
+    public ITagService TagService { get; }
 
     IUserService UserService { get; }
 

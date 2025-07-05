@@ -229,6 +229,15 @@ public class ChatService : IChatService
         return _mapper.Map<IEnumerable<ChatMessageDto>>(messages);
     }
 
+    public async Task<ChatConversationDto> GetConversationByTwoUsersIdsAsync(string user1Id, string user2Id)
+    {
+        var conversation = await _repo.ChatConversationRepo.FindAsync(
+            c => (c.User1Id == user1Id && c.User2Id == user2Id) || (c.User1Id == user2Id && c.User2Id == user2Id), ["User1", "User2" ]
+        );
+        if (conversation is null) return null;
+        return _mapper.Map<ChatConversationDto>(conversation);
+    }
+
     public async Task<IEnumerable<UserChatInfoDto>> SearchUsersAsync(string searchTerm, string currentUserId)
     {
         var users = await _repo.UserRepo.FindAllAsync(

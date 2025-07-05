@@ -37,7 +37,7 @@ public class Product
 
     public bool isDeleted { get; set; } = false;
     public bool canBeRequested { get; set; } = true;
-    public ProductLocation Location { get; set; }
+    public string Location { get; set; } = string.Empty;
 
     //ForeignKey
     [Required(ErrorMessage = "Seller Id is Required")]
@@ -66,6 +66,8 @@ public class ProductImage
 
     [Required(ErrorMessage = "ImageUrl is Required")]
     public string ImageUrl { get; set; } = string.Empty;
+
+    public string FileId { get; set; } = string.Empty;
 
     //Foreign Key
     [Required(ErrorMessage = "Product Id is Required")]

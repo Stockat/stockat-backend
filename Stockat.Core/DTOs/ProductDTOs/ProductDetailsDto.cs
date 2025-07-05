@@ -20,6 +20,7 @@ public class ProductDetailsDto
 
     public string SellerId { get; set; }
     public string SellerName { get; set; }
+    public string CategoryName { get; set; }
     public int MinQuantity { get; set; }
 
 

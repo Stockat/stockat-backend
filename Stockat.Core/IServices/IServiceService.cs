@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.MediaDTOs;
 using Stockat.Core.DTOs.ServiceDTOs;
 
@@ -6,8 +7,8 @@ namespace Stockat.Core.IServices;
 
 public interface IServiceService
 {
-    Task<IEnumerable<ServiceDto>> GetAllAvailableServicesAsync();
-    Task<IEnumerable<ServiceDto>> GetSellerServicesAsync(string sellerId);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetAllAvailableServicesAsync(int page, int size);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetSellerServicesAsync(string sellerId, int skip, int take);
     Task<ServiceDto> GetServiceByIdAsync(int serviceId);
     Task<ServiceDto> CreateAsync(CreateServiceDto dto, string sellerId);
     Task<ServiceDto> UpdateAsync(int serviceId, UpdateServiceDto dto, string sellerId);

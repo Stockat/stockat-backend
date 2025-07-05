@@ -1,4 +1,5 @@
-﻿using Stockat.Core.DTOs.ServiceRequestDTOs;
+﻿using Stockat.Core.DTOs;
+using Stockat.Core.DTOs.ServiceRequestDTOs;
 using Stockat.Core.Enums;
 
 namespace Stockat.Core.IServices;
@@ -9,10 +10,10 @@ public interface IServiceRequestService
     Task<ServiceRequestDto> CreateAsync(CreateServiceRequestDto dto, string buyerId);
 
     // Buyer: Get all my requests
-    Task<IEnumerable<ServiceRequestDto>> GetBuyerRequestsAsync(string buyerId);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestDto>>>> GetBuyerRequestsAsync(string buyerId, int page, int size);
 
     // Seller: Get all requests for my services
-    Task<IEnumerable<ServiceRequestDto>> GetSellerRequestsAsync(string sellerId, int serviceId);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestDto>>>> GetSellerRequestsAsync(string sellerId, int serviceId, int page, int size);
 
     // Shared: Get single request details
     Task<ServiceRequestDto> GetByIdAsync(int requestId, string userId, bool isSeller);
@@ -26,6 +27,6 @@ public interface IServiceRequestService
     // System/Admin: Update payment info
     Task<ServiceRequestDto> UpdatePaymentStatusAsync(int requestId, string paymentId, PaymentStatus status);
     Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string sellerId, ServiceStatusDto dto);
-    public Task<IEnumerable<int>> GetBuyerServiceIDsWithPendingRequests(string buyerId);
-    public Task<ServiceRequestDto> CancelBuyerRequest(int requestId, string buyerId);
+    Task<IEnumerable<int>> GetBuyerServiceIDsWithPendingRequests(string buyerId);
+    Task<ServiceRequestDto> CancelBuyerRequest(int requestId, string buyerId);
 }

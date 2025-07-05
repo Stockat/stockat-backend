@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Stockat.Core;
+using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.ServiceRequestDTOs;
 using Stockat.Core.DTOs.ServiceRequestUpdateDTOs;
 using Stockat.Core.Entities;
@@ -101,7 +102,8 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
             AdditionalTime = dto.AdditionalTime,
             Status = ApprovalStatus.Pending,
             CreatedAt = DateTime.UtcNow,
-            ServiceRequestId = requestId
+            ServiceRequestId = requestId,
+            AdditionalNote = dto.AdditionalNote
         };
 
         await _repo.ServiceRequestUpdateRepo.AddAsync(update);
@@ -200,22 +202,39 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
         return _mapper.Map<ServiceRequestUpdateDto>(update);
     }
 
-    public async Task<IEnumerable<ServiceRequestUpdateDto>> GetUpdatesByRequestIdAsync(int requestId, string userId)
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestUpdateDto>>>> GetUpdatesByRequestIdAsync(int requestId, string userId, int page, int size)
     {
+        int skip = (page - 1) * size;
+
         var updates = await _repo.ServiceRequestUpdateRepo.FindAllAsync(
-            u => u.ServiceRequestId == requestId && 
-                (u.ServiceRequest.BuyerId == userId || u.ServiceRequest.Service.SellerId == userId),
-            ["ServiceRequest", "ServiceRequest.Service"]
+            u => u.ServiceRequestId == requestId &&
+                 (u.ServiceRequest.BuyerId == userId || u.ServiceRequest.Service.SellerId == userId),
+            skip,
+            size,
+            includes: ["ServiceRequest", "ServiceRequest.Service"]
         );
 
-        if (updates == null || !updates.Any())
-        {
-            _logger.LogError($"No updates found for service request {requestId}.");
-            throw new NotFoundException("No updates found for this service request.");
-        }
+        int totalCount = await _repo.ServiceRequestUpdateRepo.CountAsync(
+            u => u.ServiceRequestId == requestId &&
+                 (u.ServiceRequest.BuyerId == userId || u.ServiceRequest.Service.SellerId == userId)
+        );
 
-        return _mapper.Map<IEnumerable<ServiceRequestUpdateDto>>(updates);
+        var result = new PaginatedDto<IEnumerable<ServiceRequestUpdateDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = totalCount,
+            PaginatedData = _mapper.Map<IEnumerable<ServiceRequestUpdateDto>>(updates)
+        };
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestUpdateDto>>>
+        {
+            Status = 200,
+            Message = "Request updates retrieved successfully.",
+            Data = result
+        };
     }
+
 
     private TimeSpan ParseTime(string timeText)
     {
