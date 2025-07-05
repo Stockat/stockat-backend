@@ -28,6 +28,8 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IServiceRequestService> _serviceRequestService;
     private readonly Lazy<IServiceRequestUpdateService> _serviceRequestUpdateService;
     private readonly Lazy<IProductService> _productService;
+    private readonly Lazy<ICategoryService> _categoryService;
+    private readonly Lazy<ITagService> _tagService;
     private readonly Lazy<IStockService> _stockService;
     private readonly Lazy<IChatService> _chatService;
 
@@ -41,6 +43,7 @@ public sealed class ServiceManager : IServiceManager
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
+        _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager, _imageService.Value));
         _fileService = new Lazy<IFileService>(() => new CloudinaryFileService(configuration));
         _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager));
 
@@ -54,7 +57,7 @@ public sealed class ServiceManager : IServiceManager
 
         // if you wanna use a lazy loading service in another service initilize it first before sending it to the other layer like i did in the _imageSerive and passed to the UserVerificationService
         _userVerificationService = new Lazy<IUserVerificationService>(() => new UserVerificationService(logger, mapper, configuration, _imageService.Value, repositoryManager, httpContextAccessor));
-        
+
         //
         _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager));
         _auctionBidRequestService = new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper));
@@ -63,6 +66,10 @@ public sealed class ServiceManager : IServiceManager
         _userService = new Lazy<IUserService>(() => new UserService(repositoryManager, mapper, httpContextAccessor, _imageService.Value, userManager, _emailService.Value));
 
         _chatService = new Lazy<IChatService>(() => new ChatService(repositoryManager, mapper, _imageService.Value, _fileService.Value));
+
+        _categoryService = new Lazy<ICategoryService>(() => new CategoryService(logger, mapper, repositoryManager));
+        _tagService = new Lazy<ITagService>(() => new TagService(logger, mapper, repositoryManager));
+
     }
 
     public IAuthenticationService AuthenticationService
@@ -91,6 +98,13 @@ public sealed class ServiceManager : IServiceManager
     public IChatService ChatService => _chatService.Value;
 
     public IAuctionOrderService AuctionOrderService => _auctionOrderService.Value;
+
+    public IUserService UserService => _userService.Value;
+    public ICategoryService CategoryService => _categoryService.Value;
+    public ITagService TagService => _tagService.Value;
+
+
+
 
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 }

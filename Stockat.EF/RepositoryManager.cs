@@ -17,6 +17,8 @@ public class RepositoryManager : IRepositoryManager
     private readonly Lazy<IBaseRepository<Stock>> _StockRepo;
     private readonly Lazy<IBaseRepository<AuctionBidRequest>> _auctionBidRequestRepo;
     private readonly Lazy<IBaseRepository<AuctionOrder>> _auctionOrderRepo;
+    private readonly Lazy<IBaseRepository<Category>> _CategoryRepo;
+    private readonly Lazy<IBaseRepository<Tag>> _TagRepo;
 
 
     private IDbContextTransaction _transaction;
@@ -46,12 +48,14 @@ public class RepositoryManager : IRepositoryManager
         _mapper = mapper;
 
         _userVerificationRepo = new Lazy<IBaseRepository<UserVerification>>(() => new BaseRepository<UserVerification>(_context));
-        _AuctionRepo= new Lazy<IBaseRepository<Auction>>(() => new BaseRepository<Auction>(_context));
+        _AuctionRepo = new Lazy<IBaseRepository<Auction>>(() => new BaseRepository<Auction>(_context));
         _StockRepo = new Lazy<IBaseRepository<Stock>>(() => new BaseRepository<Stock>(_context));
         _auctionBidRequestRepo = new Lazy<IBaseRepository<AuctionBidRequest>>(() => new BaseRepository<AuctionBidRequest>(_context));
         _auctionOrderRepo = new Lazy<IBaseRepository<AuctionOrder>>(() => new BaseRepository<AuctionOrder>(_context));
+        _CategoryRepo = new Lazy<IBaseRepository<Category>>(() => new BaseRepository<Category>(_context));
+        _TagRepo = new Lazy<IBaseRepository<Tag>>(() => new BaseRepository<Tag>(_context));
 
-        _userRepo = new Lazy<IBaseRepository<User>>(()  => new BaseRepository<User>(_context));
+        _userRepo = new Lazy<IBaseRepository<User>>(() => new BaseRepository<User>(_context));
         _productRepository = new Lazy<ProductRepository>(() => new ProductRepository(_context, _mapper));
         _serviceRepo = new Lazy<ServiceRepository>(() => new ServiceRepository(_context));
         _serviceRequestRepo = new Lazy<IBaseRepository<ServiceRequest>>(() => new BaseRepository<ServiceRequest>(_context));
@@ -71,6 +75,8 @@ public class RepositoryManager : IRepositoryManager
     public IBaseRepository<Stock> StockRepo => _StockRepo.Value;
     public IBaseRepository<AuctionBidRequest> AuctionBidRequestRepo => _auctionBidRequestRepo.Value;
     public IBaseRepository<AuctionOrder> AuctionOrderRepo => _auctionOrderRepo.Value;
+    public IBaseRepository<Category> CategoryRepo => _CategoryRepo.Value;
+    public IBaseRepository<Tag> TagRepo => _TagRepo.Value;
 
 
     public IServiceRepository ServiceRepo => _serviceRepo.Value;
