@@ -11,7 +11,7 @@ namespace Stockat.Service.MappingProfiles.OrderMappingProfiles
 {
     public class OrderMappingProfile : Profile
     {
-        public OrderMappingProfile() 
+        public OrderMappingProfile()
         {
             CreateMap<AddOrderDTO, OrderProduct>()
                 .ForMember(dest => dest.OrderType, opt => opt.MapFrom(src => src.OrderType))
@@ -31,7 +31,7 @@ namespace Stockat.Service.MappingProfiles.OrderMappingProfiles
                 .ForMember(dest => dest.BuyerLastName, opt => opt.MapFrom(src => src.Buyer.LastName))
                 .ReverseMap();
 
-            CreateMap<AddRequestDTO, RequestProduct>();
+            //CreateMap<AddRequestDTO, RequestProduct>();
 
         }
     }
