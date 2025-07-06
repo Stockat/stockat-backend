@@ -31,8 +31,6 @@ namespace Stockat.Service.MappingProfiles.OrderMappingProfiles
                 .ForMember(dest => dest.BuyerLastName, opt => opt.MapFrom(src => src.Buyer.LastName))
                 .ReverseMap();
 
-            CreateMap<AddRequestDTO, RequestProduct>();
-
         }
     }
 }

@@ -78,35 +78,7 @@ namespace Stockat.Service.Services
         }
 
         // Add Request
-        public async Task<GenericResponseDto<AddRequestDTO>> AddRequestAsync(AddRequestDTO requestDto)
-        {
-            try
-            {
-                // Map Request included Stock
-                // Map DTO to entity
-                var requestEntity = _mapper.Map<RequestProduct>(requestDto);
-                // Add the request to the repository
-                await _repo.OrderRepo.AddAsync(requestEntity);
-                await _repo.CompleteAsync();
-                // Map back to DTO for response
-                var responseDto = _mapper.Map<AddRequestDTO>(requestEntity);
-                return new GenericResponseDto<AddRequestDTO>
-                {
-                    Status = 201,
-                    Data = responseDto,
-                    Message = "Request added successfully."
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error adding request: {ex.Message}");
-                return new GenericResponseDto<AddRequestDTO>
-                {
-                    Status = 500,
-                    Message = "An error occurred while adding the request."
-                };
-            }
-        }
+        
 
 
         // Update Order Status By its owner(Seller)
