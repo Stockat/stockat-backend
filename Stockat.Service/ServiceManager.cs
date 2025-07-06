@@ -31,6 +31,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<ICategoryService> _categoryService;
     private readonly Lazy<ITagService> _tagService;
     private readonly Lazy<IStockService> _stockService;
+    private readonly Lazy<IOrderService> _orderService;
     private readonly Lazy<IChatService> _chatService;
 
     private readonly Lazy<IAuctionService> _auctionService;
@@ -49,6 +50,12 @@ public sealed class ServiceManager : IServiceManager
         _chatService = new Lazy<IChatService>(() => new ChatService(repositoryManager, mapper, _imageService.Value, _fileService.Value, configuration));
         // Stock Service
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
+
+        // Order Service
+        _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor));
+
+        // Order Service
+        _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor));
 
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value, _chatService.Value, repositoryManager));
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
@@ -85,6 +92,8 @@ public sealed class ServiceManager : IServiceManager
     public IProductService ProductService => _productService.Value;
 
     public IStockService StockService => _stockService.Value;
+
+    public IOrderService OrderService => _orderService.Value;
 
     public IAuctionService AuctionService => _auctionService.Value;
     public IAuctionBidRequestService AuctionBidRequestService => _auctionBidRequestService.Value;

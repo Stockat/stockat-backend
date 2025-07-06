@@ -67,5 +67,19 @@ public class ProductProfile : Profile
                 opt => opt.MapFrom(src => src.FeatureValues));
 
         CreateMap<FeatureValue, FeatureValueDTO>();
+
+        CreateMap<Product, ProductWithFeaturesDTO>()
+           .ForMember(dest => dest.Images,
+               opt => opt.MapFrom(src => src.Images.Select(i => i.ImageUrl)))
+           .ForMember(dest => dest.SellerName,
+               opt => opt.MapFrom(src => src.User.UserName))
+           .ForMember(dest => dest.Features,
+               opt => opt.MapFrom(src => src.Features))
+           .ReverseMap();
+
+        CreateMap<Feature, FeatureWithValuesDTO>()
+            .ForMember(dest => dest.Values,
+                opt => opt.MapFrom(src => src.FeatureValues));
+
     }
 }

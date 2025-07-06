@@ -270,7 +270,7 @@ namespace Stockat.Service.Services
             // Get stocks for the current user
             var stocksForUser = await _repo.StockRepo.FindAllAsync(
                 s => s.Product.SellerId == currentUserId,
-                new[] { "StockDetails", "Product" }
+                new[] { "StockDetails", "Product", "StockDetails.Feature", "StockDetails.FeatureValue" }
             );
 
             // Check if any stocks were found for the user
@@ -300,8 +300,8 @@ namespace Stockat.Service.Services
         // Get Stocks By Product ID
         public async Task<GenericResponseDto<List<StockDTO>>> GetStocksByProductIdAsync(int productId)
         {
-            // Find stocks by product ID
-            var stocks = await _repo.StockRepo.FindAllAsync(s => s.ProductId == productId, ["StockDetails", "Product"]);
+            // Find stocks by product ID with stock status = forSale
+            var stocks = await _repo.StockRepo.FindAllAsync(s => s.ProductId == productId && s.StockStatus == Core.Enums.StockStatus.ForSale, ["StockDetails", "Product", "StockDetails.Feature", "StockDetails.FeatureValue"]);
 
             // Check if any stocks were found
             if (stocks == null || !stocks.Any())

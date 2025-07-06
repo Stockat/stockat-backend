@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Stockat.Core.Enums;
 
 namespace Stockat.Core.Entities;
 
@@ -19,6 +21,10 @@ public class Stock
     [Required(ErrorMessage = "Quantity Id is Required")]
     [Range(1, int.MaxValue, ErrorMessage = $"Quantity must be between 1:2147483647")]
     public int Quantity { get; set; }
+
+    [DefaultValue(StockStatus.ForSale)]
+    [Required]
+    public StockStatus StockStatus { get; set; }
 
     // Navigation Properties
     public virtual Product Product { get; set; }

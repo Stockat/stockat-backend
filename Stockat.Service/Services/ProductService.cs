@@ -310,4 +310,32 @@ public class ProductService : IProductService
         };
 
     }
+
+    // Get a product including its features by ID
+    public async Task<GenericResponseDto<ProductWithFeaturesDTO>> GetProductWithFeaturesAsync(int id)
+    {
+        var product = await _repo.ProductRepository.FindAsync(
+            p => p.Id == id,
+            new string[] {
+                "Features",
+                "Features.FeatureValues",
+                "Images",
+                "User"
+            }
+        );
+
+        if (product == null)
+            throw new NotFoundException($"Product with ID {id} not found");
+
+        var productDto = _mapper.Map<ProductWithFeaturesDTO>(product);
+
+        return new GenericResponseDto<ProductWithFeaturesDTO>
+        {
+            Data = productDto,
+            Message = "Product retrieved successfully",
+            Status = 200,
+            RedirectUrl = null
+        };
+    }
+
 }

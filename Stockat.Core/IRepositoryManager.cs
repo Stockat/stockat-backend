@@ -23,6 +23,8 @@ public interface IRepositoryManager
 
     IProductRepository ProductRepository { get; }
     IBaseRepository<StockDetails> StockDetailsRepo { get; }
+    
+    IBaseRepository<OrderProduct> OrderRepo { get; }
 
 
 
