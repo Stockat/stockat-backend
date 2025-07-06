@@ -44,4 +44,9 @@ public class OrderProduct
     public virtual User Buyer { get; set; }
 
 
+    [Required(ErrorMessage = "Request Product Description is Required")]
+    [MinLength(5, ErrorMessage = "Request Product Description Length Must Be Greater than or equal 5 char")]
+    [MaxLength(250, ErrorMessage = "Request Product Description Length Must Be less than or equal 250 char")]
+    public string? Description { get; set; } = string.Empty;
+
 }

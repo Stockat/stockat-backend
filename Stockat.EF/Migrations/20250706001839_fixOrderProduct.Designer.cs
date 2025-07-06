@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Stockat.EF;
 
@@ -11,9 +12,11 @@ using Stockat.EF;
 namespace Stockat.EF.Migrations
 {
     [DbContext(typeof(StockatDBContext))]
-    partial class StockatDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250706001839_fixOrderProduct")]
+    partial class fixOrderProduct
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -514,9 +517,6 @@ namespace Stockat.EF.Migrations
                     b.Property<DateTime>("CraetedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("OrderType")
-                        .HasColumnType("int");
-                        
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(250)
@@ -854,9 +854,6 @@ namespace Stockat.EF.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StockStatus")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
