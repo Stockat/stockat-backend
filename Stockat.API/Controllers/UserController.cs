@@ -67,4 +67,46 @@ public class UserController : ControllerBase
         var response = await _serviceManager.UserService.ToggleActivationAsync();
         return StatusCode(response.Status, response);
     }
+
+    // Admin-specific endpoints
+    // GET: api/User/admin/all
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllUsers(
+        [FromQuery] int page = 1, 
+        [FromQuery] int size = 10, 
+        [FromQuery] string? searchTerm = null, 
+        [FromQuery] bool? isActive = null, 
+        [FromQuery] bool? isVerified = null)
+    {
+        var response = await _serviceManager.UserService.GetAllUsersAsync(page, size, searchTerm, isActive, isVerified);
+        return StatusCode(response.Status, response);
+    }
+
+    // GET: api/User/admin/{userId}/details
+    [HttpGet("admin/{userId}/details")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetUserWithDetails(string userId)
+    {
+        var response = await _serviceManager.UserService.GetUserWithDetailsAsync(userId);
+        return StatusCode(response.Status, response);
+    }
+
+    // PUT: api/User/admin/{userId}/deactivate
+    [HttpPut("admin/{userId}/deactivate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeactivateUser(string userId)
+    {
+        var response = await _serviceManager.UserService.DeactivateUserAsync(userId);
+        return StatusCode(response.Status, response);
+    }
+
+    // PUT: api/User/admin/{userId}/activate
+    [HttpPut("admin/{userId}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ActivateUser(string userId)
+    {
+        var response = await _serviceManager.UserService.ActivateUserAsync(userId);
+        return StatusCode(response.Status, response);
+    }
 }

@@ -69,4 +69,23 @@ public class UserVerificationController : ControllerBase
         var response = await _serviceManager.UserVerificationService.UpdateStatusByAdminAsync(dto);
         return StatusCode(response.Status, response);
     }
+
+    // Admin-specific endpoints
+    // GET: api/UserVerification/admin/pending
+    [HttpGet("admin/pending")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetPendingVerifications([FromQuery] int page = 1, [FromQuery] int size = 10)
+    {
+        var response = await _serviceManager.UserVerificationService.GetPendingVerificationsAsync(page, size);
+        return StatusCode(response.Status, response);
+    }
+
+    // GET: api/UserVerification/admin/statistics
+    [HttpGet("admin/statistics")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetVerificationStatistics()
+    {
+        var response = await _serviceManager.UserVerificationService.GetVerificationStatisticsAsync();
+        return StatusCode(response.Status, response);
+    }
 }

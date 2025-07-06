@@ -268,4 +268,66 @@ public class UserVerificationService : IUserVerificationService
             // Don't throw the exception to avoid breaking the main flow
         }
     }
+
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<UserVerificationReadDto>>>> GetPendingVerificationsAsync(int page = 1, int size = 10)
+    {
+        int skip = (page - 1) * size;
+
+        var pendingVerifications = await _repo.UserVerificationRepo.FindAllAsync(
+            v => v.Status == VerificationStatus.Pending,
+            skip: skip,
+            take: size,
+            includes: ["User"]
+        );
+
+        int totalCount = await _repo.UserVerificationRepo.CountAsync(v => v.Status == VerificationStatus.Pending);
+
+        var verificationDtos = pendingVerifications.Select(v => 
+        {
+            var dto = _mapper.Map<UserVerificationReadDto>(v);
+            dto.UserName = $"{v.User.FirstName} {v.User.LastName}";
+            dto.UserEmail = v.User.Email;
+            return dto;
+        });
+
+        var result = new PaginatedDto<IEnumerable<UserVerificationReadDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = totalCount,
+            PaginatedData = verificationDtos
+        };
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<UserVerificationReadDto>>>
+        {
+            Message = "Pending verifications retrieved successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = result
+        };
+    }
+
+    public async Task<GenericResponseDto<object>> GetVerificationStatisticsAsync()
+    {
+        var totalVerifications = await _repo.UserVerificationRepo.CountAsync(v => true);
+        var pendingCount = await _repo.UserVerificationRepo.CountAsync(v => v.Status == VerificationStatus.Pending);
+        var approvedCount = await _repo.UserVerificationRepo.CountAsync(v => v.Status == VerificationStatus.Approved);
+        var rejectedCount = await _repo.UserVerificationRepo.CountAsync(v => v.Status == VerificationStatus.Rejected);
+
+        var statistics = new
+        {
+            Total = totalVerifications,
+            Pending = pendingCount,
+            Approved = approvedCount,
+            Rejected = rejectedCount,
+            ApprovalRate = totalVerifications > 0 ? (double)approvedCount / totalVerifications * 100 : 0,
+            RejectionRate = totalVerifications > 0 ? (double)rejectedCount / totalVerifications * 100 : 0
+        };
+
+        return new GenericResponseDto<object>
+        {
+            Message = "Verification statistics retrieved successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = statistics
+        };
+    }
 }

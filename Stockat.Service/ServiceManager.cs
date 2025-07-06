@@ -24,6 +24,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IFileService> _fileService;
     private readonly Lazy<IEmailService> _emailService;
     private readonly Lazy<IUserVerificationService> _userVerificationService;
+    private readonly Lazy<IUserPunishmentService> _userPunishmentService;
     private readonly Lazy<IServiceService> _serviceService;
     private readonly Lazy<IServiceRequestService> _serviceRequestService;
     private readonly Lazy<IServiceRequestUpdateService> _serviceRequestUpdateService;
@@ -57,6 +58,9 @@ public sealed class ServiceManager : IServiceManager
 
         // UserVerificationService with email and user service dependencies
         _userVerificationService = new Lazy<IUserVerificationService>(() => new UserVerificationService(logger, mapper, configuration, _imageService.Value, repositoryManager, httpContextAccessor, _emailService.Value, _userService.Value));
+
+        // UserPunishmentService with dependencies
+        _userPunishmentService = new Lazy<IUserPunishmentService>(() => new UserPunishmentService(logger, mapper, repositoryManager, httpContextAccessor, _emailService.Value, _userService.Value));
 
         // Stock Service
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
@@ -102,4 +106,5 @@ public sealed class ServiceManager : IServiceManager
     public ITagService TagService => _tagService.Value;
 
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+    public IUserPunishmentService UserPunishmentService => _userPunishmentService.Value;
 }

@@ -13,6 +13,7 @@ public class RepositoryManager : IRepositoryManager
 {
     private readonly StockatDBContext _context;
     private readonly Lazy<IBaseRepository<UserVerification>> _userVerificationRepo;
+    private readonly Lazy<IBaseRepository<UserPunishment>> _userPunishmentRepo;
     private readonly Lazy<IBaseRepository<Auction>> _AuctionRepo;
     private readonly Lazy<IBaseRepository<Stock>> _StockRepo;
     private readonly Lazy<IBaseRepository<AuctionBidRequest>> _auctionBidRequestRepo;
@@ -48,6 +49,7 @@ public class RepositoryManager : IRepositoryManager
         _mapper = mapper;
 
         _userVerificationRepo = new Lazy<IBaseRepository<UserVerification>>(() => new BaseRepository<UserVerification>(_context));
+        _userPunishmentRepo = new Lazy<IBaseRepository<UserPunishment>>(() => new BaseRepository<UserPunishment>(_context));
         _AuctionRepo = new Lazy<IBaseRepository<Auction>>(() => new BaseRepository<Auction>(_context));
         _StockRepo = new Lazy<IBaseRepository<Stock>>(() => new BaseRepository<Stock>(_context));
         _auctionBidRequestRepo = new Lazy<IBaseRepository<AuctionBidRequest>>(() => new BaseRepository<AuctionBidRequest>(_context));
@@ -71,6 +73,7 @@ public class RepositoryManager : IRepositoryManager
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
+    public IBaseRepository<UserPunishment> UserPunishmentRepo => _userPunishmentRepo.Value;
     public IBaseRepository<Auction> AuctionRepo => _AuctionRepo.Value;
     public IBaseRepository<Stock> StockRepo => _StockRepo.Value;
     public IBaseRepository<AuctionBidRequest> AuctionBidRequestRepo => _auctionBidRequestRepo.Value;
