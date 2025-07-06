@@ -37,10 +37,16 @@ namespace Stockat.Core.Entities
         [Required(ErrorMessage = "Image URL is required.")]
         public string ImageUrl { get; set; }
 
+        [Required]
+        public bool IsApproved { get; set; } = false;
+
         [Required(ErrorMessage = "Seller ID is required.")]
         public string SellerId { get; set; }
 
         [ForeignKey("SellerId")]
         public User Seller { get; set; }
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

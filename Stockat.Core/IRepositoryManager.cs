@@ -27,7 +27,7 @@ public interface IRepositoryManager
 
 
 
-    IBaseRepository<User> UserRepo { get; }
+    IUserRepository UserRepo { get; }
 
 
     IBaseRepository<ChatConversation> ChatConversationRepo { get; }

@@ -216,10 +216,6 @@ public class UserService : IUserService
         };
     }
 
-
-
-
-
     // Helper
     private string GetCurrentUserId()
     {

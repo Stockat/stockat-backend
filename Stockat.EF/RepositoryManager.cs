@@ -41,7 +41,7 @@ public class RepositoryManager : IRepositoryManager
 
 
 
-    private readonly Lazy<IBaseRepository<User>> _userRepo;
+    private readonly Lazy<IUserRepository> _userRepo;
     public RepositoryManager(StockatDBContext context, IMapper mapper)
     {
         _context = context;
@@ -55,7 +55,7 @@ public class RepositoryManager : IRepositoryManager
         _CategoryRepo = new Lazy<IBaseRepository<Category>>(() => new BaseRepository<Category>(_context));
         _TagRepo = new Lazy<IBaseRepository<Tag>>(() => new BaseRepository<Tag>(_context));
 
-        _userRepo = new Lazy<IBaseRepository<User>>(() => new BaseRepository<User>(_context));
+        _userRepo = new Lazy<IUserRepository>(() => new UserRepository(_context));
         _productRepository = new Lazy<ProductRepository>(() => new ProductRepository(_context, _mapper));
         _serviceRepo = new Lazy<ServiceRepository>(() => new ServiceRepository(_context));
         _serviceRequestRepo = new Lazy<IBaseRepository<ServiceRequest>>(() => new BaseRepository<ServiceRequest>(_context));
@@ -84,7 +84,7 @@ public class RepositoryManager : IRepositoryManager
     public IBaseRepository<ServiceRequestUpdate> ServiceRequestUpdateRepo => _serviceRequestUpdateRepo.Value;
     public IProductRepository ProductRepository => _productRepository.Value;
 
-    public IBaseRepository<User> UserRepo => _userRepo.Value;
+    public IUserRepository UserRepo => _userRepo.Value;
     public IBaseRepository<StockDetails> StockDetailsRepo => _stockDetailsRepository.Value;
 
     public IBaseRepository<ChatConversation> ChatConversationRepo => _chatConversationRepo.Value;

@@ -33,4 +33,8 @@ public interface IServiceManager
     IUserService UserService { get; }
 
     IChatService ChatService { get; }
+    IChatHistoryService ChatHistoryService { get; }
+    IOrderService OrderService { get; }
+    IAIService AIService { get; }
+    IAnalyticsService AnalyticsService { get; }
 }

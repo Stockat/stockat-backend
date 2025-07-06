@@ -32,6 +32,10 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<ITagService> _tagService;
     private readonly Lazy<IStockService> _stockService;
     private readonly Lazy<IChatService> _chatService;
+    private readonly Lazy<IChatHistoryService> _chatHistoryService;
+    private readonly Lazy<IOrderService> _orderService;
+    private readonly Lazy<IAIService> _aiService;
+    private readonly Lazy<IAnalyticsService> _analyticsService;
 
     private readonly Lazy<IAuctionService> _auctionService;
     private readonly Lazy<IAuctionBidRequestService> _auctionBidRequestService;
@@ -49,6 +53,8 @@ public sealed class ServiceManager : IServiceManager
         // Stock Service
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
+        _userService = new Lazy<IUserService>(() => new UserService(repositoryManager, mapper, httpContextAccessor, _imageService.Value, userManager, _emailService.Value));
+        
         _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value));
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
         _serviceRequestService = new Lazy<IServiceRequestService>(() => new ServiceRequestService(logger, mapper, repositoryManager, _emailService.Value, _userService.Value));
@@ -62,9 +68,11 @@ public sealed class ServiceManager : IServiceManager
         _auctionBidRequestService = new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper));
         _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper));
 
-        _userService = new Lazy<IUserService>(() => new UserService(repositoryManager, mapper, httpContextAccessor, _imageService.Value, userManager, _emailService.Value));
-
         _chatService = new Lazy<IChatService>(() => new ChatService(repositoryManager, mapper, _imageService.Value, _fileService.Value));
+        _chatHistoryService = new Lazy<IChatHistoryService>(() => new ChatHistoryService(repositoryManager, mapper));
+        _orderService = new Lazy<IOrderService>(() => new OrderService(repositoryManager, mapper));
+        _aiService = new Lazy<IAIService>(() => new AIService(this, logger));
+        _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger));
 
         _categoryService = new Lazy<ICategoryService>(() => new CategoryService(logger, mapper, repositoryManager));
         _tagService = new Lazy<ITagService>(() => new TagService(logger, mapper, repositoryManager));
@@ -95,14 +103,16 @@ public sealed class ServiceManager : IServiceManager
     public IUserService UserService => _userService.Value;
 
     public IChatService ChatService => _chatService.Value;
+    public IChatHistoryService ChatHistoryService => _chatHistoryService.Value;
+    public IOrderService OrderService => _orderService.Value;
+    public IAIService AIService => _aiService.Value;
 
     public IAuctionOrderService AuctionOrderService => _auctionOrderService.Value;
 
     public ICategoryService CategoryService => _categoryService.Value;
     public ITagService TagService => _tagService.Value;
 
-
-
-
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+
+    public IAnalyticsService AnalyticsService => _analyticsService.Value;
 }
