@@ -13,6 +13,8 @@ namespace Stockat.Core.IServices
     {
         public Task<GenericResponseDto<AddOrderDTO>> AddOrderAsync(AddOrderDTO orderDto);
         public Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllSellerOrdersAsync();
+        public Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllSellerRequestOrdersAsync();
         public Task<GenericResponseDto<OrderDTO>> UpdateOrderStatusAsync(int orderId, OrderStatus status);
+        public Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllOrdersandRequestforAdminAsync();
     }
 }
