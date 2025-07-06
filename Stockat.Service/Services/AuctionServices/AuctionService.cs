@@ -138,6 +138,8 @@ namespace Stockat.Service.Services.AuctionServices
 
                     }
                     _mapper.Map(auction, existingAuction);
+                    Console.WriteLine($"Incoming ProductId: {auction.ProductId}");
+                    Console.WriteLine($"Existing ProductId: {existingAuction.ProductId}");
                 }
 
                 _repositoryManager.AuctionRepo.Update(existingAuction);

@@ -21,10 +21,10 @@ namespace Stockat.Core.DTOs.AuctionDTOs
         [Range(0.01, double.MaxValue)]
         public decimal? StartingPrice { get; set; }
 
-        [FutureDate]
+       // [FutureDate]
         public DateTime? StartTime { get; set; }
 
-        [FutureDate]
+       // [FutureDate]
         public DateTime? EndTime { get; set; }
 
         public bool? IsClosed { get; set; }

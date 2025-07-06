@@ -46,8 +46,19 @@ namespace Stockat.API.Controllers
         {
             try
             {
-                var auction = _mapper.Map<Auction>(updateDto);
-                auction.Id = id;
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState
+                        .Where(x => x.Value?.Errors.Count > 0)
+                        .Select(x => new {
+                            Field = x.Key,
+                            Errors = x.Value?.Errors.Select(e => e.ErrorMessage).ToList()
+                        });
+
+                    return BadRequest(errors);
+                }
+                _logger.LogInformation("Received update DTO: {@dto}", updateDto);
+
                 var result = await _serviceManager.AuctionService.EditAuctionAsync(id, updateDto);
 
                 return Ok(result);

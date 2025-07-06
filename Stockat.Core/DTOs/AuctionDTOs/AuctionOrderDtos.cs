@@ -31,4 +31,9 @@ namespace Stockat.Core.DTOs.AuctionDTOs
         public bool PaymentSuccess { get; set; }
     }
 
+    public class UpdateOrderStatusDto
+    {
+        public OrderStatus Status { get; set; }
+    }
+
 }

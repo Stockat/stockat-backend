@@ -78,6 +78,30 @@ namespace Stockat.Service.Services.AuctionServices
             }
         }
 
+        public async Task UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
+        {
+            await _repositoryManager.BeginTransactionAsync();
+
+            try
+            {
+                var order = await _repositoryManager.AuctionOrderRepo.GetByIdAsync(orderId);
+                if (order == null)
+                    throw new KeyNotFoundException($"Order with ID {orderId} not found.");
+
+                order.Status = newStatus;
+
+                _repositoryManager.AuctionOrderRepo.Update(order);
+
+                await _repositoryManager.CompleteAsync();
+                await _repositoryManager.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _repositoryManager.RollbackTransactionAsync();
+                throw new InvalidOperationException("Failed to update order status.", ex);
+            }
+        }
+
 
         public async Task<AuctionOrderDto> GetOrderByIdAsync(int id)
         {

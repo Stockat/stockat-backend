@@ -30,6 +30,27 @@ namespace Stockat.API.Controllers
             }
         }
 
+        [HttpPut("{orderId}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] UpdateOrderStatusDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                await _serviceManager.AuctionOrderService.UpdateOrderStatusAsync(orderId, dto.Status);
+                return Ok(new { message = "Order status updated successfully." });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = $"Order with ID {orderId} not found." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating the order status.", details = ex.Message });
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<AuctionOrderDto>> GetOrder(int id)
         {

@@ -41,6 +41,7 @@ namespace Stockat.Core.Entities
         public Product Product { get; set; }
 
         public int StockId { get; set; }
+
         public Stock Stock { get; set; }
 
         public string? BuyerId { get; set; }
