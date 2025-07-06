@@ -136,15 +136,15 @@ public class UserPunishmentService : IUserPunishmentService
     public async Task<GenericResponseDto<IEnumerable<PunishmentReadDto>>> GetAllPunishmentsAsync(int page = 1, int size = 10)
     {
         int skip = (page - 1) * size;
-        
+
         var punishments = await _repo.UserPunishmentRepo.FindAllAsync(
-            criteria: null,
+            criteria: p => true,
             skip: skip,
             take: size,
-            includes: ["User"]
+            includes: new string[] { "User" }
         );
 
-        var punishmentDtos = punishments.Select(p => 
+        var punishmentDtos = punishments.Select(p =>
         {
             var dto = _mapper.Map<PunishmentReadDto>(p);
             dto.UserName = $"{p.User.FirstName} {p.User.LastName}";

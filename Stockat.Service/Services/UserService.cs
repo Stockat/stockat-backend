@@ -229,11 +229,12 @@ public class UserService : IUserService
         
         if (!string.IsNullOrEmpty(searchTerm))
         {
-            var searchFilter = (Expression<Func<User, bool>>)(u => 
-                u.FirstName.Contains(searchTerm) || 
-                u.LastName.Contains(searchTerm) || 
-                u.Email.Contains(searchTerm) ||
-                u.UserName.Contains(searchTerm));
+            var lowerTerm = searchTerm.ToLower();
+            Expression<Func<User, bool>> searchFilter = u =>
+                u.FirstName.ToLower().Contains(lowerTerm) ||
+                u.LastName.ToLower().Contains(lowerTerm) ||
+                u.Email.ToLower().Contains(lowerTerm) ||
+                u.UserName.ToLower().Contains(lowerTerm);
             filter = filter.And(searchFilter);
         }
 
