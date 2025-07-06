@@ -59,4 +59,14 @@ public class UserVerificationController : ControllerBase
         var response = await _serviceManager.UserVerificationService.DeleteAsync();
         return StatusCode(response.Status, response);
     }
+
+    // api/UserVerification/status
+    [HttpPut("status")]
+    [Authorize(Roles = "Admin")]
+    [ServiceFilter(typeof(ValidationFilterAttribute))]
+    public async Task<IActionResult> UpdateStatus([FromBody] UserVerificationStatusUpdateDto dto)
+    {
+        var response = await _serviceManager.UserVerificationService.UpdateStatusByAdminAsync(dto);
+        return StatusCode(response.Status, response);
+    }
 }

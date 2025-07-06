@@ -15,4 +15,5 @@ public interface IUserVerificationService
     Task<GenericResponseDto<UserVerificationReadDto>> CreateAsync(UserVerificationCreateDto dto);
     Task<GenericResponseDto<UserVerificationReadDto>> UpdateAsync(UserVerificationUpdateDto dto);
     Task<GenericResponseDto<string>> DeleteAsync(string userId = null);
+    Task<GenericResponseDto<UserVerificationReadDto>> UpdateStatusByAdminAsync(UserVerificationStatusUpdateDto dto);
 }
