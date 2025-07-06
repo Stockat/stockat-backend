@@ -110,8 +110,5 @@ public sealed class ServiceManager : IServiceManager
     public ICategoryService CategoryService => _categoryService.Value;
     public ITagService TagService => _tagService.Value;
 
-
-
-
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 }

@@ -11,7 +11,8 @@ namespace Stockat.Core.DTOs.OrderDTOs
         public OrderType OrderType { get; set; }
         public OrderStatus Status { get; set; }
         public DateTime CraetedAt { get; set; }
-        
+        public string? Description { get; set; } = string.Empty;
+
         // Payment Info
         public string PaymentId { get; set; }
         public string PaymentStatus { get; set; }
@@ -24,7 +25,7 @@ namespace Stockat.Core.DTOs.OrderDTOs
         public string SellerId { get; set; }
         public string SellerFirstName { get; set; }
         public string SellerLastName { get; set; }
-        
+
         public string BuyerId { get; set; }
         public string BuyerFirstName { get; set; }
         public string BuyerLastName { get; set; }
