@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Stockat.Core;
 using Stockat.Core.Consts;
 using Stockat.Core.DTOs.ChatDTOs;
@@ -20,17 +21,20 @@ public class ChatService : IChatService
     private readonly IMapper _mapper;
     private readonly IImageService _imageService;
     private readonly IFileService _fileService;
-
+    private readonly IConfiguration _configuration;
     public ChatService(
         IRepositoryManager repo,
         IMapper mapper,
         IImageService imageService,
-        IFileService fileService)
+        IFileService fileService,
+        IConfiguration configuration
+        )
     {
         _repo = repo;
         _mapper = mapper;
         _imageService = imageService;
         _fileService = fileService;
+        _configuration = configuration;
     }
 
     private async Task<bool> IsUserDeletedAsync(string userId)
@@ -177,21 +181,96 @@ public class ChatService : IChatService
 
     public async Task<IEnumerable<ChatConversationDto>> GetUserConversationsAsync(string userId, int page = 1, int pageSize = 20)
     {
-        var skip = (page - 1) * pageSize;
-        // Use FindAllAsync for correct skip/take/orderBy/includes
-        var conversations = await _repo.ChatConversationRepo.FindAllAsync(
-            c => (c.User1Id == userId || c.User2Id == userId) && !c.User1.IsDeleted && !c.User2.IsDeleted,
-            skip: skip,
-            take: pageSize,
-            includes: new[] { "User1", "User2" }, // Ensure users are included for mapping
-            orderBy: c => c.LastMessageAt,
-            orderByDirection: OrderBy.Descending
-        );
+        var isAdmin = userId == _configuration["Admin:Id"];
+        var adminId = _configuration["Admin:Id"];
+        var conversations = new List<ChatConversation>();
+        ChatConversation? adminConversation = null;
 
-        var conversationList = conversations.ToList();
+        if (!isAdmin && page == 1)
+        {
+            // Fetch more than pageSize in case admin conversation is among them
+            var batch = await _repo.ChatConversationRepo.FindAllAsync(
+                c => (c.User1Id == userId || c.User2Id == userId) && !c.User1.IsDeleted && !c.User2.IsDeleted,
+                skip: 0,
+                take: pageSize + 5, // Fetch extra in case admin is among them
+                includes: new[] { "User1", "User2" },
+                orderBy: c => c.LastMessageAt,
+                orderByDirection: OrderBy.Descending
+            );
 
-        // For each conversation, fetch the last message (if any) with sender info
-        foreach (var conv in conversationList)
+            var batchList = batch.ToList();
+
+            // Try find the admin conversation in the fetched batch
+            var indexOfAdminConv = batchList.FindIndex(c =>
+                (c.User1Id == userId && c.User2Id == adminId) ||
+                (c.User2Id == userId && c.User1Id == adminId));
+
+            if (indexOfAdminConv >= 0)
+            {
+                // Remove it from the list to prevent duplicates
+                adminConversation = batchList[indexOfAdminConv];
+                batchList.RemoveAt(indexOfAdminConv);
+            }
+            else
+            {
+                // If not in list, try fetch it directly
+                adminConversation = await _repo.ChatConversationRepo.FindAsync(
+                    c => (c.User1Id == userId && c.User2Id == adminId) ||
+                         (c.User2Id == userId && c.User1Id == adminId),
+                    includes: new[] { "User1", "User2" }
+                );
+            }
+
+            // Take only the first pageSize items from the remaining batch
+            conversations = batchList.Take(pageSize).ToList();
+
+            // If we found admin conversation, insert it at top
+            if (adminConversation != null)
+            {
+                conversations.Insert(0, adminConversation);
+            }
+        }
+        else
+        {
+            // Regular paginated fetch for admin or pages beyond 1
+            var skip = (page - 1) * pageSize;
+
+            if (isAdmin)
+            {
+
+                var result = await _repo.ChatConversationRepo.FindAllAsync(
+                    c => (c.User1Id == userId || c.User2Id == userId) &&
+                         !c.User1.IsDeleted && !c.User2.IsDeleted,
+                    skip: skip,
+                    take: pageSize,
+                    includes: new[] { "User1", "User2" },
+                    orderBy: c => c.LastMessageAt,
+                    orderByDirection: OrderBy.Descending
+
+                );
+
+                conversations = result.ToList();
+            }
+            else
+            {
+                var result = await _repo.ChatConversationRepo.FindAllAsync(
+                    c => (c.User1Id == userId || c.User2Id == userId) &&
+                         !c.User1.IsDeleted && !c.User2.IsDeleted &&
+                         // Exclude admin conversation on all pages after page 1
+                         (c.User1Id != adminId && c.User2Id != adminId),
+                    skip: skip,
+                    take: pageSize,
+                    includes: new[] { "User1", "User2" },
+                    orderBy: c => c.LastMessageAt,
+                    orderByDirection: OrderBy.Descending
+                );
+
+                conversations = result.ToList();
+            }
+        }
+
+        // Fetch last message for each conversation
+        foreach (var conv in conversations)
         {
             var lastMsg = (await _repo.ChatMessageRepo.FindAllAsync(
                 m => m.ConversationId == conv.ConversationId,
@@ -202,18 +281,12 @@ public class ChatService : IChatService
                 orderByDirection: OrderBy.Descending
             )).FirstOrDefault();
 
-            if (lastMsg != null)
-            {
-                conv.Messages = new List<ChatMessage> { lastMsg };
-            }
-            else
-            {
-                conv.Messages = new List<ChatMessage>();
-            }
+            conv.Messages = lastMsg != null ? new List<ChatMessage> { lastMsg } : new List<ChatMessage>();
         }
 
-        return _mapper.Map<IEnumerable<ChatConversationDto>>(conversationList);
+        return _mapper.Map<IEnumerable<ChatConversationDto>>(conversations);
     }
+
 
     public async Task<IEnumerable<ChatMessageDto>> GetConversationMessagesAsync(int conversationId, string userId, int page = 1, int pageSize = 30)
     {
