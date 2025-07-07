@@ -21,6 +21,7 @@ public class UserReadDto
 
     public bool IsApproved { get; set; }
     public bool IsDeleted { get; set; }
+    public bool IsBlocked { get; set; }
 
     public bool NeedsVerification => !IsApproved;
 

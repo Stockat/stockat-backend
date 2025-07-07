@@ -167,8 +167,8 @@ public class UserVerificationService : IUserVerificationService
         if (entity == null)
             throw new NotFoundException("Verification entry not found.");
 
-        if (entity.Status != VerificationStatus.Pending)
-            throw new InvalidOperationException("Only pending verifications can be updated.");
+        if (entity.Status == VerificationStatus.Approved)
+            throw new InvalidOperationException("Approved verifications can be updated.");
 
         if (!Enum.TryParse<VerificationStatus>(dto.Status, true, out var newStatus) ||
             (newStatus != VerificationStatus.Approved && newStatus != VerificationStatus.Rejected))
