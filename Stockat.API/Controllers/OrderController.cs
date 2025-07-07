@@ -167,4 +167,35 @@ public class OrderController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving Buyer Request orders.");
         }
     }
+    
+    // Add Request
+    [HttpPost("request")]
+    public IActionResult AddRequest([FromBody] AddRequestDTO requestDto)
+    {
+        // Validate the input
+        if (requestDto == null)
+        {
+            _logger.LogError("AddRequest: Request DTO is null.");
+            return BadRequest("Full request data is required.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            _logger.LogError("AddRequest: Invalid model state.");
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            // Call the service to add the request
+            var response = _serviceManager.OrderService.AddRequestAsync(requestDto).Result;
+            // Return the response
+            return StatusCode(response.Status, response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"AddRequest: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while adding the request.");
+        }
+    }
 }
