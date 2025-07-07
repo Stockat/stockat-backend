@@ -9,6 +9,7 @@ using System.Security.Claims;
 using Stockat.Core.Exceptions;
 using Stockat.Core.DTOs;
 using Stockat.Core.Enums;
+using System.Linq.Expressions;
 
 namespace Stockat.Service.Services;
 public class UserVerificationService : IUserVerificationService
@@ -269,18 +270,46 @@ public class UserVerificationService : IUserVerificationService
         }
     }
 
+    // Helper for combining expressions (since .And may not be available)
+    private static Expression<Func<T, bool>> AndAlso<T>(Expression<Func<T, bool>> expr1, Expression<Func<T, bool>> expr2)
+    {
+        var parameter = Expression.Parameter(typeof(T));
+        var body = Expression.AndAlso(
+            Expression.Invoke(expr1, parameter),
+            Expression.Invoke(expr2, parameter)
+        );
+        return Expression.Lambda<Func<T, bool>>(body, parameter);
+    }
+
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<UserVerificationReadDto>>>> GetPendingVerificationsAsync(int page = 1, int size = 10)
     {
+        return await GetPendingVerificationsAsync(page, size, null);
+    }
+
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<UserVerificationReadDto>>>> GetPendingVerificationsAsync(int page = 1, int size = 10, string searchTerm = null)
+    {
         int skip = (page - 1) * size;
+        Expression<Func<UserVerification, bool>> filter = v => v.Status == VerificationStatus.Pending;
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var lowerTerm = searchTerm.ToLower();
+            Expression<Func<UserVerification, bool>> searchFilter = v =>
+                v.User.FirstName.ToLower().Contains(lowerTerm) ||
+                v.User.LastName.ToLower().Contains(lowerTerm) ||
+                v.User.Email.ToLower().Contains(lowerTerm) ||
+                v.User.UserName.ToLower().Contains(lowerTerm);
+            filter = AndAlso(filter, searchFilter);
+        }
 
         var pendingVerifications = await _repo.UserVerificationRepo.FindAllAsync(
-            v => v.Status == VerificationStatus.Pending,
+            filter,
             skip: skip,
             take: size,
             includes: ["User"]
         );
 
-        int totalCount = await _repo.UserVerificationRepo.CountAsync(v => v.Status == VerificationStatus.Pending);
+        int totalCount = await _repo.UserVerificationRepo.CountAsync(filter);
 
         var verificationDtos = pendingVerifications.Select(v => 
         {
@@ -328,6 +357,63 @@ public class UserVerificationService : IUserVerificationService
             Message = "Verification statistics retrieved successfully.",
             Status = StatusCodes.Status200OK,
             Data = statistics
+        };
+    }
+
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<UserVerificationReadDto>>>> GetAllVerificationsAsync(int page = 1, int size = 10, string status = null, string searchTerm = null)
+    {
+        int skip = (page - 1) * size;
+        Expression<Func<UserVerification, bool>> filter = v => true;
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (Enum.TryParse<VerificationStatus>(status, true, out var parsedStatus))
+            {
+                filter = AndAlso(filter, v => v.Status == parsedStatus);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var lowerTerm = searchTerm.ToLower();
+            Expression<Func<UserVerification, bool>> searchFilter = v =>
+                v.User.FirstName.ToLower().Contains(lowerTerm) ||
+                v.User.LastName.ToLower().Contains(lowerTerm) ||
+                v.User.Email.ToLower().Contains(lowerTerm) ||
+                v.User.UserName.ToLower().Contains(lowerTerm);
+            filter = AndAlso(filter, searchFilter);
+        }
+
+        var verifications = await _repo.UserVerificationRepo.FindAllAsync(
+            filter,
+            skip: skip,
+            take: size,
+            includes: ["User"]
+        );
+
+        int totalCount = await _repo.UserVerificationRepo.CountAsync(filter);
+
+        var verificationDtos = verifications.Select(v =>
+        {
+            var dto = _mapper.Map<UserVerificationReadDto>(v);
+            dto.UserName = $"{v.User.FirstName} {v.User.LastName}";
+            dto.UserEmail = v.User.Email;
+            return dto;
+        });
+
+        var result = new PaginatedDto<IEnumerable<UserVerificationReadDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = totalCount,
+            PaginatedData = verificationDtos
+        };
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<UserVerificationReadDto>>>
+        {
+            Message = "Verifications retrieved successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = result
         };
     }
 }

@@ -46,9 +46,9 @@ public class UserPunishmentController : ControllerBase
 
     // GET: api/UserPunishment
     [HttpGet]
-    public async Task<IActionResult> GetAllPunishments([FromQuery] int page = 1, [FromQuery] int size = 10)
+    public async Task<IActionResult> GetAllPunishments([FromQuery] int page = 1, [FromQuery] int size = 10, [FromQuery] string searchTerm = null)
     {
-        var response = await _serviceManager.UserPunishmentService.GetAllPunishmentsAsync(page, size);
+        var response = await _serviceManager.UserPunishmentService.GetAllPunishmentsAsync(page, size, searchTerm);
         return StatusCode(response.Status, response);
     }
 

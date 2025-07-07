@@ -220,7 +220,7 @@ public class UserService : IUserService
     }
 
     // Admin-specific methods
-    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<UserReadDto>>>> GetAllUsersAsync(int page = 1, int size = 10, string searchTerm = null, bool? isActive = null, bool? isVerified = null)
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<UserReadDto>>>> GetAllUsersAsync(int page = 1, int size = 10, string searchTerm = null, bool? isActive = null, bool? isVerified = null, bool? isBlocked = null)
     {
         int skip = (page - 1) * size;
 
@@ -255,6 +255,21 @@ public class UserService : IUserService
             {
                 var unverifiedFilter = (Expression<Func<User, bool>>)(u => u.UserVerification == null || u.UserVerification.Status != VerificationStatus.Approved);
                 filter = filter.And(unverifiedFilter);
+            }
+        }
+
+        // Blocked filter
+        if (isBlocked.HasValue)
+        {
+            if (isBlocked.Value)
+            {
+                // User has an active ban (temporary or permanent)
+                filter = filter.And(u => u.Punishments.Any(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) && (p.EndDate == null || p.EndDate > DateTime.UtcNow)));
+            }
+            else
+            {
+                // User does NOT have an active ban
+                filter = filter.And(u => !u.Punishments.Any(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) && (p.EndDate == null || p.EndDate > DateTime.UtcNow)));
             }
         }
 
@@ -432,6 +447,38 @@ public class UserService : IUserService
         if (string.IsNullOrEmpty(userId))
             throw new UnauthorizedAccessException("User ID not found in token.");
         return userId;
+    }
+
+    public async Task<GenericResponseDto<object>> GetUserStatisticsAsync()
+    {
+        // Total users
+        var total = await _repo.UserRepo.CountAsync(u => true);
+        // Active users (not deleted)
+        var active = await _repo.UserRepo.CountAsync(u => !u.IsDeleted);
+        // Inactive users (deleted)
+        var inactive = await _repo.UserRepo.CountAsync(u => u.IsDeleted);
+        // Verified users
+        var verified = await _repo.UserRepo.CountAsync(u => u.UserVerification != null && u.UserVerification.Status == VerificationStatus.Approved);
+        // Unverified users
+        var unverified = await _repo.UserRepo.CountAsync(u => u.UserVerification != null && u.UserVerification.Status == VerificationStatus.Pending);
+        // Blocked users (active ban)
+        var blocked = await _repo.UserRepo.CountAsync(u => u.Punishments.Any(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) && (p.EndDate == null || p.EndDate > DateTime.UtcNow)));
+
+        var stats = new {
+            total,
+            active,
+            inactive,
+            verified,
+            unverified,
+            blocked
+        };
+
+        return new GenericResponseDto<object>
+        {
+            Message = "User statistics retrieved successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = stats
+        };
     }
 
 }

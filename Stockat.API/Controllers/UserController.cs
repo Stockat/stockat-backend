@@ -77,9 +77,10 @@ public class UserController : ControllerBase
         [FromQuery] int size = 10, 
         [FromQuery] string? searchTerm = null, 
         [FromQuery] bool? isActive = null, 
-        [FromQuery] bool? isVerified = null)
+        [FromQuery] bool? isVerified = null,
+        [FromQuery] bool? isBlocked = null)
     {
-        var response = await _serviceManager.UserService.GetAllUsersAsync(page, size, searchTerm, isActive, isVerified);
+        var response = await _serviceManager.UserService.GetAllUsersAsync(page, size, searchTerm, isActive, isVerified, isBlocked);
         return StatusCode(response.Status, response);
     }
 
@@ -107,6 +108,15 @@ public class UserController : ControllerBase
     public async Task<IActionResult> ActivateUser(string userId)
     {
         var response = await _serviceManager.UserService.ActivateUserAsync(userId);
+        return StatusCode(response.Status, response);
+    }
+
+    // GET: api/User/admin/statistics
+    [HttpGet("admin/statistics")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetUserStatistics()
+    {
+        var response = await _serviceManager.UserService.GetUserStatisticsAsync();
         return StatusCode(response.Status, response);
     }
 }

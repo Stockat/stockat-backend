@@ -18,6 +18,7 @@ public class UserMappingProfile: Profile
         CreateMap<User, UserReadDto>()
             .ForMember(dest => dest.IsApproved, opt => opt.MapFrom(src => src.IsApproved))
             .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.UserName))
+            .ForMember(dest => dest.UserVerification, opt => opt.MapFrom(src => src.UserVerification))
             .AfterMap((src, dest) =>
             {
                 var punishments = src.Punishments ?? new List<UserPunishment>();

@@ -54,13 +54,27 @@ public class UserPunishmentService : IUserPunishmentService
             throw new BadRequestException("End date must be in the future for temporary bans.");
         }
 
-        // Check if user exists
-        var user = await _repo.UserRepo.GetByIdAsync(dto.UserId);
-        if (user == null)
-            throw new NotFoundException("User not found.");
+        // Look up user by UserId or Email
+        User user = null;
+        string userIdToUse = dto.UserId;
+        if (string.IsNullOrWhiteSpace(dto.UserId))
+        {
+            if (string.IsNullOrWhiteSpace(dto.Email))
+                throw new BadRequestException("Either UserId or Email must be provided.");
+            user = (await _repo.UserRepo.FindAllAsync(u => u.Email.ToLower() == dto.Email.ToLower())).FirstOrDefault();
+            if (user == null)
+                throw new NotFoundException($"User with email '{dto.Email}' not found.");
+            userIdToUse = user.Id;
+        }
+        else
+        {
+            user = await _repo.UserRepo.GetByIdAsync(dto.UserId);
+            if (user == null)
+                throw new NotFoundException("User not found.");
+        }
 
         // Check if user already has an active punishment of the same type
-        var existingPunishment = await GetCurrentActivePunishmentAsync(dto.UserId);
+        var existingPunishment = await GetCurrentActivePunishmentAsync(userIdToUse);
         if (existingPunishment != null && 
             (existingPunishment.Type == PunishmentType.TemporaryBan || existingPunishment.Type == PunishmentType.PermanentBan))
         {
@@ -69,7 +83,7 @@ public class UserPunishmentService : IUserPunishmentService
 
         var punishment = new UserPunishment
         {
-            UserId = dto.UserId,
+            UserId = userIdToUse,
             Type = dto.Type,
             Reason = dto.Reason,
             StartDate = DateTime.UtcNow,
@@ -81,7 +95,7 @@ public class UserPunishmentService : IUserPunishmentService
         await _repo.CompleteAsync();
 
         // Send email notification to user
-        await SendPunishmentEmailAsync(dto.UserId, dto.Type, dto.Reason, dto.EndDate);
+        await SendPunishmentEmailAsync(userIdToUse, dto.Type, dto.Reason, dto.EndDate);
 
         var punishmentDto = _mapper.Map<PunishmentReadDto>(punishment);
         punishmentDto.UserName = $"{user.FirstName} {user.LastName}";
@@ -135,10 +149,27 @@ public class UserPunishmentService : IUserPunishmentService
 
     public async Task<GenericResponseDto<IEnumerable<PunishmentReadDto>>> GetAllPunishmentsAsync(int page = 1, int size = 10)
     {
+        return await GetAllPunishmentsAsync(page, size, null);
+    }
+
+    public async Task<GenericResponseDto<IEnumerable<PunishmentReadDto>>> GetAllPunishmentsAsync(int page = 1, int size = 10, string searchTerm = null)
+    {
         int skip = (page - 1) * size;
+        System.Linq.Expressions.Expression<Func<UserPunishment, bool>> filter = p => true;
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var lowerTerm = searchTerm.ToLower();
+            System.Linq.Expressions.Expression<Func<UserPunishment, bool>> searchFilter = p =>
+                p.User.FirstName.ToLower().Contains(lowerTerm) ||
+                p.User.LastName.ToLower().Contains(lowerTerm) ||
+                p.User.Email.ToLower().Contains(lowerTerm) ||
+                p.User.UserName.ToLower().Contains(lowerTerm);
+            filter = AndAlso(filter, searchFilter);
+        }
 
         var punishments = await _repo.UserPunishmentRepo.FindAllAsync(
-            criteria: p => true,
+            criteria: filter,
             skip: skip,
             take: size,
             includes: new string[] { "User" }
@@ -420,5 +451,16 @@ public class UserPunishmentService : IUserPunishmentService
             Status = StatusCodes.Status200OK,
             Data = result
         };
+    }
+
+    // Helper for combining expressions (since .And may not be available)
+    private static System.Linq.Expressions.Expression<Func<T, bool>> AndAlso<T>(System.Linq.Expressions.Expression<Func<T, bool>> expr1, System.Linq.Expressions.Expression<Func<T, bool>> expr2)
+    {
+        var parameter = System.Linq.Expressions.Expression.Parameter(typeof(T));
+        var body = System.Linq.Expressions.Expression.AndAlso(
+            System.Linq.Expressions.Expression.Invoke(expr1, parameter),
+            System.Linq.Expressions.Expression.Invoke(expr2, parameter)
+        );
+        return System.Linq.Expressions.Expression.Lambda<Func<T, bool>>(body, parameter);
     }
 } 

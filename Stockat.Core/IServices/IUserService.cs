@@ -12,8 +12,9 @@ public interface IUserService
     Task<GenericResponseDto<string>> ToggleActivationAsync();
     
     // Admin-specific methods
-    Task<GenericResponseDto<PaginatedDto<IEnumerable<UserReadDto>>>> GetAllUsersAsync(int page = 1, int size = 10, string searchTerm = null, bool? isActive = null, bool? isVerified = null);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<UserReadDto>>>> GetAllUsersAsync(int page = 1, int size = 10, string searchTerm = null, bool? isActive = null, bool? isVerified = null, bool? isBlocked = null);
     Task<GenericResponseDto<string>> DeactivateUserAsync(string userId);
     Task<GenericResponseDto<string>> ActivateUserAsync(string userId);
     Task<GenericResponseDto<UserReadDto>> GetUserWithDetailsAsync(string userId);
+    Task<GenericResponseDto<object>> GetUserStatisticsAsync();
 }

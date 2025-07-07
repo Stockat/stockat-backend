@@ -1,4 +1,5 @@
 ﻿namespace Stockat.Core.DTOs.UserDTOs;
+using Stockat.Core.DTOs.UserVerificationDTOs;
 
 public class UserReadDto
 {
@@ -29,6 +30,8 @@ public class UserReadDto
     public PunishmentInfoDto? CurrentPunishment { get; set; }
     public List<PunishmentHistoryDto>? PunishmentHistory { get; set; }
     public UserStatisticsDto? Statistics { get; set; }
+
+    public UserVerificationReadDto? UserVerification { get; set; }
 }
 
 public class PunishmentInfoDto
