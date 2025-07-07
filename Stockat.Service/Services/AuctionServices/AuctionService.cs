@@ -23,15 +23,18 @@ namespace Stockat.Service.Services.AuctionServices
         private readonly IRepositoryManager _repositoryManager;
         private readonly IMapper _mapper;
         private readonly ILoggerManager _logger;
+        private readonly IServiceManager _serviceManager;
 
 
         public AuctionService(IMapper mapper,
             ILoggerManager logger,
-            IRepositoryManager repositoryManager)
+            IRepositoryManager repositoryManager,
+            IServiceManager serviceManager)
         {
             _repositoryManager = repositoryManager;
             _mapper = mapper;
             _logger = logger;
+            _serviceManager = serviceManager;
         }
 
         public async Task<AuctionDetailsDto> AddAuctionAsync(Auction auction)
@@ -211,42 +214,50 @@ namespace Stockat.Service.Services.AuctionServices
                 if (id <= 0)
                     throw new IdParametersBadRequestException();
 
-                var auction = await _repositoryManager.AuctionRepo.FindAsync(a => a.Id == id, includes: new[] { "Product", "SellerUser", "BuyerUser" ,"Stock" });
-                if (auction == null) throw new NotFoundException("Auction not found");
+                var auction = await _repositoryManager.AuctionRepo.FindAsync(
+                    a => a.Id == id,
+                    includes: new[] { "Product", "SellerUser", "BuyerUser", "Stock" }
+                );
 
-                //if auction is active -> return el stock
+                if (auction == null)
+                    throw new NotFoundException("Auction not found");
+
+                //if auction is active, return el stock
                 if (DateTime.UtcNow < auction.EndTime)
                 {
                     var stock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId);
                     stock.Quantity += auction.Quantity;
-
                     _repositoryManager.StockRepo.Update(stock);
                 }
 
-                _repositoryManager.AuctionRepo.Delete(auction);
+                auction.IsDeleted = true;
+                _repositoryManager.AuctionRepo.Update(auction);
 
                 await _repositoryManager.CompleteAsync();
-
                 await _repositoryManager.CommitTransactionAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await _repositoryManager.RollbackTransactionAsync();
                 throw;
             }
         }
 
+
         public async Task CloseEndedAuctionsAsync()
         {
             await _repositoryManager.BeginTransactionAsync();
             try
             {
-
-                var allAuctions = await _repositoryManager.AuctionRepo.GetAllAsync();
+                var allAuctions = await _repositoryManager.AuctionRepo.FindAllAsync(
+                    criteria: a => true,
+                    includes: new[] { "Product", "Stock", "AuctionBidRequest", "AuctionOrder", "SellerUser" }
+                );
 
                 var now = DateTime.UtcNow;
 
-                var endedAuctions = allAuctions.Where(a => !a.IsClosed && a.EndTime <= now && a.BuyerId != null).ToList();
+                var endedAuctions = allAuctions.Where(a => !a.IsClosed && a.EndTime <= now).ToList();
+
 
                 var allBids = await _repositoryManager.AuctionBidRequestRepo.GetAllAsync();
 
@@ -259,7 +270,11 @@ namespace Stockat.Service.Services.AuctionServices
                         .FirstOrDefault();
 
                     if (winningBid == null)
+                    {
+                        // No winner: restore stock
+                        auction.Stock.Quantity += auction.Quantity;
                         continue;
+                    }
 
 
                     var existingOrders = await _repositoryManager.AuctionOrderRepo.GetAllAsync();
@@ -281,6 +296,24 @@ namespace Stockat.Service.Services.AuctionServices
 
 
                     auction.IsClosed = true;
+
+                    // Link back to auction and bid
+                    auction.BuyerId = winningBid.BidderId;
+                    auction.AuctionOrder = order;
+                    winningBid.AuctionOrder = order;
+
+                    //send email
+                    var buyer = (await _repositoryManager.UserRepo.FindAllAsync(u => u.Id == winningBid.BidderId)).FirstOrDefault();
+                    var seller = (await _repositoryManager.UserRepo.FindAllAsync(u => u.Id == auction.SellerId)).FirstOrDefault();
+
+                    string subject = $"Auction Result: {auction.Name}";
+                    string sellerMsg = $"<p>The auction <strong>{auction.Name}</strong> has been finalized. The winning bid was <strong>{winningBid.BidAmount:C}</strong>. You can now process the order.</p>";
+                    string buyerMsg = $"<p>Congratulations! You have won the auction <strong>{auction.Name}</strong> with a bid of <strong>{winningBid.BidAmount:C}</strong>. Please proceed to payment and shipping.</p>";
+
+                    if (buyer != null)
+                        await _serviceManager.EmailService.SendEmailAsync(buyer.Email, subject, buyerMsg);
+                    if (seller != null)
+                        await _serviceManager.EmailService.SendEmailAsync(seller.Email, subject, sellerMsg);
                 }
 
                 await _repositoryManager.CompleteAsync();

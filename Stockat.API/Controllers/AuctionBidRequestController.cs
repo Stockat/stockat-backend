@@ -44,6 +44,21 @@ namespace Stockat.API.Controllers
             }
         }
 
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetBidsByUserId(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return BadRequest("User ID is required.");
+
+            var bids = await _serviceManager.AuctionBidRequestService.GetBidsByUserIdAsync(userId);
+
+            if (bids == null || !bids.Any())
+                return NotFound($"No bids found for user with ID: {userId}");
+
+            return Ok(bids);
+        }
+
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBid(int id)
         {

@@ -19,6 +19,8 @@ namespace Stockat.Core.DTOs.AuctionDTOs
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public bool IsClosed { get; set; }
+        public bool IsDeleted { get; set; }
+
 
         public string? BuyerId { get; set; }
         public string SellerId { get; set; }
