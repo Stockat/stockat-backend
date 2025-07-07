@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Stockat.Core;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.OrderDTOs;
@@ -547,5 +548,32 @@ public class OrderService : IOrderService
 
     }
 
+    // Analysis 
+    public async Task<GenericResponseDto<Dictionary<OrderType, decimal>>> GetTotalSalesByOrderTypeAsync()
+    {
+        var res = await _repo.OrderRepo.GetTotalSalesByOrderTypeAsync();
+
+        return new GenericResponseDto<Dictionary<OrderType, decimal>>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "Data Fetched Successfully"
+        };
+
+    }
+
+    public async Task<GenericResponseDto<Dictionary<OrderType, int>>> GetOrderCountsByTypeAsync()
+    {
+        var res = await _repo.OrderRepo.GetOrderCountsByTypeAsync();
+
+        return new GenericResponseDto<Dictionary<OrderType, int>>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "Data Fetched Successfully"
+        };
+    }
 
 }

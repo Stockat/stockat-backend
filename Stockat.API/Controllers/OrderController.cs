@@ -167,4 +167,23 @@ public class OrderController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving Buyer Request orders.");
         }
     }
+
+
+    // Analysis 
+    [AllowAnonymous]
+    [HttpGet("analysis/orderCount")]
+    public async Task<IActionResult> GetOrderCountsByTypeAsync()
+    {
+        var res = _serviceManager.OrderService.GetOrderCountsByTypeAsync().Result;
+        return Ok(res);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("analysis/orderSales")]
+    public async Task<IActionResult> GetTotalSalesByOrderTypeAsync()
+    {
+        var res = _serviceManager.OrderService.GetTotalSalesByOrderTypeAsync().Result;
+
+        return Ok(res);
+    }
 }

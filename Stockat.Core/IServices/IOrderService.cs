@@ -23,5 +23,10 @@ namespace Stockat.Core.IServices
         public Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllBuyerOrdersAsync();
         public Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllBuyerRequestOrdersAsync();
 
+        // Analysis 
+        public Task<GenericResponseDto<Dictionary<OrderType, int>>> GetOrderCountsByTypeAsync();
+        public Task<GenericResponseDto<Dictionary<OrderType, decimal>>> GetTotalSalesByOrderTypeAsync();
+
+
     }
 }
