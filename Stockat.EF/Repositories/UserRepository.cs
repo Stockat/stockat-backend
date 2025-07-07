@@ -27,7 +27,7 @@ public class UserRepository : BaseRepository<User>, IUserRepository
                 })
                 .Where(x => x.ProductCount > 0)
                 .OrderByDescending(x => x.ProductCount)
-                .Take(20)
+                .Take(limit)
                 .Select(x => x.User)
                 .ToListAsync();
 

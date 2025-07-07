@@ -10,6 +10,7 @@ namespace Stockat.API.Controllers;
 
 [ApiController]
 [Route("api/chatbot")]
+[AllowAnonymous]
 public class ChatBotController : ControllerBase
 {
     private readonly IServiceManager _serviceManager;
@@ -23,14 +24,30 @@ public class ChatBotController : ControllerBase
         _logger = logger;
     }
 
-    private string GetUserId() 
+    private string GetUserId()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
+        if (!string.IsNullOrEmpty(userId))
         {
-            throw new UnauthorizedAccessException("User must be authenticated to use the chatbot.");
+            return userId;
         }
-        return userId;
+        // Anonymous user: use cookie or generate new
+        var httpContext = HttpContext;
+        var cookieName = "StockatChatAnonId";
+        if (httpContext.Request.Cookies.TryGetValue(cookieName, out var anonId) && !string.IsNullOrEmpty(anonId))
+        {
+            return anonId;
+        }
+        // Generate new anon ID and set cookie
+        var newAnonId = Guid.NewGuid().ToString();
+        httpContext.Response.Cookies.Append(cookieName, newAnonId, new CookieOptions
+        {
+            Expires = DateTimeOffset.UtcNow.AddYears(1),
+            HttpOnly = true,
+            IsEssential = true,
+            SameSite = SameSiteMode.Lax
+        });
+        return newAnonId;
     }
 
     [HttpPost("ask")]

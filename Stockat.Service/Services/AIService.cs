@@ -115,7 +115,7 @@ public class AIService : IAIService
                 var rankEmoji = rank == 1 ? "🥇" : rank == 2 ? "🥈" : rank == 3 ? "🥉" : $"**{rank}.**";
                 var fullName = $"{seller.FirstName} {seller.LastName}".Trim();
                 
-                response += $"{rankEmoji} **{fullName}** (Username: {seller.UserName})\n";
+                response += $"{rankEmoji} **{fullName}** \n";
                 response += $"   📧 Email: {seller.Email}\n";
                 response += $"      About: {seller.AboutMe}\n";
 
