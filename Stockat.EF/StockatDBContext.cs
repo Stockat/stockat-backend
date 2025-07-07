@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Stockat.Core.Entities;
+using Stockat.Core.Entities.Chat;
 using Stockat.EF.Configurations;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,15 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<AuctionOrder> AuctionOrder { get; set; }
     public virtual DbSet<Category> Categories { get; set; }
 
+    public virtual DbSet<OrderProduct> OrderProduct { get; set; }
+    //public virtual DbSet<RequestProduct> RequestProduct { get; set; }
+
+
+
+    public DbSet<ChatConversation> ChatConversations { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+    public DbSet<MessageReaction> MessageReactions { get; set; }
+    public DbSet<MessageReadStatus> MessageReadStatuses { get; set; }
     public StockatDBContext(DbContextOptions options) : base(options)
     {
     }

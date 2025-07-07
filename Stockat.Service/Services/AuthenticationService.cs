@@ -3,6 +3,7 @@ using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Stockat.Core;
 using Stockat.Core.DTOs.UserDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
@@ -25,8 +26,10 @@ internal sealed class AuthenticationService : IAuthenticationService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConfiguration _configuration;
     private readonly IEmailService _emailService;
+    private readonly IChatService _chatService;
+    private readonly IRepositoryManager _repo;
     private User? _user;
-    public AuthenticationService(ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IEmailService emailService)
+    public AuthenticationService(ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IEmailService emailService, IChatService chatService, IRepositoryManager repo)
     {
         _logger = logger;
         _mapper = mapper;
@@ -34,6 +37,8 @@ internal sealed class AuthenticationService : IAuthenticationService
         _roleManager = roleManager;
         _configuration = configuration;
         _emailService = emailService;
+        _chatService = chatService;
+        _repo = repo;
     }
 
     private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleToken(ExternalAuthDto externalAuth)
@@ -86,6 +91,22 @@ internal sealed class AuthenticationService : IAuthenticationService
 
                 await _userManager.AddToRoleAsync(user, "Buyer");
                 await _userManager.AddLoginAsync(user, loginInfo);
+
+                var admin = await _userManager.FindByEmailAsync(_configuration["Admin:Email"]);
+                var createdUser = await _userManager.FindByEmailAsync(payload.Email);
+                var newConversationWithAdmin = await _chatService.CreateConversationAsync(admin.Id, createdUser.Id);
+                await _repo.CompleteAsync();
+
+                var welcomeMessage = await _chatService.SendMessageAsync(new Core.DTOs.ChatDTOs.SendMessageDto()
+                {
+                    ConversationId = newConversationWithAdmin.ConversationId,
+                    MessageText = $"Welcome to Stockat, {user.FirstName} {user.LastName}. We're excited to have you. Let us know if you need anything — we're here to help!"
+
+                },
+                    admin.Id
+                );
+
+                await _repo.CompleteAsync();
             }
             else
             {
@@ -117,6 +138,7 @@ internal sealed class AuthenticationService : IAuthenticationService
         user.UserName = userForRegistration.Email.Split('@')[0]; // updated here
 
         var result = await _userManager.CreateAsync(user, userForRegistration.Password);
+
 
         if (result.Succeeded && await _roleManager.RoleExistsAsync("Buyer"))
         {
@@ -169,6 +191,21 @@ internal sealed class AuthenticationService : IAuthenticationService
         var result = await _userManager.ConfirmEmailAsync(user, token);
         if (!result.Succeeded)
             throw new BadRequestException("Email confirmation failed");
+
+        var admin = await _userManager.FindByEmailAsync(_configuration["Admin:Email"]);
+        var newConversationWithAdmin = await _chatService.CreateConversationAsync(admin.Id, user.Id);
+        await _repo.CompleteAsync();
+
+        var welcomeMessage = await _chatService.SendMessageAsync(new Core.DTOs.ChatDTOs.SendMessageDto()
+            {
+                ConversationId = newConversationWithAdmin.ConversationId,
+                MessageText = $"Welcome to Stockat, {user.FirstName} {user.LastName}. We're excited to have you. Let us know if you need anything — we're here to help!"
+
+            },
+            admin.Id
+        );
+
+        await _repo.CompleteAsync();
     }
 
     public async Task LogoutAsync(string username)

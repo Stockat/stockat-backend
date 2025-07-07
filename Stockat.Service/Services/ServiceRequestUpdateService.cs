@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Stockat.Core;
+using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.ServiceRequestDTOs;
 using Stockat.Core.DTOs.ServiceRequestUpdateDTOs;
 using Stockat.Core.Entities;
@@ -14,16 +15,19 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
     private readonly ILoggerManager _logger;
     private readonly IMapper _mapper;
     private readonly IRepositoryManager _repo;
+    private readonly IEmailService _emailService;
 
     public ServiceRequestUpdateService(
         ILoggerManager logger,
         IMapper mapper,
-        IRepositoryManager repo
+        IRepositoryManager repo,
+        IEmailService emailService
         )
     {
         _logger = logger;
         _mapper = mapper;
         _repo = repo;
+        _emailService = emailService;
     }
 
     public async Task<bool> CancelUpdateAsync(int updateId, string buyerId)
@@ -69,7 +73,7 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
 
         var request = await _repo.ServiceRequestRepo.FindAsync(
             r => r.Id == requestId && r.BuyerId == buyerId,
-            ["Buyer", "Service"]
+            ["Buyer", "Service", "Service.Seller"]
         );
 
         if (request == null)
@@ -98,11 +102,19 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
             AdditionalTime = dto.AdditionalTime,
             Status = ApprovalStatus.Pending,
             CreatedAt = DateTime.UtcNow,
-            ServiceRequestId = requestId
+            ServiceRequestId = requestId,
+            AdditionalNote = dto.AdditionalNote
         };
 
         await _repo.ServiceRequestUpdateRepo.AddAsync(update);
         await _repo.CompleteAsync();
+
+        // Send email notification to seller
+        await _emailService.SendEmailAsync(
+            request.Service.Seller.Email,
+            "New Service Request Update",
+            $"A new update has been requested for your service request '{request.Service.Name}'. Please review it in your dashboard."
+        );
         return _mapper.Map<ServiceRequestUpdateDto>(update);
     }
 
@@ -110,7 +122,7 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
     {
         var update = await _repo.ServiceRequestUpdateRepo.FindAsync(
             u => u.Id == updateId && u.ServiceRequest.Service.SellerId == sellerId,
-            ["ServiceRequest", "ServiceRequest.Service"]
+            ["ServiceRequest", "ServiceRequest.Service", "ServiceRequest.Buyer"]
         );
 
         if (update == null)
@@ -164,6 +176,13 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
         _repo.ServiceRequestUpdateRepo.Update(update);
         await _repo.CompleteAsync();
 
+        // Send email notification to buyer
+        await _emailService.SendEmailAsync(
+            request.Buyer.Email,
+            "Service Request Update Status",
+            $"Your service request update has been {(approved ? "approved" : "rejected")} by the seller. Please check your dashboard for details."
+        );
+
         return _mapper.Map<ServiceRequestDto>(request);
     }
        
@@ -183,22 +202,39 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
         return _mapper.Map<ServiceRequestUpdateDto>(update);
     }
 
-    public async Task<IEnumerable<ServiceRequestUpdateDto>> GetUpdatesByRequestIdAsync(int requestId, string userId)
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestUpdateDto>>>> GetUpdatesByRequestIdAsync(int requestId, string userId, int page, int size)
     {
+        int skip = (page - 1) * size;
+
         var updates = await _repo.ServiceRequestUpdateRepo.FindAllAsync(
-            u => u.ServiceRequestId == requestId && 
-                (u.ServiceRequest.BuyerId == userId || u.ServiceRequest.Service.SellerId == userId),
-            ["ServiceRequest", "ServiceRequest.Service"]
+            u => u.ServiceRequestId == requestId &&
+                 (u.ServiceRequest.BuyerId == userId || u.ServiceRequest.Service.SellerId == userId),
+            skip,
+            size,
+            includes: ["ServiceRequest", "ServiceRequest.Service"]
         );
 
-        if (updates == null || !updates.Any())
-        {
-            _logger.LogError($"No updates found for service request {requestId}.");
-            throw new NotFoundException("No updates found for this service request.");
-        }
+        int totalCount = await _repo.ServiceRequestUpdateRepo.CountAsync(
+            u => u.ServiceRequestId == requestId &&
+                 (u.ServiceRequest.BuyerId == userId || u.ServiceRequest.Service.SellerId == userId)
+        );
 
-        return _mapper.Map<IEnumerable<ServiceRequestUpdateDto>>(updates);
+        var result = new PaginatedDto<IEnumerable<ServiceRequestUpdateDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = totalCount,
+            PaginatedData = _mapper.Map<IEnumerable<ServiceRequestUpdateDto>>(updates)
+        };
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestUpdateDto>>>
+        {
+            Status = 200,
+            Message = "Request updates retrieved successfully.",
+            Data = result
+        };
     }
+
 
     private TimeSpan ParseTime(string timeText)
     {

@@ -19,6 +19,7 @@ public class CreateServiceRequestDto
     [Required]
     [Range(1, int.MaxValue)]
     public int RequestedQuantity { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 }
 

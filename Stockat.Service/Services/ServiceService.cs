@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Stockat.Core;
+using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.MediaDTOs;
 using Stockat.Core.DTOs.ServiceDTOs;
 using Stockat.Core.Exceptions;
@@ -56,35 +57,73 @@ public class ServiceService : IServiceService
         await _repo.CompleteAsync();
     }
 
-    public async Task<IEnumerable<ServiceDto>> GetAllAvailableServicesAsync()
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetAllAvailableServicesAsync(int page, int size)
     {
-        var services = await _repo.ServiceRepo.GetAllAsync();
-        if (services == null)
-        {
-            _logger.LogInfo("No available services found.");
-            return Enumerable.Empty<ServiceDto>();
-        }
+        int skip = (page - 1) * size;
+        int count = await _repo.ServiceRepo.CountAllAvailableServicesAsync();
 
-        return _mapper.Map<IEnumerable<ServiceDto>>(services);
-    }
-
-    public async Task<IEnumerable<ServiceDto>> GetSellerServicesAsync(string sellerId)
-    {
-        var services = await _repo.ServiceRepo.FindAllAsync(s => s.SellerId == sellerId);
-        Console.WriteLine(services);
+        var services = await _repo.ServiceRepo.GetAllAvailableServicesWithSeller(skip, size);
 
         if (services == null || !services.Any())
         {
-            _logger.LogInfo($"No services found for seller with ID {sellerId}.");
-            return Enumerable.Empty<ServiceDto>();
+            _logger.LogInfo("No available services found.");
+            return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>
+            {
+                Status = 200,
+                Message = "No services available",
+                Data = new PaginatedDto<IEnumerable<ServiceDto>>
+                {
+                    Page = page,
+                    Size = size,
+                    Count = 0,
+                    PaginatedData = new List<ServiceDto>()
+                }
+            };
         }
 
-        return _mapper.Map<IEnumerable<ServiceDto>>(services);
+        return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>
+        {
+            Status = 200,
+            Message = "Services retrieved successfully",
+            Data = new PaginatedDto<IEnumerable<ServiceDto>>
+            {
+                Page = page,
+                Size = size,
+                Count = count,
+                PaginatedData = _mapper.Map<IEnumerable<ServiceDto>>(services)
+            }
+        };
     }
+
+
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetSellerServicesAsync(string sellerId, int page, int size)
+    {
+        int skip = page  * size;
+
+        var services = await _repo.ServiceRepo.FindAllAsync(s => s.SellerId == sellerId, size, skip);
+        var totalCount = await _repo.ServiceRepo.CountAsync(s => s.SellerId == sellerId);
+
+        var paginated = new PaginatedDto<IEnumerable<ServiceDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = totalCount,
+            PaginatedData = _mapper.Map<IEnumerable<ServiceDto>>(services)
+        };
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>
+        {
+            Status = 200,
+            Message = "Seller services fetched successfully.",
+            Data = paginated
+        };
+    }
+
+
 
     public async Task<ServiceDto> GetServiceByIdAsync(int serviceId)
     {
-        var service = await _repo.ServiceRepo.GetByIdAsync(serviceId);
+        var service = await _repo.ServiceRepo.GetByIdWithSeller(serviceId);
         if (service == null)
         {
             _logger.LogError($"Service with ID {serviceId} not found.");

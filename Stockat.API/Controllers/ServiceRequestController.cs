@@ -82,7 +82,7 @@ public class ServiceRequestController : ControllerBase
 
     [HttpGet("mine")]
     [Authorize]
-    public async Task<IActionResult> GetBuyerRequestsAsync()
+    public async Task<IActionResult> GetBuyerRequestsAsync([FromQuery] int page = 1, [FromQuery] int size = 10)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
@@ -90,20 +90,20 @@ public class ServiceRequestController : ControllerBase
             return Unauthorized("User is not authenticated.");
         }
 
-        var requests = await _serviceManager.ServiceRequestService.GetBuyerRequestsAsync(userId);
+        var requests = await _serviceManager.ServiceRequestService.GetBuyerRequestsAsync(userId, page, size);
         return Ok(requests);
     }
 
     [HttpGet("{serviceId:int}/incoming")]
     [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> GetSellerRequestsAsync(int serviceId)
+    public async Task<IActionResult> GetSellerRequestsAsync(int serviceId, [FromQuery] int page = 1, [FromQuery] int size = 10)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized("User is not authenticated.");
         }
-        var requests = await _serviceManager.ServiceRequestService.GetSellerRequestsAsync(userId, serviceId);
+        var requests = await _serviceManager.ServiceRequestService.GetSellerRequestsAsync(userId, serviceId, page, size);
         return Ok(requests);
     }
 
@@ -165,7 +165,7 @@ public class ServiceRequestController : ControllerBase
 
     // update request status
     [HttpPatch("{requestId:int}/status/update")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> UpdateServiceStatusAsync(int requestId, [FromBody] ServiceStatusDto dto)
     {
@@ -191,4 +191,47 @@ public class ServiceRequestController : ControllerBase
         }
     }
 
+    [HttpGet("buyer/pending-services")]
+    [Authorize]
+    public async Task<IActionResult> GetBuyerServiceIDsWithPendingRequests()
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User is not authenticated.");
+            var serviceIds = await _serviceManager.ServiceRequestService.GetBuyerServiceIDsWithPendingRequests(userId);
+            return Ok(serviceIds);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    [HttpPatch("{requestId:int}/buyer-cancel")]
+    [Authorize]
+    public async Task<IActionResult> CancelBuyerRequestAsync(int requestId)
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User is not authenticated.");
+            var result = await _serviceManager.ServiceRequestService.CancelBuyerRequest(requestId, userId);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        }
+    }
 }

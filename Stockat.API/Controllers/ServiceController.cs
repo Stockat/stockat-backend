@@ -23,8 +23,8 @@ public class ServiceController : ControllerBase
 
     }
 
-    [HttpPost("create")]
-    [Authorize(Roles = "Seller")]
+    [HttpPost]
+    [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> CreateService([FromBody] CreateServiceDto dto)
     {
@@ -55,8 +55,8 @@ public class ServiceController : ControllerBase
         }
     }
 
-    [HttpDelete("delete/{serviceId:int}")]
-    [Authorize(Roles = "Seller")]
+    [HttpDelete("{serviceId:int}")]
+    [Authorize(Roles = "Seller, Admin")]
     public async Task<IActionResult> DeleteService(int serviceId)
     {
         try
@@ -81,22 +81,22 @@ public class ServiceController : ControllerBase
 
     [HttpGet]
     [Authorize]
-    public async Task<IActionResult> GetAllAvailableServices()
+    public async Task<IActionResult> GetAllAvailableServices([FromQuery] int page = 0, [FromQuery] int size = 10)
     {
-        var services = await _service.ServiceService.GetAllAvailableServicesAsync();
+        var services = await _service.ServiceService.GetAllAvailableServicesAsync(page,size);
         return Ok(services);
     }
 
     [HttpGet("seller/{sellerId}")]
     [Authorize]
-    public async Task<IActionResult> GetSellerServices(string sellerId)
+    public async Task<IActionResult> GetSellerServices(string sellerId, [FromQuery] int page = 0, [FromQuery] int size = 10)
     {
         if (string.IsNullOrEmpty(sellerId))
             return BadRequest("Seller ID is required.");
 
 
-        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId);
-        if (services == null || !services.Any())
+        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId, page, size);
+        if (services == null)
             return NotFound($"No services found for seller with ID {sellerId}.");
 
         return Ok(services);
@@ -104,15 +104,15 @@ public class ServiceController : ControllerBase
 
     [HttpGet("mine")]
     [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> GetMyServices()
+    public async Task<IActionResult> GetMyServices([FromQuery] int page = 0, [FromQuery] int size = 10)
     {
         var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(sellerId))
             return Unauthorized("Seller ID is required.");
 
-        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId);
-        if (services == null || !services.Any())
+        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId, page, size);
+        if (services == null)
             return NotFound("No services found for the current seller.");
 
         return Ok(services);
@@ -120,7 +120,7 @@ public class ServiceController : ControllerBase
 
 
     [HttpPatch("{serviceId:int}")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> UpdateService(int serviceId, [FromBody] UpdateServiceDto dto)
     {
@@ -134,7 +134,7 @@ public class ServiceController : ControllerBase
 
 
     [HttpPost("{serviceId:int}/upload-image")]
-    [Authorize(Roles = "Seller")]
+    [Authorize(Roles = "Seller, Admin")]
     public async Task<IActionResult> UploadServiceImage(int serviceId, IFormFile file)
     {
         if (file == null)
@@ -147,6 +147,35 @@ public class ServiceController : ControllerBase
         try
         {
             var result = await _service.ServiceService.UploadServiceImageAsync(serviceId, sellerId, file);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Image upload failed: {ex.Message}");
+        }
+    }
+
+    [HttpPost("upload-image")]
+    [Authorize]
+    public async Task<IActionResult> UploadImage(IFormFile file)
+    {
+        if (file == null)
+            return BadRequest("No file was provided.");
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("You must be logged in to upload an image.");
+
+        try
+        {
+            var result = await _service.ImageService.UploadImageAsync(file, "Services");
             return Ok(result);
         }
         catch (NotFoundException ex)
