@@ -106,6 +106,80 @@ public class ProductService : IProductService
         return resDto;
     }
 
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginatedForAdmin
+     (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
+
+    {
+        int skip = (_page) * _size;
+        int take = _size;
+
+        var counting = await _repo.ProductRepository.CountAsync(p =>
+            p.MinQuantity >= minQuantity &&
+            p.Price >= minPrice &&
+              (
+            tags.Length == 0 ||
+             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
+              ) &&
+             (
+             string.IsNullOrEmpty(location) ||
+             p.Location.ToString().ToUpper() == location.ToUpper()
+             ) &&
+            (
+                category == 0 ||
+                p.CategoryId == category
+             ));
+
+        var res = await _repo.ProductRepository.FindAllAsync
+            (
+            p =>
+            p.MinQuantity >= minQuantity &&
+            p.Price >= minPrice &&
+              (
+            tags.Length == 0 ||
+             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
+              ) &&
+             (
+             string.IsNullOrEmpty(location) ||
+             p.Location.ToString().ToUpper() == location.ToUpper()
+             ) &&
+            (
+                category == 0 ||
+                p.CategoryId == category
+             )
+
+
+            , skip: skip, take: take, includes: ["Images", "ProductTags.Tag"], o => o.Id, OrderBy.Descending
+            );
+
+        //res.TryGetNonEnumeratedCount(out var count);
+
+        var productDtos = _mapper.Map<IEnumerable<ProductHomeDto>>(res);
+
+        var paginatedres = new PaginatedDto<IEnumerable<ProductHomeDto>>()
+        {
+
+            PaginatedData = productDtos,
+            Size = _size,
+            Count = counting,
+            Page = _page
+        };
+
+        var resDto = new GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>()
+        {
+            Data = paginatedres,
+            Message = "Success",
+            Status = 200,
+            RedirectUrl = null,
+        };
+
+        return resDto;
+    }
+
+
+
+
+
+
     public async Task<GenericResponseDto<ProductDetailsDto>> GetProductDetailsAsync(int id)
     {
         var res = await _repo.ProductRepository.FindProductDetailsAsync
