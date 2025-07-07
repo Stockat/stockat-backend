@@ -289,6 +289,114 @@ public class OrderService : IOrderService
 
     }
 
+    // Get All Orders For Buyers
+    public async Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllBuyerOrdersAsync()
+    {
+        try
+        {
+            //Get the user ID from the HTTP context
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogError("User ID not found in the HTTP context.");
+                return new GenericResponseDto<IEnumerable<OrderDTO>>
+                {
+                    Status = 400,
+                    Message = "User ID is required."
+                };
+            }
+
+            // Fetch orders for the Buyers
+            //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
+
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Order, ["Seller", "Buyer"]);
+            if (orders == null || !orders.Any())
+            {
+                _logger.LogInfo("No orders found for the seller.");
+                return new GenericResponseDto<IEnumerable<OrderDTO>>
+                {
+                    Status = 404,
+                    Message = "No orders found.",
+                    Data = new List<OrderDTO>()
+                };
+            }
+            // Map to DTOs
+            var orderDtos = _mapper.Map<IEnumerable<OrderDTO>>(orders);
+            return new GenericResponseDto<IEnumerable<OrderDTO>>
+            {
+                Status = 200,
+                Data = orderDtos,
+                Message = "Orders retrieved successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error retrieving seller orders: {ex.Message}");
+            return new GenericResponseDto<IEnumerable<OrderDTO>>
+            {
+                Status = 500,
+                Message = "An error occurred while retrieving orders."
+            };
+        }
+
+    }
+    public async Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllBuyerRequestOrdersAsync()
+    {
+        try
+        {
+            // Get the user ID from the HTTP context
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogError("User ID not found in the HTTP context.");
+                return new GenericResponseDto<IEnumerable<OrderDTO>>
+                {
+                    Status = 400,
+                    Message = "User ID is required."
+                };
+            }
+
+            // Fetch orders for the seller
+            //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
+
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Request, ["Seller", "Buyer"]);
+            if (orders == null || !orders.Any())
+            {
+                _logger.LogInfo("No Request orders found for the seller.");
+                return new GenericResponseDto<IEnumerable<OrderDTO>>
+                {
+                    Status = 404,
+                    Message = "No orders found.",
+                    Data = new List<OrderDTO>()
+
+                };
+            }
+            // Map to DTOs
+            var orderDtos = _mapper.Map<IEnumerable<OrderDTO>>(orders);
+            return new GenericResponseDto<IEnumerable<OrderDTO>>
+            {
+                Status = 200,
+                Data = orderDtos,
+                Message = " Request Orders retrieved successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error retrieving seller Request orders: {ex.Message}");
+            return new GenericResponseDto<IEnumerable<OrderDTO>>
+            {
+                Status = 500,
+                Message = "An error occurred while retrieving Request orders."
+            };
+        }
+
+    }
+
+
+
+
+
+
     public async Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllOrdersandRequestforAdminAsync()
     {
         try
