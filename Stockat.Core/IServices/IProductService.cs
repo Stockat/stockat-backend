@@ -17,6 +17,11 @@ public interface IProductService
 {
     Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated
         (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginatedForAdmin
+     (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags);
+
+
+
     Task<GenericResponseDto<ProductDetailsDto>> GetProductDetailsAsync(int id);
     Task<GenericResponseDto<UpdateProductDto>> GetProductForUpdateAsync(int id);
     Task<GenericResponseDto<PaginatedDto<IEnumerable<GetSellerProductDto>>>> GetAllProductForSellerAsync
@@ -28,4 +33,6 @@ public interface IProductService
     public Task<GenericResponseDto<string>> ChangeCanBeRequested(int id);
 
     public Task<GenericResponseDto<IEnumerable<ImageUploadResultDto>>> UploadProductImages(IFormFile[] imgs);
+
+    public Task<GenericResponseDto<ProductWithFeaturesDTO>> GetProductWithFeaturesAsync(int id);
 }

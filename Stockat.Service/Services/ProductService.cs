@@ -5,6 +5,7 @@ using Stockat.Core;
 using Stockat.Core.Consts;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.MediaDTOs;
+using Stockat.Core.DTOs.OrderDTOs;
 using Stockat.Core.DTOs.ProductDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
@@ -26,12 +27,15 @@ public class ProductService : IProductService
     private readonly IMapper _mapper;
     private IImageService _imageService;
     private readonly IRepositoryManager _repo;
-    public ProductService(ILoggerManager logger, IMapper mapper, IRepositoryManager repo, IImageService imageService)
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public ProductService(ILoggerManager logger, IMapper mapper, IRepositoryManager repo, IImageService imageService, IHttpContextAccessor httpContextAccessor)
     {
         _logger = logger;
         _mapper = mapper;
         _repo = repo;
         _imageService = imageService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
 
@@ -79,6 +83,75 @@ public class ProductService : IProductService
              ) &&
              (p.ProductStatus == ProductStatus.Approved || p.ProductStatus == ProductStatus.Activated)
 
+            , skip: skip, take: take, includes: ["Images", "ProductTags.Tag", "Category"], o => o.Id, OrderBy.Descending
+            );
+
+        //res.TryGetNonEnumeratedCount(out var count);
+
+        var productDtos = _mapper.Map<IEnumerable<ProductHomeDto>>(res);
+
+        var paginatedres = new PaginatedDto<IEnumerable<ProductHomeDto>>()
+        {
+
+            PaginatedData = productDtos,
+            Size = _size,
+            Count = counting,
+            Page = _page
+        };
+
+        var resDto = new GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>()
+        {
+            Data = paginatedres,
+            Message = "Success",
+            Status = 200,
+            RedirectUrl = null,
+        };
+
+        return resDto;
+    }
+
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginatedForAdmin
+     (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
+
+    {
+        int skip = (_page) * _size;
+        int take = _size;
+
+        var counting = await _repo.ProductRepository.CountAsync(p =>
+            p.MinQuantity >= minQuantity &&
+            p.Price >= minPrice &&
+              (
+            tags.Length == 0 ||
+             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
+              ) &&
+             (
+             string.IsNullOrEmpty(location) ||
+             p.Location.ToString().ToUpper() == location.ToUpper()
+             ) &&
+            (
+                category == 0 ||
+                p.CategoryId == category
+             ));
+
+        var res = await _repo.ProductRepository.FindAllAsync
+            (
+            p =>
+            p.MinQuantity >= minQuantity &&
+            p.Price >= minPrice &&
+              (
+            tags.Length == 0 ||
+             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
+              ) &&
+             (
+             string.IsNullOrEmpty(location) ||
+             p.Location.ToString().ToUpper() == location.ToUpper()
+             ) &&
+            (
+                category == 0 ||
+                p.CategoryId == category
+             )
+
+
             , skip: skip, take: take, includes: ["Images", "ProductTags.Tag"], o => o.Id, OrderBy.Descending
             );
 
@@ -106,6 +179,11 @@ public class ProductService : IProductService
         return resDto;
     }
 
+
+
+
+
+
     public async Task<GenericResponseDto<ProductDetailsDto>> GetProductDetailsAsync(int id)
     {
         var res = await _repo.ProductRepository.FindProductDetailsAsync
@@ -126,11 +204,35 @@ public class ProductService : IProductService
 
     public async Task<GenericResponseDto<UpdateProductDto>> GetProductForUpdateAsync(int id)
     {
+
+        //Get the user ID from the HTTP context
+        var userId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            _logger.LogError("Seller ID not found in the HTTP context.");
+            return new GenericResponseDto<UpdateProductDto>
+            {
+                Status = 400,
+                Message = "User ID is required."
+            };
+        }
+
+
+
         var res = await _repo.ProductRepository.GetProductForUpdateAsync
             (
             p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category"]
 
             );
+        if (res.SellerId != userId)
+        {
+            return new GenericResponseDto<UpdateProductDto>()
+            {
+                Message = "Un Authorized Access ",
+                Status = 401,
+                RedirectUrl = null,
+            };
+        }
 
         return new GenericResponseDto<UpdateProductDto>()
         {
@@ -144,7 +246,17 @@ public class ProductService : IProductService
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<GetSellerProductDto>>>> GetAllProductForSellerAsync
         (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
     {
-        var sellerId = "64c5d9f7-690e-42d4-b035-1945ab3476db";
+        //Get the user ID from the HTTP context
+        var sellerId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(sellerId))
+        {
+            _logger.LogError("User ID not found in the HTTP context.");
+            return new GenericResponseDto<PaginatedDto<IEnumerable<GetSellerProductDto>>>
+            {
+                Status = 400,
+                Message = "User ID is required."
+            };
+        }
 
         int skip = (_page) * _size;
         int take = _size;
@@ -191,8 +303,6 @@ public class ProductService : IProductService
 
             , skip: skip, take: take, includes: ["Images"], o => o.Id, OrderBy.Descending
             );
-
-        //res.TryGetNonEnumeratedCount(out var count);
 
         var productDtos = _mapper.Map<IEnumerable<GetSellerProductDto>>(res);
 
@@ -310,4 +420,32 @@ public class ProductService : IProductService
         };
 
     }
+
+    // Get a product including its features by ID
+    public async Task<GenericResponseDto<ProductWithFeaturesDTO>> GetProductWithFeaturesAsync(int id)
+    {
+        var product = await _repo.ProductRepository.FindAsync(
+            p => p.Id == id,
+            new string[] {
+                "Features",
+                "Features.FeatureValues",
+                "Images",
+                "User"
+            }
+        );
+
+        if (product == null)
+            throw new NotFoundException($"Product with ID {id} not found");
+
+        var productDto = _mapper.Map<ProductWithFeaturesDTO>(product);
+
+        return new GenericResponseDto<ProductWithFeaturesDTO>
+        {
+            Data = productDto,
+            Message = "Product retrieved successfully",
+            Status = 200,
+            RedirectUrl = null
+        };
+    }
+
 }
