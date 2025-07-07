@@ -8,6 +8,7 @@ namespace Stockat.Core;
 public interface IRepositoryManager
 {
     IBaseRepository<UserVerification> UserVerificationRepo { get; }
+    IBaseRepository<UserPunishment> UserPunishmentRepo { get; }
     IBaseRepository<Stock> StockRepo { get; }
     IBaseRepository<Auction> AuctionRepo { get; }
     IBaseRepository<AuctionBidRequest> AuctionBidRequestRepo { get; }

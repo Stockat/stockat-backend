@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
+using Stockat.Core.Enums;
 
 namespace Stockat.Core.Entities;
 
@@ -45,6 +46,8 @@ public class User : IdentityUser
 
     public ICollection<AuctionBidRequest> AuctionBidRequests { get; set; }
 
+    // Punishment system navigation
+    public virtual ICollection<UserPunishment> Punishments { get; set; } = new List<UserPunishment>();
 
     // Chat system navigation
     public virtual ICollection<ChatMessage> SentMessages { get; set; } = new List<ChatMessage>();
@@ -58,7 +61,18 @@ public class User : IdentityUser
     [NotMapped]
     public IEnumerable<ChatConversation> AllConversations => ConversationsAsUser1.Concat(ConversationsAsUser2);
 
+    // Computed properties for punishment status
+    [NotMapped]
+    public bool IsBlocked => Punishments?.Any(p => 
+        (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) &&
+        (p.EndDate == null || p.EndDate > DateTime.UtcNow)) ?? false;
 
+    [NotMapped]
+    public UserPunishment? CurrentPunishment => Punishments?
+        .Where(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) &&
+                   (p.EndDate == null || p.EndDate > DateTime.UtcNow))
+        .OrderByDescending(p => p.CreatedAt)
+        .FirstOrDefault();
 }
 
 public class UserVerification

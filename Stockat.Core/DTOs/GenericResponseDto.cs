@@ -1,6 +1,6 @@
 ﻿namespace Stockat.Core.DTOs;
 
-public class GenericResponseDto<T> where T : class
+public class GenericResponseDto<T> 
 {
     public string Message { get; set; }
     public int Status { get; set; }

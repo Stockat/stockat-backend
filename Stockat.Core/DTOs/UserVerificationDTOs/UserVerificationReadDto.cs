@@ -15,4 +15,8 @@ public class UserVerificationReadDto
     public VerificationStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    
+    // Admin-specific properties
+    public string? UserName { get; set; }
+    public string? UserEmail { get; set; }
 }
