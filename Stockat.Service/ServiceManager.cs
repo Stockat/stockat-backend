@@ -49,7 +49,7 @@ public sealed class ServiceManager : IServiceManager
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
-        _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager, _imageService.Value));
+        _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager, _imageService.Value, httpContextAccessor));
         _fileService = new Lazy<IFileService>(() => new CloudinaryFileService(configuration));
 
         _chatService = new Lazy<IChatService>(() => new ChatService(repositoryManager, mapper, _imageService.Value, _fileService.Value, configuration));

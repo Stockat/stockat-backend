@@ -156,6 +156,16 @@ public class ProductController : ControllerBase
         return Ok(res);
     }
 
+    // Admin Region [Authorized] ----------------------------------WatchOut--------------------------------------------------------
+    [HttpGet("admin")]
+    public async Task<IActionResult> getAllProductsPaginatedForAdminAsync
+     ([FromQuery] int size, [FromQuery] int[] tags, [FromQuery] int page = 0, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0)
+    {
+
+        var res = await _serviceManager.ProductService.getAllProductsPaginatedForAdmin(size, page, location, category, minQuantity, minPrice, tags);
+        return Ok(res);
+    }
+
 
 
 }
