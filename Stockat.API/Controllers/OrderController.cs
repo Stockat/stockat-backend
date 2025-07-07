@@ -4,11 +4,13 @@ using Stockat.Core.IServices;
 using Stockat.Core;
 using Stockat.Core.DTOs.OrderDTOs;
 using Stockat.Core.Enums;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Stockat.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class OrderController : ControllerBase
 {
 
@@ -112,7 +114,7 @@ public class OrderController : ControllerBase
     }
 
 
-    // Get All Orders For Seller
+    // Get All Orders For Admin
     [HttpGet("admin")]
     public IActionResult GetAllOrdersandRequestForAdmin()
     {
@@ -127,6 +129,42 @@ public class OrderController : ControllerBase
         {
             _logger.LogError($"GetAllOrdersForSeller: {ex.Message}");
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving orders For Admin.");
+        }
+    }
+
+    // User
+    // Get All Orders For User
+    [HttpGet("user")]
+    public IActionResult GetAllOrdersForBuyer()
+    {
+        try
+        {
+            // Call the service to get all orders for the seller
+            var response = _serviceManager.OrderService.GetAllBuyerOrdersAsync().Result;
+            // Return the response
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"GetAllOrdersForSeller: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving Buyer orders.");
+        }
+    }
+
+    [HttpGet("user/req")]
+    public IActionResult GetAllRequestOrdersForBuyer()
+    {
+        try
+        {
+            // Call the service to get all orders for the seller
+            var response = _serviceManager.OrderService.GetAllBuyerRequestOrdersAsync().Result;
+            // Return the response
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"GetAllSellerRequestOrdersAsync: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving Buyer Request orders.");
         }
     }
 }
