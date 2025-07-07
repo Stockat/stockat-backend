@@ -154,82 +154,7 @@ public class OrderService : IOrderService
                 // Update the stock status to ForSale
                 stock.StockStatus = StockStatus.ForSale;
                 _repo.StockRepo.Update(stock);
-
-                await _repo.CompleteAsync();
-                // Map back to DTO for response
-                var responseDto = _mapper.Map<AddOrderDTO>(orderEntity);
-                return new GenericResponseDto<AddOrderDTO>
-                {
-                    Status = 201,
-                    Data = responseDto,
-                    Message = "Order added successfully."
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error adding order: {ex.Message}");
-                return new GenericResponseDto<AddOrderDTO>
-                {
-                    Status = 500,
-                    Message = "An error occurred while adding the order."
-                };
-            }
-        }
-
-        // Add Request
-        
-
-
-        // Update Order Status By its owner(Seller)
-        public async Task<GenericResponseDto<OrderDTO>> UpdateOrderStatusAsync(int orderId, OrderStatus status)
-        {
-            // Open Transaction
-            await _repo.BeginTransactionAsync(); // Open transaction
-
-            try
-            {
-                // Fetch the order by ID
-                var order = await _repo.OrderRepo.GetByIdAsync(orderId);
-                if (order == null)
-                {
-                    _logger.LogError($"Order with ID {orderId} not found.");
-                    return new GenericResponseDto<OrderDTO>
-                    {
-                        Status = 404,
-                        Message = "Order not found."
-                    };
-                }
-                // Update the order status
-                if (status == OrderStatus.Pending)
-                {
-                    _logger.LogError("Cannot update order status to Pending.");
-                    return new GenericResponseDto<OrderDTO>
-                    {
-                        Status = 400,
-                        Message = "Order status cannot be updated to Pending."
-                    };
-                }
-                // if the status is cancelled, we need to update the stock status to ForSale
-                if (status == OrderStatus.Cancelled)
-                {
-                    var stock = await _repo.StockRepo.GetByIdAsync(order.StockId);
-                    if (stock == null)
-                    {
-                        _logger.LogError("Stock not found for the given StockId.");
-                        return new GenericResponseDto<OrderDTO>
-                        {
-                            Status = 404,
-                            Message = "Stock not found."
-                        };
-                    }
-                    // Update the stock status to ForSale
-                    stock.StockStatus = StockStatus.ForSale;
-                    _repo.StockRepo.Update(stock);
-                    order.Status = status;
-                    _repo.OrderRepo.Update(order);
-                }
-                else { 
-                    order.Status = status;
+                order.Status = status;
                 _repo.OrderRepo.Update(order);
             }
             else
@@ -262,6 +187,7 @@ public class OrderService : IOrderService
             };
         }
     }
+
 
 
     // Get All Orders For Seller
