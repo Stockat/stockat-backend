@@ -17,4 +17,5 @@ public interface IUserService
     Task<GenericResponseDto<string>> ActivateUserAsync(string userId);
     Task<GenericResponseDto<UserReadDto>> GetUserWithDetailsAsync(string userId);
     Task<GenericResponseDto<object>> GetUserStatisticsAsync();
+    Task<GenericResponseDto<string>> UpgradeToSellerAsync();
 }

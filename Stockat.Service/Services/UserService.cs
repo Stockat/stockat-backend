@@ -481,4 +481,42 @@ public class UserService : IUserService
         };
     }
 
+    public async Task<GenericResponseDto<string>> UpgradeToSellerAsync()
+    {
+        var userId = GetCurrentUserId();
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            throw new NotFoundException("User not found.");
+
+        var roles = await _userManager.GetRolesAsync(user);
+        if (roles.Contains("Seller"))
+        {
+            return new GenericResponseDto<string>
+            {
+                Message = "User is already a seller.",
+                Status = StatusCodes.Status400BadRequest,
+                Data = userId
+            };
+        }
+
+        var result = await _userManager.AddToRoleAsync(user, "Seller");
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            return new GenericResponseDto<string>
+            {
+                Message = "Failed to upgrade to seller: " + errors,
+                Status = StatusCodes.Status400BadRequest,
+                Data = userId
+            };
+        }
+
+        return new GenericResponseDto<string>
+        {
+            Message = "User upgraded to seller successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = userId
+        };
+    }
+
 }

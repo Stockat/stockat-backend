@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Stockat.API.ActionFilters;
 using Stockat.Core;
 using Stockat.Core.DTOs.UserDTOs;
-using Stockat.API.ActionFilters;
+using System.Security.Claims;
 
 namespace Stockat.API.Controllers;
 
@@ -118,5 +119,26 @@ public class UserController : ControllerBase
     {
         var response = await _serviceManager.UserService.GetUserStatisticsAsync();
         return StatusCode(response.Status, response);
+    }
+
+    [HttpPost("upgrade-to-seller")]
+    public async Task<IActionResult> UpgradeToSeller()
+    {
+        var result = await _serviceManager.UserService.UpgradeToSellerAsync();
+        if (result.Status != 200)
+            return StatusCode(result.Status, result);
+
+        // Generate a new token with the new role
+        var userId = GetCurrentUserId();
+        var tokenDto = await _serviceManager.AuthenticationService.CreateToken(true, userId);
+        return Ok(new { message = result.Message, token = tokenDto });
+    }
+
+    private string GetCurrentUserId()
+    {
+        var userId = HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            throw new UnauthorizedAccessException("User ID not found in token.");
+        return userId;
     }
 }

@@ -47,13 +47,21 @@ public class AuthenticationController : ControllerBase
             case AuthenticationStatus.EmailNotConfirmed:
                 return BadRequest(new { message = "Email not confirmed." });
 
+            case AuthenticationStatus.Blocked:
+                var blockedUser = await _service.AuthenticationService.GetCurrentUser();
+                var blockMessage = blockedUser.CurrentPunishment?.EndDate.HasValue == true
+                    ? $"Your account is blocked until {blockedUser.CurrentPunishment.EndDate.Value:yyyy-MM-dd HH:mm:ss}"
+                    : "Your account is permanently blocked.";
+                return StatusCode(403, new { message = blockMessage });
+
             case AuthenticationStatus.AccountDeleted:
                 tokenDto = await _service.AuthenticationService.CreateToken(true);
                 return Ok(new AuthResponseDto
                 {
                     Token = tokenDto,
                     IsAuthSuccessful = true,
-                    IsDeleted = true
+                    IsDeleted = true,
+                    IsApproved = await _service.AuthenticationService.GetCurrentUserApprovalStatus()
                 });
 
             case AuthenticationStatus.Success:
@@ -62,7 +70,8 @@ public class AuthenticationController : ControllerBase
                 {
                     Token = tokenDto,
                     IsAuthSuccessful = true,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    IsApproved = await _service.AuthenticationService.GetCurrentUserApprovalStatus()
                 });
 
             default:
@@ -85,13 +94,21 @@ public class AuthenticationController : ControllerBase
             case AuthenticationStatus.InvalidCredentials:
                 return Unauthorized(new { message = "Google login failed." });
 
+            case AuthenticationStatus.Blocked:
+                var blockedUser = await _service.AuthenticationService.GetCurrentUser();
+                var blockMessage = blockedUser.CurrentPunishment?.EndDate.HasValue == true
+                    ? $"Your account is blocked until {blockedUser.CurrentPunishment.EndDate.Value:yyyy-MM-dd HH:mm:ss}"
+                    : "Your account is permanently blocked.";
+                return StatusCode(403, new { message = blockMessage });
+
             case AuthenticationStatus.AccountDeleted:
                 tokenDto = await _service.AuthenticationService.CreateToken(true);
                 return Ok(new AuthResponseDto
                 {
                     Token = tokenDto,
                     IsAuthSuccessful = true,
-                    IsDeleted = true
+                    IsDeleted = true,
+                    IsApproved = await _service.AuthenticationService.GetCurrentUserApprovalStatus()
                 });
 
             case AuthenticationStatus.Success:
@@ -100,7 +117,8 @@ public class AuthenticationController : ControllerBase
                 {
                     Token = tokenDto,
                     IsAuthSuccessful = true,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    IsApproved = await _service.AuthenticationService.GetCurrentUserApprovalStatus()
                 });
 
             default:

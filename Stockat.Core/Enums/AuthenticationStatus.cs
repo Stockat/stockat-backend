@@ -11,5 +11,6 @@ public enum AuthenticationStatus
     Success,
     InvalidCredentials,
     EmailNotConfirmed,
-    AccountDeleted // soft-deleted
+    AccountDeleted, // soft-deleted
+    Blocked
 }
