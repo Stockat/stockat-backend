@@ -23,6 +23,7 @@ public interface IServiceManager
     IServiceRequestUpdateService ServiceRequestUpdateService { get; }
     IProductService ProductService { get; }
     IStockService StockService { get; }
+    IOrderService OrderService { get; }
 
     public IAuctionService AuctionService { get; }
     public IAuctionBidRequestService AuctionBidRequestService { get; }
@@ -34,7 +35,6 @@ public interface IServiceManager
 
     IChatService ChatService { get; }
     IChatHistoryService ChatHistoryService { get; }
-    IOrderService OrderService { get; }
     IAIService AIService { get; }
     IAnalyticsService AnalyticsService { get; }
 }

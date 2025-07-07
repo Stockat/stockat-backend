@@ -7,6 +7,7 @@ using Stockat.Core.DTOs.UserDTOs;
 using Stockat.Core.DTOs.CategoryDtos;
 using Stockat.Core.DTOs.AuctionDTOs;
 using Stockat.Core.IServices;
+using Stockat.Core.Enums;
 
 namespace Stockat.Service.Services;
 
@@ -53,7 +54,7 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    public async Task<IEnumerable<ProductHomeDto>> GetTopSellingProductsAsync(int count = 5)
+    public async Task<IEnumerable<ProductDetailsDto>> GetTopSellingProductsAsync(int count = 5)
     {
         try
         {
@@ -67,12 +68,12 @@ public class AnalyticsService : IAnalyticsService
                 orderByDirection: "DESC"
             );
 
-            return _mapper.Map<IEnumerable<ProductHomeDto>>(topProducts);
+            return _mapper.Map<IEnumerable<ProductDetailsDto>>(topProducts);
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error getting top selling products: {ex.Message}");
-            return new List<ProductHomeDto>();
+            return new List<ProductDetailsDto>();
         }
     }
 
@@ -85,7 +86,7 @@ public class AnalyticsService : IAnalyticsService
                 s => s.IsApproved,
                 skip: 0,
                 take: 100, // Get more to calculate rankings
-                includes: ["Category", "Seller", "ServiceRequests"]
+                includes: ["Seller", "ServiceRequests"]
             );
 
             if (!services.Any())
@@ -94,19 +95,19 @@ public class AnalyticsService : IAnalyticsService
             }
 
             // Calculate service scores based on multiple factors
-            var serviceScores = new List<(Stockat.Core.Entities.Service, double Score)>();
+            var serviceScores = new List<(Stockat.Core.Entities.Service Service, double Score)>();
 
             foreach (Stockat.Core.Entities.Service service in services)
             {
                 var score = await CalculateServiceScore(service);
-                serviceScores.Add((service, score));
+                serviceScores.Add((Service: service, Score: score));
             }
 
             // Sort by score and take top services
             var topServices = serviceScores
                 .OrderByDescending(x => x.Score)
-                .Take(count);
-                //.Select(x => x.Service);
+                .Take(count)
+                .Select(x => x.Service);
 
             return _mapper.Map<IEnumerable<ServiceDto>>(topServices);
         }
@@ -128,7 +129,8 @@ public class AnalyticsService : IAnalyticsService
 
             if (!serviceRequests.Any())
             {
-                return 0; // No requests = no score
+                // Give a small base score for approved services even without requests
+                return 5.0; // Base score for approved services
             }
 
             // Factor 1: Request Count (30% weight)
@@ -137,8 +139,8 @@ public class AnalyticsService : IAnalyticsService
 
             // Factor 2: Approval Rate (25% weight)
             var approvedRequests = serviceRequests.Count(sr => 
-                sr.SellerApprovalStatus == Core.Enums.ApprovalStatus.Approved && 
-                sr.BuyerApprovalStatus == Core.Enums.ApprovalStatus.Approved);
+                sr.SellerApprovalStatus == ApprovalStatus.Approved && 
+                sr.BuyerApprovalStatus == ApprovalStatus.Approved);
             var approvalRate = requestCount > 0 ? (double)approvedRequests / requestCount : 0;
             var approvalRateScore = approvalRate * 25;
 
@@ -171,7 +173,7 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    public async Task<IEnumerable<AuctionDetailsDto>> GetLiveAuctionsAsync()
+    public async Task<IEnumerable<AuctionDetailsForChatbot>> GetLiveAuctionsAsync()
     {
         try
         {
@@ -184,12 +186,12 @@ public class AnalyticsService : IAnalyticsService
                 orderByDirection: "ASC"
             );
 
-            return _mapper.Map<IEnumerable<AuctionDetailsDto>>(liveAuctions);
+            return _mapper.Map<IEnumerable<AuctionDetailsForChatbot>>(liveAuctions);
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error getting live auctions: {ex.Message}");
-            return new List<AuctionDetailsDto>();
+            return new List<AuctionDetailsForChatbot>();
         }
     }
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Stockat.EF;
 
@@ -11,9 +12,11 @@ using Stockat.EF;
 namespace Stockat.EF.Migrations
 {
     [DbContext(typeof(StockatDBContext))]
-    partial class StockatDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250706133608_updates")]
+    partial class updates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -519,6 +522,11 @@ namespace Stockat.EF.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(21)
+                        .HasColumnType("nvarchar(21)");
+
                     b.Property<int>("OrderType")
                         .HasColumnType("int");
 
@@ -562,6 +570,10 @@ namespace Stockat.EF.Migrations
                     b.HasIndex("StockId");
 
                     b.ToTable("OrderProduct");
+
+                    b.HasDiscriminator().HasValue("OrderProduct");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
@@ -677,9 +689,6 @@ namespace Stockat.EF.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -699,9 +708,6 @@ namespace Stockat.EF.Migrations
                         .IsRequired()
                         .HasMaxLength(2083)
                         .HasColumnType("nvarchar(2083)");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("bit");
 
                     b.Property<int>("MinQuantity")
                         .HasColumnType("int");
@@ -1052,6 +1058,13 @@ namespace Stockat.EF.Migrations
                     b.ToTable("UserVerification");
                 });
 
+            modelBuilder.Entity("Stockat.Core.Entities.RequestProduct", b =>
+                {
+                    b.HasBaseType("Stockat.Core.Entities.OrderProduct");
+
+                    b.HasDiscriminator().HasValue("RequestProduct");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1376,7 +1389,7 @@ namespace Stockat.EF.Migrations
                         .IsRequired();
 
                     b.HasOne("Stockat.Core.Entities.Service", "Service")
-                        .WithMany("ServiceRequests")
+                        .WithMany()
                         .HasForeignKey("ServiceId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
@@ -1501,11 +1514,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("ProductTags");
 
                     b.Navigation("Stocks");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Service", b =>
-                {
-                    b.Navigation("ServiceRequests");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>

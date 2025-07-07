@@ -19,7 +19,7 @@ public class UserRepository : BaseRepository<User>, IUserRepository
         {
             // Get users who have products and order by product count
             var topSellers = await _context.Users
-                .Where(u => !u.IsDeleted && u.IsApproved)
+                .Where(u => !u.IsDeleted)
                 .Select(u => new
                 {
                     User = u,
@@ -27,7 +27,7 @@ public class UserRepository : BaseRepository<User>, IUserRepository
                 })
                 .Where(x => x.ProductCount > 0)
                 .OrderByDescending(x => x.ProductCount)
-                .Take(limit)
+                .Take(20)
                 .Select(x => x.User)
                 .ToListAsync();
 

@@ -169,4 +169,24 @@ public class ServiceService : IServiceService
 
         return uploadResult;
     }
+
+    public async Task<ServiceDto> UpdateApprovalStatusAsync(int serviceId, bool isApproved)
+    {
+        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId);
+        
+        if (service == null)
+        {
+            _logger.LogError($"Service with ID {serviceId} not found.");
+            throw new NotFoundException($"Service with ID {serviceId} not found.");
+        }
+
+        service.IsApproved = isApproved;
+
+        _repo.ServiceRepo.Update(service);
+        await _repo.CompleteAsync();
+
+        _logger.LogInfo($"Service {serviceId} approval status updated to {(isApproved ? "approved" : "rejected")}");
+
+        return _mapper.Map<ServiceDto>(service);
+    }
 }

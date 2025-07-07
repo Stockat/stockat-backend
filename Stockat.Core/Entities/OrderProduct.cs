@@ -11,6 +11,7 @@ namespace Stockat.Core.Entities;
 public class OrderProduct
 {
     public int Id { get; set; }
+
     [Required(ErrorMessage = "Quantity is Required")]
     [Range(1, int.MaxValue, ErrorMessage = "Quantity must be between 1 : 214783647")]
     public int Quantity { get; set; }
@@ -18,6 +19,9 @@ public class OrderProduct
     [Required(ErrorMessage = "Price is Required")]
     [Range(1, int.MaxValue, ErrorMessage = "Price must be between 1 : 214783647")]
     public decimal Price { get; set; }
+
+    [Required]
+    public OrderType OrderType { get; set; } = OrderType.Order; // Default to Order, can be Request
 
     public OrderStatus Status { get; set; }
     public DateTime CraetedAt { get; set; } = DateTime.Now;
@@ -39,5 +43,10 @@ public class OrderProduct
     public virtual User Seller { get; set; }
     public virtual User Buyer { get; set; }
 
+
+    [Required(ErrorMessage = "Request Product Description is Required")]
+    [MinLength(5, ErrorMessage = "Request Product Description Length Must Be Greater than or equal 5 char")]
+    [MaxLength(250, ErrorMessage = "Request Product Description Length Must Be less than or equal 250 char")]
+    public string? Description { get; set; } = string.Empty;
 
 }

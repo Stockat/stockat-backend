@@ -48,5 +48,7 @@ namespace Stockat.Core.Entities
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
     }
 }

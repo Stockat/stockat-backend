@@ -10,7 +10,6 @@ namespace Stockat.API.Controllers;
 
 [ApiController]
 [Route("api/chatbot")]
-[Authorize] // Require authentication for all chatbot endpoints
 public class ChatBotController : ControllerBase
 {
     private readonly IServiceManager _serviceManager;
