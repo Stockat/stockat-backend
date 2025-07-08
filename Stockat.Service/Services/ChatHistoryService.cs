@@ -1,6 +1,7 @@
 using AutoMapper;
 using Stockat.Core;
 using Stockat.Core.DTOs.ChatDTOs;
+using Stockat.Core.Entities;
 using Stockat.Core.Entities.Chat;
 using Stockat.Core.IServices;
 using System;
@@ -102,5 +103,58 @@ public class ChatHistoryService : IChatHistoryService
                 _chatbotMessages[userId].Clear();
             }
         }
+    }
+
+    public async Task SaveChatBotMessageAsync(string userId, string role, string message)
+    {
+        if (string.IsNullOrEmpty(userId))
+            throw new ArgumentException("UserId cannot be null or empty.", nameof(userId));
+        if (string.IsNullOrEmpty(role))
+            throw new ArgumentException("Role cannot be null or empty.", nameof(role));
+        if (string.IsNullOrEmpty(message))
+            throw new ArgumentException("Message cannot be null or empty.", nameof(message));
+        if (message.Length > 2000)
+            throw new ArgumentException("Message is too long. Maximum 2000 characters allowed.", nameof(message));
+
+        var chatBotMessage = new ChatBotMessage
+        {
+            UserId = userId,
+            Role = role == "user" ? "user" : "assistant",
+            Content = message,
+            Timestamp = DateTime.UtcNow
+        };
+        await _repositoryManager.ChatBotMessageRepository.AddAsync(chatBotMessage);
+        await _repositoryManager.CompleteAsync();
+    }
+
+    public async Task<IEnumerable<ChatBotMessageDto>> GetChatBotHistoryAsync(string userId, int limit = 50)
+    {
+        if (string.IsNullOrEmpty(userId))
+            throw new ArgumentException("UserId cannot be null or empty.", nameof(userId));
+        if (limit <= 0 || limit > 100)
+            throw new ArgumentException("Limit must be between 1 and 100.", nameof(limit));
+
+        var messages = await _repositoryManager.ChatBotMessageRepository.FindAllAsync(
+            m => m.UserId == userId,
+            orderBy: m => m.Timestamp,
+            orderByDirection: "ASC",
+            take: limit,
+            skip:0
+        );
+        return messages.Select(m => new ChatBotMessageDto
+        {
+            MessageText = m.Content,
+            SenderId = m.Role == "user" ? userId : "system",
+            SentAt = m.Timestamp,
+            Role = m.Role
+        }).ToList();
+    }
+
+    public async Task ClearChatBotHistoryAsync(string userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            throw new ArgumentException("UserId cannot be null or empty.", nameof(userId));
+        await _repositoryManager.ChatBotMessageRepository.DeleteAsync(m => m.UserId == userId);
+        await _repositoryManager.CompleteAsync();
     }
 } 

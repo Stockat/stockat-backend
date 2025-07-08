@@ -43,6 +43,7 @@ public class RepositoryManager : IRepositoryManager
 
 
     private readonly Lazy<IUserRepository> _userRepo;
+    private readonly Lazy<IChatBotMessageRepository> _chatBotMessageRepository;
     public RepositoryManager(StockatDBContext context, IMapper mapper)
     {
         _context = context;
@@ -70,6 +71,7 @@ public class RepositoryManager : IRepositoryManager
         _messageReadStatusRepo = new Lazy<IBaseRepository<MessageReadStatus>>(() => new BaseRepository<MessageReadStatus>(_context));
         _messageReactionRepo = new Lazy<IBaseRepository<MessageReaction>>(() => new BaseRepository<MessageReaction>(_context));
 
+        _chatBotMessageRepository = new Lazy<IChatBotMessageRepository>(() => new ChatBotMessageRepository(_context));
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
@@ -95,6 +97,7 @@ public class RepositoryManager : IRepositoryManager
     public IBaseRepository<MessageReadStatus> MessageReadStatusRepo => _messageReadStatusRepo.Value;
     public IBaseRepository<MessageReaction> MessageReactionRepo => _messageReactionRepo.Value;
 
+    public IChatBotMessageRepository ChatBotMessageRepository => _chatBotMessageRepository.Value;
 
     public int Complete()
     {

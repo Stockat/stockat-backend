@@ -36,6 +36,7 @@ public interface IRepositoryManager
     IBaseRepository<ChatMessage> ChatMessageRepo { get; }
     IBaseRepository<MessageReadStatus> MessageReadStatusRepo { get; }
     IBaseRepository<MessageReaction> MessageReactionRepo { get; }
+    IChatBotMessageRepository ChatBotMessageRepository { get; }
     int Complete();
     void Dispose();
 

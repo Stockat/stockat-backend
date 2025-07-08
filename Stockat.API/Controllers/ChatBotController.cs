@@ -51,6 +51,7 @@ public class ChatBotController : ControllerBase
     }
 
     [HttpPost("ask")]
+    [AllowAnonymous]
     public async Task<IActionResult> AskChatBot([FromBody] ChatRequestDto request)
     {
         try
@@ -66,9 +67,9 @@ public class ChatBotController : ControllerBase
             var userId = GetUserId();
             _logger.LogInformation($"Processing chatbot request for user {userId}: {message}");
 
-            // Save the user's message to chat history
-            await _serviceManager.ChatHistoryService.SaveMessageAsync(userId, "user", message);
-            _logger.LogInformation($"Saved user message to history");
+            // Save the user's message to chatbot history
+            await _serviceManager.ChatHistoryService.SaveChatBotMessageAsync(userId, "user", message);
+            _logger.LogInformation($"Saved user message to chatbot history");
 
             // Generate AI response
             var contextData = new
@@ -83,9 +84,9 @@ public class ChatBotController : ControllerBase
             var aiResponse = await _serviceManager.AIService.GenerateResponseAsync(message, contextData);
             _logger.LogInformation($"Generated AI response: {aiResponse}");
 
-            // Save the AI response to chat history
-            await _serviceManager.ChatHistoryService.SaveMessageAsync(userId, "assistant", aiResponse);
-            _logger.LogInformation($"Saved AI response to history");
+            // Save the AI response to chatbot history
+            await _serviceManager.ChatHistoryService.SaveChatBotMessageAsync(userId, "assistant", aiResponse);
+            _logger.LogInformation($"Saved AI response to chatbot history");
 
             var response = new { 
                 response = aiResponse,
@@ -109,6 +110,7 @@ public class ChatBotController : ControllerBase
     }
 
     [HttpGet("history")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetChatHistory([FromQuery] int limit = 50)
     {
         try
@@ -117,11 +119,11 @@ public class ChatBotController : ControllerBase
                 return BadRequest(new { error = "Limit must be between 1 and 100." });
 
             var userId = GetUserId();
-            _logger.LogInformation($"Retrieving chat history for user {userId}, limit: {limit}");
+            _logger.LogInformation($"Retrieving chatbot history for user {userId}, limit: {limit}");
             
-            var chatHistory = await _serviceManager.ChatHistoryService.GetChatHistoryAsync(userId, limit);
+            var chatHistory = await _serviceManager.ChatHistoryService.GetChatBotHistoryAsync(userId, limit);
 
-            _logger.LogInformation($"Retrieved chat history for user {userId}, found {chatHistory.Count()} messages");
+            _logger.LogInformation($"Retrieved chatbot history for user {userId}, found {chatHistory.Count()} messages");
 
             var response = new { 
                 messages = chatHistory,
@@ -133,42 +135,43 @@ public class ChatBotController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized access attempt to chat history");
-            return Unauthorized(new { error = "Authentication required to access chat history." });
+            _logger.LogWarning(ex, "Unauthorized access attempt to chatbot history");
+            return Unauthorized(new { error = "Authentication required to access chatbot history." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving chat history");
-            return StatusCode(500, new { error = "An error occurred while retrieving chat history." });
+            _logger.LogError(ex, "Error retrieving chatbot history");
+            return StatusCode(500, new { error = "An error occurred while retrieving chatbot history." });
         }
     }
 
     [HttpDelete("history")]
+    [AllowAnonymous]
     public async Task<IActionResult> ClearChatHistory()
     {
         try
         {
             var userId = GetUserId();
-            _logger.LogInformation($"Clearing chat history for user {userId}");
+            _logger.LogInformation($"Clearing chatbot history for user {userId}");
             
-            await _serviceManager.ChatHistoryService.ClearChatHistoryAsync(userId);
+            await _serviceManager.ChatHistoryService.ClearChatBotHistoryAsync(userId);
 
-            _logger.LogInformation($"Cleared chat history for user {userId}");
+            _logger.LogInformation($"Cleared chatbot history for user {userId}");
 
             return Ok(new { 
-                message = "Chat history cleared successfully.",
+                message = "Chatbot history cleared successfully.",
                 userId = userId
             });
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized access attempt to clear chat history");
-            return Unauthorized(new { error = "Authentication required to clear chat history." });
+            _logger.LogWarning(ex, "Unauthorized access attempt to clear chatbot history");
+            return Unauthorized(new { error = "Authentication required to clear chatbot history." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error clearing chat history");
-            return StatusCode(500, new { error = "An error occurred while clearing chat history." });
+            _logger.LogError(ex, "Error clearing chatbot history");
+            return StatusCode(500, new { error = "An error occurred while clearing chatbot history." });
         }
     }
 } 

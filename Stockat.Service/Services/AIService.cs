@@ -113,20 +113,25 @@ public class AIService : IAIService
                 var seller = topSellers.ElementAt(i);
                 var rank = i + 1;
                 var rankEmoji = rank == 1 ? "🥇" : rank == 2 ? "🥈" : rank == 3 ? "🥉" : $"**{rank}.**";
-                var fullName = $"{seller.FirstName} {seller.LastName}".Trim();
                 
-                response += $"{rankEmoji} **{fullName}** \n";
-                response += $"   📧 Email: {seller.Email}\n";
-                response += $"      About: {seller.AboutMe}\n";
-
+                // Handle null/empty values with fallbacks
+                var firstName = !string.IsNullOrWhiteSpace(seller.FirstName) ? seller.FirstName : "";
+                var lastName = !string.IsNullOrWhiteSpace(seller.LastName) ? seller.LastName : "";
+                var fullName = !string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName) 
+                    ? $"{firstName} {lastName}".Trim() 
+                    : "Unknown Seller";
+                var userName = !string.IsNullOrWhiteSpace(seller.UserName) ? seller.UserName : "Unknown";
+                var email = !string.IsNullOrWhiteSpace(seller.Email) ? seller.Email : "Email not available";
+                var aboutMe = !string.IsNullOrWhiteSpace(seller.AboutMe) ? seller.AboutMe : "No description available";
+                
+                response += $"{rankEmoji} **{fullName}** (Username: {userName})\n";
+                response += $"   📧 Email: {email}\n";
+                response += $"   📝 About: {aboutMe}\n\n";
             }
-
 
             response += $"**Platform Statistics:**\n";
             response += $"• Total Top Sellers: {topSellers.Count()}\n";
             response += $"• Average Response Time: < 2 hours\n";
-            response += $"• Customer Satisfaction: 95%+\n";
-            response += $"• Verified Sellers: 100%\n\n";
             response += "💡 *These sellers are ranked based on product quality, customer feedback, and overall platform activity.*";
             
             return response;
@@ -158,14 +163,17 @@ public class AIService : IAIService
                 var product = topProducts.ElementAt(i);
                 var rank = i + 1;
                 var rankEmoji = rank == 1 ? "🥇" : rank == 2 ? "🥈" : rank == 3 ? "🥉" : $"**{rank}.**";
-                var description = product.Description?.Length > 120 
-                    ? product.Description.Substring(0, 120) + "..." 
-                    : product.Description ?? "N/A";
-                var category = product.CategoryName;
-                var price = product.Price;
-                var sellerName = product.SellerName;
                 
-                response += $"{rankEmoji} **{product.Name}**\n";
+                // Handle null/empty values with fallbacks
+                var productName = !string.IsNullOrWhiteSpace(product.Name) ? product.Name : "Unnamed Product";
+                var description = !string.IsNullOrWhiteSpace(product.Description) 
+                    ? (product.Description.Length > 120 ? product.Description.Substring(0, 120) + "..." : product.Description)
+                    : "No description available";
+                var category = !string.IsNullOrWhiteSpace(product.CategoryName) ? product.CategoryName : "Uncategorized";
+                var price = product.Price > 0 ? product.Price : 0;
+                var sellerName = !string.IsNullOrWhiteSpace(product.SellerName) ? product.SellerName : "Unknown Seller";
+                
+                response += $"{rankEmoji} **{productName}**\n";
                 response += $"   💰 Price: ${price:N2}\n";
                 response += $"   📝 Description: {description}\n";
                 response += $"   🏷️ Category: {category}\n";
@@ -208,16 +216,19 @@ public class AIService : IAIService
                 var timeLeftText = timeLeft.TotalHours > 24 
                     ? $"{(int)timeLeft.TotalDays} days" 
                     : $"{(int)timeLeft.TotalHours} hours";
+                
+                // Handle null/empty values with fallbacks
+                var auctionName = !string.IsNullOrWhiteSpace(auction.Name) ? auction.Name : "Unnamed Auction";
                 var productName = auction.ProductName ;
-                var buyerName = auction.BuyerName?? "N/A";
-                var sellerName = auction.SellerName;
-                var currentBid = auction.CurrentBid;
-                var startingPrice = auction.StartingPrice;
-                var quantity = auction.Quantity;
-                var description = auction.Description ?? "N/A";
+                var buyerName = !string.IsNullOrWhiteSpace(auction.BuyerName) ? auction.BuyerName : "No buyer yet";
+                var sellerName = !string.IsNullOrWhiteSpace(auction.SellerName) ? auction.SellerName : "Unknown Seller";
+                var currentBid = auction.CurrentBid > 0 ? auction.CurrentBid : auction.StartingPrice;
+                var startingPrice = auction.StartingPrice > 0 ? auction.StartingPrice : 0;
+                var quantity = auction.Quantity > 0 ? auction.Quantity : 1;
+                var description = !string.IsNullOrWhiteSpace(auction.Description) ? auction.Description : "No description available";
 
                 
-                response += $"{rankEmoji} **{auction.Name}**\n";
+                response += $"{rankEmoji} **{auctionName}**\n";
                 response += $"   📝 Description: {description}\n";
                 response += $"   🏷️ Product: {productName}\n";
                 response += $"   💰 Starting Price: ${startingPrice:N2}\n";
@@ -236,7 +247,6 @@ public class AIService : IAIService
             
             response += $"**Auction Statistics:**\n";
             response += $"• Total Live Auctions: {liveAuctions.Count()}\n";
-            response += $"• Average Participants: 8-12 per auction\n";
           
             
             return response;
@@ -268,22 +278,25 @@ public class AIService : IAIService
                 var service = topServices.ElementAt(i);
                 var rank = i + 1;
                 var rankEmoji = rank == 1 ? "🥇" : rank == 2 ? "🥈" : rank == 3 ? "🥉" : $"**{rank}.**";
-                var description = service.Description?.Length > 120 
-                    ? service.Description.Substring(0, 120) + "..." 
-                    : service.Description ?? "N/A";
-                var minQty = service.MinQuantity;
-                var price = service.PricePerProduct;
-                var estimatedTime = service.EstimatedTime ?? "N/A";
-                var createdAt = service.CreatedAt.ToString("yyyy-MM-dd");
-                var sellerName = service.SellerName;
                 
-                response += $"{rankEmoji} **{service.Name}**\n";
+                // Handle null/empty values with fallbacks
+                var serviceName = !string.IsNullOrWhiteSpace(service.Name) ? service.Name : "Unnamed Service";
+                var description = !string.IsNullOrWhiteSpace(service.Description) 
+                    ? (service.Description.Length > 120 ? service.Description.Substring(0, 120) + "..." : service.Description)
+                    : "No description available";
+                var minQty = service.MinQuantity > 0 ? service.MinQuantity : 1;
+                var price = service.PricePerProduct > 0 ? service.PricePerProduct : 0;
+                var estimatedTime = !string.IsNullOrWhiteSpace(service.EstimatedTime) ? service.EstimatedTime : "Not specified";
+                var createdAt = service.CreatedAt.ToString("yyyy-MM-dd");
+                var sellerName = !string.IsNullOrWhiteSpace(service.SellerName) ? service.SellerName : "Unknown Provider";
+                
+                response += $"{rankEmoji} **{serviceName}**\n";
                 response += $"   💰 Price: ${price:N2} per unit\n";
                 response += $"   📝 Description: {description}\n";
                 response += $"   📦 Min Quantity: {minQty}\n";
                 response += $"   ⏱️ Estimated Time: {estimatedTime}\n";
                 response += $"   📅 Created At: {createdAt}\n";
-                response += $"   👤 Seller: {sellerName}\n";
+                response += $"   👤 Seller: {sellerName}\n\n";
             }
             
          

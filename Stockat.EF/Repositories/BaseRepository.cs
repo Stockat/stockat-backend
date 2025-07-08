@@ -193,7 +193,11 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
         _context.Set<T>().RemoveRange(entities);
     }
 
-
+    public async Task DeleteAsync(System.Linq.Expressions.Expression<System.Func<T, bool>> predicate)
+    {
+        var entities = await _context.Set<T>().Where(predicate).ToListAsync();
+        _context.Set<T>().RemoveRange(entities);
+    }
 
     public int Count()
     {
