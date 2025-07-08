@@ -13,6 +13,7 @@
     <PackageReference Include="Imagekit" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.6" />
     <PackageReference Include="NLog.Extensions.Logging" Version="5.5.0" />
+    <PackageReference Include="Stripe.net" Version="48.3.0" />
   </ItemGroup>
 
   <ItemGroup>

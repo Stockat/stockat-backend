@@ -5,6 +5,10 @@ using Stockat.Core;
 using Stockat.Core.DTOs.OrderDTOs;
 using Stockat.Core.Enums;
 using Microsoft.AspNetCore.Authorization;
+using Stripe.Checkout;
+using Stockat.Core.DTOs;
+using Stripe;
+using Stockat.Core.DTOs.OrderDTOs.OrderAnalysisDto;
 
 namespace Stockat.API.Controllers;
 
@@ -43,7 +47,8 @@ public class OrderController : ControllerBase
         try
         {
             // Call the service to add the order
-            var response = _serviceManager.OrderService.AddOrderAsync(orderDto).Result;
+            var domain = $"{Request.Scheme}://{Request.Host}/";
+            var response = _serviceManager.OrderService.AddOrderAsync(orderDto, domain).Result;
             // Return the response
             return StatusCode(response.Status, response);
         }
@@ -53,6 +58,9 @@ public class OrderController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while adding the order.");
         }
     }
+
+
+
 
     // Update Order Status
     [HttpPut("{id}")]
@@ -167,7 +175,7 @@ public class OrderController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving Buyer Request orders.");
         }
     }
-    
+
     // Add Request
     [HttpPost("request")]
     public IActionResult AddRequest([FromBody] AddRequestDTO requestDto)
@@ -198,4 +206,52 @@ public class OrderController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while adding the request.");
         }
     }
+
+
+    // Analysis 
+    [AllowAnonymous]
+    [HttpGet("analysis/orderCount")]
+    public async Task<IActionResult> GetOrderCountsByTypeAsync()
+    {
+        var res = _serviceManager.OrderService.GetOrderCountsByTypeAsync().Result;
+        return Ok(res);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("analysis/orderSales")]
+    public async Task<IActionResult> GetTotalSalesByOrderTypeAsync()
+    {
+        var res = _serviceManager.OrderService.GetTotalSalesByOrderTypeAsync().Result;
+
+        return Ok(res);
+    }
+    [AllowAnonymous]
+    [HttpGet("analysis/OrdersVsStatus")]
+    public async Task<IActionResult> CalculateOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        //var res = _serviceManager.OrderService.CalculateMonthlyRevenueOrderVsStatus(type, status, metricType);
+        var res = _serviceManager.OrderService.CalculateWeeklyRevenueOrderVsStatus(type, status, metricType);
+        //var res = _serviceManager.OrderService.CalculateYearlyRevenueOrderVsStatus(type, status, metricType);
+
+        return Ok(res);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("analysis/TopProductOrder")]
+    public async Task<IActionResult> CalculateTopProductOrder(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+
+        //var res = _serviceManager.OrderService.GetTopProductPerYearAsync(type, status, metricType);
+        var res = _serviceManager.OrderService.GetTopProductPerMonthAsync(type, status, metricType);
+        // var res = _serviceManager.OrderService.GetTopProductPerWeekAsync(type, status, metricType);
+
+        return Ok(res);
+    }
+
+
+
 }
+
+
+
+
