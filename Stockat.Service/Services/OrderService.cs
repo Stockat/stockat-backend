@@ -81,7 +81,7 @@ public class OrderService : IOrderService
                     Currency = "usd",
                     ProductData = new SessionLineItemPriceDataProductDataOptions
                     {
-                        Name = "Fixed Name",
+                        Name = orderDto.ProductName,
                     }
                 },
                 Quantity = orderEntity.Quantity,
@@ -94,7 +94,8 @@ public class OrderService : IOrderService
                 Mode = "payment",
                 Metadata = new Dictionary<string, string>
     {
-        { "orderId", orderEntity.Id.ToString() }
+        { "orderId", orderEntity.Id.ToString() },
+        { "type", "order" }
     }
             };
             options.LineItems.Add(sessionItems);
@@ -132,6 +133,64 @@ public class OrderService : IOrderService
         }
     }
 
+    public async Task<GenericResponseDto<UpdateRequestDTO>> AddStripeWithRequestAsync(UpdateRequestDTO requestDto)
+    {
+
+        var res = _repo.OrderRepo.GetByIdAsync(requestDto.Id).Result;
+
+        if (res == null)
+            return new GenericResponseDto<UpdateRequestDTO>()
+            {
+                Data = requestDto,
+                Status = 404,
+                Message = "Could not Found an Req Order with id =" + requestDto.Id
+            };
+
+        //*******************************************************************************************************************
+        // Begin Stripe 
+        var sessionItems = new SessionLineItemOptions
+        {
+            PriceData = new SessionLineItemPriceDataOptions
+            {
+                UnitAmount = (long)(requestDto.Price * 100),
+                Currency = "usd",
+                ProductData = new SessionLineItemPriceDataProductDataOptions
+                {
+                    Name = requestDto.ProductName,
+                }
+            },
+            Quantity = requestDto.Quantity,
+        };
+        var options = new Stripe.Checkout.SessionCreateOptions
+        {
+            SuccessUrl = "http://localhost:4200/profile",
+            CancelUrl = "http://localhost:4200/profile",
+            LineItems = new List<Stripe.Checkout.SessionLineItemOptions>(),
+            Mode = "payment",
+            Metadata = new Dictionary<string, string>
+    {
+        { "orderId", requestDto.Id.ToString() },
+        { "type", "req" }
+    }
+        };
+        options.LineItems.Add(sessionItems);
+
+        var service = new Stripe.Checkout.SessionService();
+        Stripe.Checkout.Session session = service.Create(options);
+
+
+        // Append sessionId in order
+        await UpdateStripePaymentID(requestDto.Id, session.Id, session.PaymentIntentId);
+
+        return new GenericResponseDto<UpdateRequestDTO>
+        {
+            Status = 201,
+            Data = requestDto,
+            Message = "Order Request Updated successfully.",
+            RedirectUrl = session.Url
+        };
+
+    }
 
 
     // Stripe Internals 
@@ -356,7 +415,7 @@ public class OrderService : IOrderService
         try
         {
             // Fetch the order by session ID
-            var order = await _repo.OrderRepo.FindAsync(o => o.SessionId == sessionId, ["Seller", "Buyer"]);
+            var order = await _repo.OrderRepo.FindAsync(o => o.SessionId == sessionId, ["Seller", "Buyer", "Product"]);
             if (order == null)
             {
                 _logger.LogError($"Order with Session ID {sessionId} not found.");
@@ -576,7 +635,7 @@ public class OrderService : IOrderService
             // Fetch orders for the seller
             //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
 
-            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Request, ["Seller", "Buyer"]);
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Request, ["Seller", "Buyer", "Product"]);
             if (orders == null || !orders.Any())
             {
                 _logger.LogInfo("No Request orders found for the seller.");
