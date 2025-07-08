@@ -33,3 +33,10 @@ public enum ReportMetricType
     Revenue = 0,
     Count = 1
 }
+
+public enum Time
+{
+    Yearly = 0,
+    Monthly = 1,
+    Weekly = 2,
+}
