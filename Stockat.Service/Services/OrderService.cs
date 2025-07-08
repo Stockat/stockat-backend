@@ -2,18 +2,24 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
+using Azure;
+using Azure.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Stockat.Core;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.OrderDTOs;
+using Stockat.Core.DTOs.OrderDTOs.OrderAnalysisDto;
 using Stockat.Core.DTOs.StockDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
 using Stockat.Core.IServices;
+using Stripe.Checkout;
+using Stripe.Climate;
 
 namespace Stockat.Service.Services;
 
@@ -33,7 +39,7 @@ public class OrderService : IOrderService
     }
 
     // Add Order
-    public async Task<GenericResponseDto<AddOrderDTO>> AddOrderAsync(AddOrderDTO orderDto)
+    public async Task<GenericResponseDto<AddOrderDTO>> AddOrderAsync(AddOrderDTO orderDto, string domain)
     {
         try
         {
@@ -56,18 +62,60 @@ public class OrderService : IOrderService
             await _repo.OrderRepo.AddAsync(orderEntity);
             // Set the Stock Status to SoldOut
             stock.StockStatus = StockStatus.SoldOut;
+
             // Update the stock in the repository
             _repo.StockRepo.Update(stock);
 
             await _repo.CompleteAsync();
+            //*******************************************************************************************************************
+            // Begin Stripe 
+            var sessionItems = new SessionLineItemOptions
+            {
+                PriceData = new SessionLineItemPriceDataOptions
+                {
+                    UnitAmount = (long)(orderEntity.Price * 100),
+                    Currency = "usd",
+                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                    {
+                        Name = "Fixed Name",
+                    }
+                },
+                Quantity = orderEntity.Quantity,
+            };
+            var options = new Stripe.Checkout.SessionCreateOptions
+            {
+                SuccessUrl = "http://localhost:4200/",
+                CancelUrl = $"http://localhost:4200/product-stocks/{orderEntity.ProductId}?session_id={{CHECKOUT_SESSION_ID}}",
+                LineItems = new List<Stripe.Checkout.SessionLineItemOptions>(),
+                Mode = "payment",
+                Metadata = new Dictionary<string, string>
+    {
+        { "orderId", orderEntity.Id.ToString() }
+    }
+            };
+            options.LineItems.Add(sessionItems);
+
+            var service = new Stripe.Checkout.SessionService();
+            Stripe.Checkout.Session session = service.Create(options);
+
+
+            // Append sessionId in order
+            await UpdateStripePaymentID(orderEntity.Id, session.Id, session.PaymentIntentId);
             // Map back to DTO for response
             var responseDto = _mapper.Map<AddOrderDTO>(orderEntity);
+
             return new GenericResponseDto<AddOrderDTO>
             {
                 Status = 201,
                 Data = responseDto,
-                Message = "Order added successfully."
+                Message = "Order added successfully.",
+                RedirectUrl = session.Url
             };
+
+
+            // End Stripe 
+            //******************************************************************************************************************
+
         }
         catch (Exception ex)
         {
@@ -78,6 +126,47 @@ public class OrderService : IOrderService
                 Message = "An error occurred while adding the order."
             };
         }
+    }
+
+
+
+    // Stripe Internals 
+    public async Task UpdateStripePaymentID(int id, string sessionId, string paymentIntentId)
+    {
+
+        var order = await _repo.OrderRepo.GetByIdAsync(id);
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            order.SessionId = sessionId;
+        }
+        if (!string.IsNullOrEmpty(paymentIntentId))
+        {
+            order.PaymentId = paymentIntentId;
+            order.PaymentDate = DateTime.Now;
+        }
+
+        _repo.OrderRepo.Update(order);
+        await _repo.CompleteAsync();
+    }
+
+    public async Task UpdateStatus(int id, OrderStatus orderStatus, PaymentStatus paymentStatus)
+    {
+        var order = await _repo.OrderRepo.GetByIdAsync(id);
+        if (order != null)
+        {
+            order.PaymentStatus = paymentStatus;
+            order.Status = orderStatus;
+        }
+        _repo.OrderRepo.Update(order);
+        await _repo.CompleteAsync();
+    }
+
+
+    // Get Order By Id Async
+    public async Task<OrderProduct> getOrderByIdAsync(int id)
+    {
+
+        return await _repo.OrderRepo.GetByIdAsync(id);
     }
 
     // Add Request
@@ -115,7 +204,7 @@ public class OrderService : IOrderService
             // }
             // requestDto.BuyerId = buyerId;
 
-            
+
 
             // 2. Create and add the order
             var orderEntity = new OrderProduct
@@ -129,7 +218,7 @@ public class OrderService : IOrderService
                 SellerId = requestDto.SellerId,
                 BuyerId = requestDto.BuyerId,
                 PaymentId = requestDto.PaymentId,
-                PaymentStatus = requestDto.PaymentStatus,
+                PaymentStatus = PaymentStatus.Pending,
                 Description = requestDto.Description,
                 CraetedAt = DateTime.UtcNow
             };
@@ -150,7 +239,7 @@ public class OrderService : IOrderService
                 SellerId = orderEntity.SellerId,
                 BuyerId = orderEntity.BuyerId,
                 PaymentId = orderEntity.PaymentId,
-                PaymentStatus = orderEntity.PaymentStatus,
+                PaymentStatus = orderEntity.PaymentStatus.ToString(),
                 Description = orderEntity.Description,
                 Stock = _mapper.Map<AddStockDTO>(stockEntity)
             };
@@ -641,5 +730,82 @@ public class OrderService : IOrderService
             Message = "Data Fetched Successfully"
         };
     }
+
+    public GenericResponseDto<ReportDto> CalculateMonthlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+
+        var res = _repo.OrderRepo.CalculateMonthlyRevenueOrderVsStatus(type, status, metricType);
+
+        return new GenericResponseDto<ReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "CalculateMonthlyRevenueOrderVsStatus Fetched Successfully"
+        };
+    }
+    public GenericResponseDto<ReportDto> CalculateWeeklyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.CalculateWeeklyRevenueOrderVsStatus(type, status, metricType);
+
+        return new GenericResponseDto<ReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "CalculateWeeklyRevenueOrderVsStatus Fetched Successfully"
+        };
+    }
+
+    public GenericResponseDto<ReportDto> CalculateYearlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.CalculateYearlyRevenueOrderVsStatus(type, status, metricType);
+
+        return new GenericResponseDto<ReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "CalculateYearlyRevenueOrderVsStatus Fetched Successfully"
+        };
+    }
+
+    public GenericResponseDto<TopProductReportDto> GetTopProductPerYearAsync(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.GetTopProductPerYearAsync(type, status, metricType);
+
+        return new GenericResponseDto<TopProductReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "GetTopProductPerYearAsync Fetched Successfully"
+        };
+    }
+    public GenericResponseDto<TopProductReportDto> GetTopProductPerMonthAsync(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.GetTopProductPerMonthAsync(type, status, metricType);
+
+        return new GenericResponseDto<TopProductReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "GetTopProductPerMonthAsync Fetched Successfully"
+        };
+    }
+    public GenericResponseDto<TopProductReportDto> GetTopProductPerWeekAsync(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.GetTopProductPerWeekAsync(type, status, metricType);
+
+        return new GenericResponseDto<TopProductReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "GetTopProductPerWeekAsync Fetched Successfully"
+        };
+    }
+
 
 }

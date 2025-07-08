@@ -1,4 +1,5 @@
 ﻿using Stockat.Core.DTOs;
+using Stockat.Core.DTOs.OrderDTOs.OrderAnalysisDto;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
 using System;
@@ -14,4 +15,16 @@ public interface IOrderRepository : IBaseRepository<OrderProduct>
 {
     public Task<Dictionary<OrderType, int>> GetOrderCountsByTypeAsync();
     public Task<Dictionary<OrderType, decimal>> GetTotalSalesByOrderTypeAsync();
+    public ReportDto CalculateYearlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metric);
+    public ReportDto CalculateMonthlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metric);
+    public ReportDto CalculateWeeklyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metric);
+
+
+    public TopProductReportDto GetTopProductPerYearAsync(OrderType? type, OrderStatus? status, ReportMetricType metric);
+    public TopProductReportDto GetTopProductPerMonthAsync(OrderType? type, OrderStatus? status, ReportMetricType metric);
+    public TopProductReportDto GetTopProductPerWeekAsync(OrderType? type, OrderStatus? status, ReportMetricType metric);
+
+
+
+
 }

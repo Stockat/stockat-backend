@@ -10,6 +10,8 @@ using Stockat.Core.Entities;
 using Stockat.API.Hubs;
 using Stockat.Service.Services.AuctionServices;
 using System.Text.Json.Serialization;
+using Stockat.Core.Helpers;
+using Stripe;
 
 namespace Stockat.API;
 
@@ -33,6 +35,8 @@ public class Program
 
         builder.Services.ConfigureRepositoryManager(); // adding ef (infra) layer dependencies
         builder.Services.ConfigureServiceManager(); // adding service layer dependencies
+
+        builder.Services.Configure<StripeConfigs>(builder.Configuration.GetSection("Stripe"));
 
         builder.Services.Configure<ApiBehaviorOptions>(options =>
         {
@@ -79,6 +83,8 @@ public class Program
             app.UseHsts();
         }
 
+        StripeConfiguration.ApiKey = builder.Configuration.GetSection("Stripe:SecretKey").Get<string>();
+
         app.UseStaticFiles();
         app.UseForwardedHeaders(new ForwardedHeadersOptions
         {
@@ -87,7 +93,7 @@ public class Program
 
 
         app.UseCors("CorsPolicy");
-        
+
         app.UseAuthentication();
         app.UseAuthorization();
 
