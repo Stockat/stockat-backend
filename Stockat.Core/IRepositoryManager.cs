@@ -8,6 +8,7 @@ namespace Stockat.Core;
 public interface IRepositoryManager
 {
     IBaseRepository<UserVerification> UserVerificationRepo { get; }
+    IBaseRepository<UserPunishment> UserPunishmentRepo { get; }
     IBaseRepository<Stock> StockRepo { get; }
     IBaseRepository<Auction> AuctionRepo { get; }
     IBaseRepository<AuctionBidRequest> AuctionBidRequestRepo { get; }
@@ -30,13 +31,14 @@ public interface IRepositoryManager
 
 
 
-    IBaseRepository<User> UserRepo { get; }
+    IUserRepository UserRepo { get; }
 
 
     IBaseRepository<ChatConversation> ChatConversationRepo { get; }
     IBaseRepository<ChatMessage> ChatMessageRepo { get; }
     IBaseRepository<MessageReadStatus> MessageReadStatusRepo { get; }
     IBaseRepository<MessageReaction> MessageReactionRepo { get; }
+    IChatBotMessageRepository ChatBotMessageRepository { get; }
     int Complete();
     void Dispose();
 

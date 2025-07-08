@@ -17,6 +17,7 @@ public interface IServiceManager
     IEmailService EmailService { get; }
 
     IUserVerificationService UserVerificationService { get; }
+    IUserPunishmentService UserPunishmentService { get; }
 
     IServiceService ServiceService { get; }
     IServiceRequestService ServiceRequestService { get; }
@@ -34,4 +35,7 @@ public interface IServiceManager
     IUserService UserService { get; }
 
     IChatService ChatService { get; }
+    IChatHistoryService ChatHistoryService { get; }
+    IAIService AIService { get; }
+    IAnalyticsService AnalyticsService { get; }
 }

@@ -453,6 +453,36 @@ namespace Stockat.EF.Migrations
                     b.ToTable("MessageReadStatuses");
                 });
 
+            modelBuilder.Entity("Stockat.Core.Entities.ChatBotMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ChatBotMessages");
+                });
+
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
                 {
                     b.Property<int>("Id")
@@ -682,6 +712,9 @@ namespace Stockat.EF.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -701,6 +734,9 @@ namespace Stockat.EF.Migrations
                         .IsRequired()
                         .HasMaxLength(2083)
                         .HasColumnType("nvarchar(2083)");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit");
 
                     b.Property<int>("MinQuantity")
                         .HasColumnType("int");
@@ -1017,6 +1053,48 @@ namespace Stockat.EF.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Stockat.Core.Entities.UserPunishment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Type", "EndDate");
+
+                    b.ToTable("UserPunishments");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.UserVerification", b =>
@@ -1375,7 +1453,7 @@ namespace Stockat.EF.Migrations
                         .IsRequired();
 
                     b.HasOne("Stockat.Core.Entities.Service", "Service")
-                        .WithMany()
+                        .WithMany("ServiceRequests")
                         .HasForeignKey("ServiceId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
@@ -1432,6 +1510,17 @@ namespace Stockat.EF.Migrations
                     b.Navigation("FeatureValue");
 
                     b.Navigation("Stock");
+                });
+
+            modelBuilder.Entity("Stockat.Core.Entities.UserPunishment", b =>
+                {
+                    b.HasOne("Stockat.Core.Entities.User", "User")
+                        .WithMany("Punishments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.UserVerification", b =>
@@ -1502,6 +1591,11 @@ namespace Stockat.EF.Migrations
                     b.Navigation("Stocks");
                 });
 
+            modelBuilder.Entity("Stockat.Core.Entities.Service", b =>
+                {
+                    b.Navigation("ServiceRequests");
+                });
+
             modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>
                 {
                     b.Navigation("RequestUpdates");
@@ -1538,6 +1632,8 @@ namespace Stockat.EF.Migrations
                     b.Navigation("MessageReadStatuses");
 
                     b.Navigation("Products");
+
+                    b.Navigation("Punishments");
 
                     b.Navigation("SellerOrderProducts");
 

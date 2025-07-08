@@ -22,8 +22,8 @@ public interface IBaseRepository<T> where T : class
     IEnumerable<T> FindAll(Expression<Func<T, bool>> criteria, int? take, int? skip,
         Expression<Func<T, object>> orderBy = null, string orderByDirection = OrderBy.Ascending);
 
-    Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, string[] includes = null);
-    Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int skip, int take);
+    Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, string[] includes = null, int skip = 0);
+    Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int skip, int take, object includes);
     Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int? skip, int? take, string[] includes = null,
         Expression<Func<T, object>> orderBy = null, string orderByDirection = OrderBy.Ascending);
     T Add(T entity);
@@ -35,5 +35,5 @@ public interface IBaseRepository<T> where T : class
     void DeleteRange(IEnumerable<T> entities);
     int Count(Expression<Func<T, bool>> criteria);
     Task<int> CountAsync(Expression<Func<T, bool>> criteria);
-
+    Task DeleteAsync(System.Linq.Expressions.Expression<System.Func<T, bool>> predicate);
 }

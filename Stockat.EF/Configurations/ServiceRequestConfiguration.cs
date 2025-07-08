@@ -31,6 +31,12 @@ public class ServiceRequestConfiguration : IEntityTypeConfiguration<ServiceReque
             .Property(e => e.PaymentStatus).HasConversion<string>();
         builder
             .Property(e => e.ServiceStatus).HasConversion<string>();
+
+        builder
+            .HasOne(sr => sr.Service)
+            .WithMany(s => s.ServiceRequests) // <--- link the navigation here
+            .HasForeignKey(sr => sr.ServiceId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }
 

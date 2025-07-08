@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Stockat.Core.DTOs;
+using Stockat.Core.DTOs.AuctionDTOs;
+using Stockat.Core.DTOs.CategoryDtos;
 using Stockat.Core.DTOs.MediaDTOs;
 using Stockat.Core.DTOs.ProductDTOs;
 using Stockat.Core.DTOs.UserDTOs;

@@ -4,6 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 using Stockat.Core;
 using Stockat.Core.Consts;
 using Stockat.Core.DTOs;
+using Stockat.Core.DTOs.AuctionDTOs;
+using Stockat.Core.DTOs.CategoryDtos;
 using Stockat.Core.DTOs.MediaDTOs;
 using Stockat.Core.DTOs.OrderDTOs;
 using Stockat.Core.DTOs.ProductDTOs;

@@ -26,6 +26,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<StockDetails> StockDetails { get; set; }
     public virtual DbSet<Stock> Stocks { get; set; }
     public virtual DbSet<UserVerification> UserVerification { get; set; }
+    public virtual DbSet<UserPunishment> UserPunishments { get; set; }
     public virtual DbSet<Auction> Auction { get; set; }
     public virtual DbSet<AuctionBidRequest> AuctionBidRequest { get; set; }
     public virtual DbSet<AuctionOrder> AuctionOrder { get; set; }
@@ -39,6 +40,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public DbSet<ChatMessage> ChatMessages { get; set; }
     public DbSet<MessageReaction> MessageReactions { get; set; }
     public DbSet<MessageReadStatus> MessageReadStatuses { get; set; }
+    public DbSet<ChatBotMessage> ChatBotMessages { get; set; }
     public StockatDBContext(DbContextOptions options) : base(options)
     {
     }

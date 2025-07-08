@@ -18,5 +18,7 @@ public class ServiceDto
     public string ImageUrl { get; set; }
     public string SellerId { get; set; }
     public string SellerName { get; set; }
+    public bool IsApproved { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
