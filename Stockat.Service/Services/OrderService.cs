@@ -348,7 +348,63 @@ public class OrderService : IOrderService
         }
     }
 
+    // Cancel Order On Payment Faliure
+    public async Task<GenericResponseDto<OrderDTO>> CancelOrderOnPaymentFailureAsync(string sessionId)
+    {
+        // Open Transaction
+        await _repo.BeginTransactionAsync(); // Open transaction
+        try
+        {
+            // Fetch the order by session ID
+            var order = await _repo.OrderRepo.FindAsync(o => o.SessionId == sessionId, ["Seller", "Buyer"]);
+            if (order == null)
+            {
+                _logger.LogError($"Order with Session ID {sessionId} not found.");
+                return new GenericResponseDto<OrderDTO>
+                {
+                    Status = 404,
+                    Message = "Order not found."
+                };
+            }
 
+            // Update the order status to Cancelled
+            order.Status = OrderStatus.Cancelled;
+            _repo.OrderRepo.Update(order);
+            // Update the stock status to ForSale
+            var stock = await _repo.StockRepo.GetByIdAsync(order.StockId);
+            if (stock == null)
+            {
+                _logger.LogError("Stock not found for the given StockId.");
+                return new GenericResponseDto<OrderDTO>
+                {
+                    Status = 404,
+                    Message = "Stock not found."
+                };
+            }
+            stock.StockStatus = StockStatus.ForSale;
+            _repo.StockRepo.Update(stock);
+            await _repo.CompleteAsync();
+            await _repo.CommitTransactionAsync(); // Commit the transaction
+            // Map to DTO for response
+            var orderDto = _mapper.Map<OrderDTO>(order);
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 200,
+                Data = orderDto,
+                Message = "Order cancelled successfully due to payment failure."
+            };
+        }
+        catch (Exception ex)
+        {
+            await _repo.RollbackTransactionAsync(); // Rollback on error
+            _logger.LogError($"Error cancelling order on payment failure: {ex.Message}");
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 500,
+                Message = "An error occurred while cancelling the order."
+            };
+        }
+    }
 
     // Get All Orders For Seller
     public async Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllSellerOrdersAsync()

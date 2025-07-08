@@ -86,6 +86,31 @@ public class OrderController : ControllerBase
         }
     }
 
+
+    // Cancel Order On Payment Failure
+    [HttpPut("cancel/{sessionId}")]
+    public IActionResult CancelOrderOnPaymentFailure(string sessionId)
+    {
+        // Validate the input
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            _logger.LogError("CancelOrderOnPaymentFailure: Session ID is null or empty.");
+            return BadRequest("Session ID is required.");
+        }
+        try
+        {
+            // Call the service to cancel the order on payment failure
+            var response = _serviceManager.OrderService.CancelOrderOnPaymentFailureAsync(sessionId).Result;
+            // Return the response
+            return StatusCode(response.Status, response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"CancelOrderOnPaymentFailure: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while canceling the order on payment failure.");
+        }
+    }
+
     // Get All Orders For Seller
     [HttpGet("seller")]
     public IActionResult GetAllOrdersForSeller()

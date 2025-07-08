@@ -40,7 +40,11 @@ namespace Stockat.Core.IServices
 
         // Stripe Internals 
         public Task UpdateStripePaymentID(int id, string sessionId, string paymentIntentId);
+
+        // Order Status Update
         public Task UpdateStatus(int id, OrderStatus orderStatus, PaymentStatus paymentStatus);
+        public Task<GenericResponseDto<OrderDTO>> CancelOrderOnPaymentFailureAsync(string sessionId);
+
 
 
         // 
