@@ -231,6 +231,35 @@ public class OrderController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while adding the request.");
         }
     }
+    [HttpPost("request/stripe")]
+    public IActionResult updateRequestWithStripe([FromBody] UpdateRequestDTO requestDto)
+    {
+        // Validate the input
+        if (requestDto == null)
+        {
+            _logger.LogError("UpdateRequestDTO: Request DTO is null.");
+            return BadRequest("Full request data is required.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            _logger.LogError("UpdateRequestDTO: Invalid model state.");
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            // Call the service to add the request
+            var response = _serviceManager.OrderService.AddStripeWithRequestAsync(requestDto).Result;
+            // Return the response
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"updateRequestWithStripe: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while Updating the request.");
+        }
+    }
 
 
     // Analysis 
