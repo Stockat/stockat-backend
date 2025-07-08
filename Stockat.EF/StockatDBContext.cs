@@ -40,6 +40,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public DbSet<ChatMessage> ChatMessages { get; set; }
     public DbSet<MessageReaction> MessageReactions { get; set; }
     public DbSet<MessageReadStatus> MessageReadStatuses { get; set; }
+    public DbSet<ChatBotMessage> ChatBotMessages { get; set; }
     public StockatDBContext(DbContextOptions options) : base(options)
     {
     }

@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -41,6 +42,10 @@ public sealed class ServiceManager : IServiceManager
 
     private readonly Lazy<IUserService> _userService;
 
+    private readonly Lazy<IChatHistoryService> _chatHistoryService;
+    private readonly Lazy<IAIService> _aiService;
+    private readonly Lazy<IAnalyticsService> _analyticsService;
+
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
@@ -60,7 +65,10 @@ public sealed class ServiceManager : IServiceManager
         // Order Service
         _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor));
 
+        // Order Service
+        _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor));
 
+        _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value, _chatService.Value, repositoryManager));
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
         _serviceRequestService = new Lazy<IServiceRequestService>(() => new ServiceRequestService(logger, mapper, repositoryManager, _emailService.Value, _userService.Value));
         _serviceRequestUpdateService = new Lazy<IServiceRequestUpdateService>(() => new ServiceRequestUpdateService(logger, mapper, repositoryManager, _emailService.Value));
@@ -81,6 +89,12 @@ public sealed class ServiceManager : IServiceManager
 
         _categoryService = new Lazy<ICategoryService>(() => new CategoryService(logger, mapper, repositoryManager));
         _tagService = new Lazy<ITagService>(() => new TagService(logger, mapper, repositoryManager));
+
+        _chatHistoryService = new Lazy<IChatHistoryService>(() => new ChatHistoryService(repositoryManager, mapper));
+
+        _aiService = new Lazy<IAIService>(() => new AIService(this, logger));
+        _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger));
+
     }
 
     public IAuthenticationService AuthenticationService
@@ -116,5 +130,12 @@ public sealed class ServiceManager : IServiceManager
     public ITagService TagService => _tagService.Value;
 
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+
+    
+
     public IUserPunishmentService UserPunishmentService => _userPunishmentService.Value;
+
+    public IChatHistoryService ChatHistoryService => _chatHistoryService.Value;
+    public IAnalyticsService AnalyticsService => _analyticsService.Value;
+    public IAIService AIService => _aiService.Value;
 }

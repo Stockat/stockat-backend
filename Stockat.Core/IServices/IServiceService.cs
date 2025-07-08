@@ -14,5 +14,5 @@ public interface IServiceService
     Task<ServiceDto> UpdateAsync(int serviceId, UpdateServiceDto dto, string sellerId);
     Task DeleteAsync(int serviceId, string sellerId);
     public Task<ImageUploadResultDto> UploadServiceImageAsync(int serviceId, string sellerId, IFormFile file);
-
+    Task<ServiceDto> UpdateApprovalStatusAsync(int serviceId, bool isApproved);
 }

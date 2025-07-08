@@ -43,7 +43,8 @@ public class RepositoryManager : IRepositoryManager
 
 
 
-    private readonly Lazy<IBaseRepository<User>> _userRepo;
+    private readonly Lazy<IUserRepository> _userRepo;
+    private readonly Lazy<IChatBotMessageRepository> _chatBotMessageRepository;
     public RepositoryManager(StockatDBContext context, IMapper mapper)
     {
         _context = context;
@@ -58,7 +59,7 @@ public class RepositoryManager : IRepositoryManager
         _CategoryRepo = new Lazy<IBaseRepository<Category>>(() => new BaseRepository<Category>(_context));
         _TagRepo = new Lazy<IBaseRepository<Tag>>(() => new BaseRepository<Tag>(_context));
 
-        _userRepo = new Lazy<IBaseRepository<User>>(() => new BaseRepository<User>(_context));
+        _userRepo = new Lazy<IUserRepository>(() => new UserRepository(_context));
         _productRepository = new Lazy<ProductRepository>(() => new ProductRepository(_context, _mapper));
         _serviceRepo = new Lazy<ServiceRepository>(() => new ServiceRepository(_context));
         _serviceRequestRepo = new Lazy<IBaseRepository<ServiceRequest>>(() => new BaseRepository<ServiceRequest>(_context));
@@ -72,6 +73,7 @@ public class RepositoryManager : IRepositoryManager
         _messageReadStatusRepo = new Lazy<IBaseRepository<MessageReadStatus>>(() => new BaseRepository<MessageReadStatus>(_context));
         _messageReactionRepo = new Lazy<IBaseRepository<MessageReaction>>(() => new BaseRepository<MessageReaction>(_context));
 
+        _chatBotMessageRepository = new Lazy<IChatBotMessageRepository>(() => new ChatBotMessageRepository(_context));
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
@@ -89,7 +91,7 @@ public class RepositoryManager : IRepositoryManager
     public IBaseRepository<ServiceRequestUpdate> ServiceRequestUpdateRepo => _serviceRequestUpdateRepo.Value;
     public IProductRepository ProductRepository => _productRepository.Value;
 
-    public IBaseRepository<User> UserRepo => _userRepo.Value;
+    public IUserRepository UserRepo => _userRepo.Value;
     public IBaseRepository<StockDetails> StockDetailsRepo => _stockDetailsRepository.Value;
     public IBaseRepository<OrderProduct> OrderRepo => _OrderRepo.Value;
 
@@ -98,6 +100,7 @@ public class RepositoryManager : IRepositoryManager
     public IBaseRepository<MessageReadStatus> MessageReadStatusRepo => _messageReadStatusRepo.Value;
     public IBaseRepository<MessageReaction> MessageReactionRepo => _messageReactionRepo.Value;
 
+    public IChatBotMessageRepository ChatBotMessageRepository => _chatBotMessageRepository.Value;
 
     public int Complete()
     {

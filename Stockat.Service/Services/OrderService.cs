@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -13,6 +13,10 @@ using Stockat.Core.DTOs.StockDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
 using Stockat.Core.IServices;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Stockat.Service.Services;
 

@@ -30,13 +30,14 @@ public interface IRepositoryManager
 
 
 
-    IBaseRepository<User> UserRepo { get; }
+    IUserRepository UserRepo { get; }
 
 
     IBaseRepository<ChatConversation> ChatConversationRepo { get; }
     IBaseRepository<ChatMessage> ChatMessageRepo { get; }
     IBaseRepository<MessageReadStatus> MessageReadStatusRepo { get; }
     IBaseRepository<MessageReaction> MessageReactionRepo { get; }
+    IChatBotMessageRepository ChatBotMessageRepository { get; }
     int Complete();
     void Dispose();
 

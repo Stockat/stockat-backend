@@ -191,4 +191,26 @@ public class ServiceController : ControllerBase
             return StatusCode(500, $"Image upload failed: {ex.Message}");
         }
     }
+
+       [HttpPatch("{serviceId:int}/approve")]
+   [Authorize(Roles = "Admin")]
+   public async Task<IActionResult> ApproveService(int serviceId, [FromBody] bool isApproved)
+   {
+       try
+       {
+           var updatedService = await _service.ServiceService.UpdateApprovalStatusAsync(serviceId, isApproved);
+           return Ok(new { 
+               message = $"Service {serviceId} approval status updated to {(isApproved ? "approved" : "rejected")}",
+               service = updatedService
+           });
+       }
+       catch (NotFoundException ex)
+       {
+           return NotFound(ex.Message);
+       }
+       catch (Exception ex)
+       {
+           return StatusCode(500, $"An error occurred while updating service approval status: {ex.Message}");
+       }
+   }
 }
