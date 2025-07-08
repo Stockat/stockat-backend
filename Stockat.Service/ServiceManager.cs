@@ -65,10 +65,6 @@ public sealed class ServiceManager : IServiceManager
         // Order Service
         _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor));
 
-        // Order Service
-        _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor));
-
-        _authenticationService = new Lazy<IAuthenticationService>(() => new AuthenticationService(logger, mapper, userManager, roleManager, configuration, _emailService.Value, _chatService.Value, repositoryManager));
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
         _serviceRequestService = new Lazy<IServiceRequestService>(() => new ServiceRequestService(logger, mapper, repositoryManager, _emailService.Value, _userService.Value));
         _serviceRequestUpdateService = new Lazy<IServiceRequestUpdateService>(() => new ServiceRequestUpdateService(logger, mapper, repositoryManager, _emailService.Value));

@@ -16,8 +16,9 @@ public class ServiceRepository : BaseRepository<Stockat.Core.Entities.Service>, 
     public async Task<IEnumerable<Service>> GetAllAvailableServicesWithSeller(int skip, int take)
     {
         return await _context.Set<Service>()
-            .Skip(skip).Take(take)
             .Include(s => s.Seller)
+            .Where(s => s.IsApproved && s.Seller.IsApproved && !s.Seller.IsBlocked && !s.Seller.IsDeleted)
+            .Skip(skip).Take(take)
             .ToListAsync();
     }
 
@@ -25,6 +26,7 @@ public class ServiceRepository : BaseRepository<Stockat.Core.Entities.Service>, 
     {
         return await _context.Set<Service>()
             .Include(s => s.Seller)
+            .Where(s => s.IsApproved && !s.Seller.IsBlocked && s.Seller.IsApproved && !s.Seller.IsDeleted)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 

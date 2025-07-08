@@ -5,6 +5,7 @@ using Stockat.Core;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.MediaDTOs;
 using Stockat.Core.DTOs.ServiceDTOs;
+using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IServices;
 
@@ -33,6 +34,12 @@ public class ServiceService : IServiceService
 
     public async Task<ServiceDto> CreateAsync(CreateServiceDto dto, string sellerId)
     {
+        var seller = await _repo.UserRepo.FindAsync(s => s.Id == sellerId);
+        if (!seller.IsApproved || seller.IsBlocked || seller.IsDeleted)
+        {
+            throw new BadRequestException("Your Account is either not approved yet, blocked or deleted. Can't create Service");
+        }
+
         var service = _mapper.Map<Stockat.Core.Entities.Service>(dto);
         service.SellerId = sellerId;
 
@@ -53,6 +60,12 @@ public class ServiceService : IServiceService
             throw new UnauthorizedAccessException("You do not own this service or it does not exist.");
         }
 
+        foreach(var request in service.ServiceRequests)
+        {
+            if (request.ServiceStatus != ServiceStatus.Delivered)
+                throw new BadRequestException("Service has ongoing requests. Cannot Delete Service.");
+        }
+
         _repo.ServiceRepo.Delete(service);
         await _repo.CompleteAsync();
     }
@@ -60,7 +73,7 @@ public class ServiceService : IServiceService
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetAllAvailableServicesAsync(int page, int size)
     {
         int skip = (page - 1) * size;
-        int count = await _repo.ServiceRepo.CountAllAvailableServicesAsync();
+        int count = await _repo.ServiceRepo.CountAsync(s => s.IsApproved);
 
         var services = await _repo.ServiceRepo.GetAllAvailableServicesWithSeller(skip, size);
 
@@ -98,6 +111,13 @@ public class ServiceService : IServiceService
 
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetSellerServicesAsync(string sellerId, int page, int size)
     {
+        var seller = await _repo.UserRepo.FindAsync(s => s.Id == sellerId);
+        if (!seller.IsApproved || seller.IsBlocked || seller.IsDeleted)
+        {
+            throw new BadRequestException("Seller Account is either not approved yet, blocked or deleted.");
+        }
+
+
         int skip = page  * size;
 
         var services = await _repo.ServiceRepo.FindAllAsync(s => s.SellerId == sellerId, size, skip);
@@ -179,6 +199,9 @@ public class ServiceService : IServiceService
             _logger.LogError($"Service with ID {serviceId} not found.");
             throw new NotFoundException($"Service with ID {serviceId} not found.");
         }
+
+        if (service.IsApproved == true)
+            throw new BadRequestException("Service is already approved by admin.");
 
         service.IsApproved = isApproved;
 
