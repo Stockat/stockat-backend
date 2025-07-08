@@ -227,11 +227,25 @@ public class OrderController : ControllerBase
     }
     [AllowAnonymous]
     [HttpGet("analysis/OrdersVsStatus")]
-    public async Task<IActionResult> CalculateOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    public async Task<IActionResult> CalculateOrderVsStatus(
+        [FromQuery] OrderType? type, [FromQuery] OrderStatus? status,
+        [FromQuery] ReportMetricType metricType, [FromQuery] Time? time)
     {
-        //var res = _serviceManager.OrderService.CalculateMonthlyRevenueOrderVsStatus(type, status, metricType);
-        var res = _serviceManager.OrderService.CalculateWeeklyRevenueOrderVsStatus(type, status, metricType);
-        //var res = _serviceManager.OrderService.CalculateYearlyRevenueOrderVsStatus(type, status, metricType);
+        object res;
+        switch (time)
+        {
+            case Time.Yearly:
+                res = _serviceManager.OrderService.CalculateYearlyRevenueOrderVsStatus(type, status, metricType);
+                break;
+            case Time.Monthly:
+                res = _serviceManager.OrderService.CalculateMonthlyRevenueOrderVsStatus(type, status, metricType);
+                break;
+            case Time.Weekly:
+                res = _serviceManager.OrderService.CalculateWeeklyRevenueOrderVsStatus(type, status, metricType);
+                break;
+            default:
+                return BadRequest("Invalid time filter");
+        }
 
         return Ok(res);
     }
