@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Stockat.Core;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.OrderDTOs;
+using Stockat.Core.DTOs.StockDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
 using Stockat.Core.IServices;
@@ -81,36 +83,100 @@ public class OrderService : IOrderService
         }
     }
 
-    //// Add Request
-    //public async Task<GenericResponseDto<AddRequestDTO>> AddRequestAsync(AddRequestDTO requestDto)
-    //{
-    //    try
-    //    {
-    //        // Map Request included Stock
-    //        // Map DTO to entity
-    //        //var requestEntity = _mapper.Map<RequestProduct>(requestDto);
-    //        // Add the request to the repository
-    //        //await _repo.OrderRepo.AddAsync(requestEntity);
-    //        await _repo.CompleteAsync();
-    //        // Map back to DTO for response
-    //        var responseDto = _mapper.Map<AddRequestDTO>(requestEntity);
-    //        return new GenericResponseDto<AddRequestDTO>
-    //        {
-    //            Status = 201,
-    //            Data = responseDto,
-    //            Message = "Request added successfully."
-    //        };
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError($"Error adding request: {ex.Message}");
-    //        return new GenericResponseDto<AddRequestDTO>
-    //        {
-    //            Status = 500,
-    //            Message = "An error occurred while adding the request."
-    //        };
-    //    }
-    //}
+    // Add Request
+    public async Task<GenericResponseDto<AddRequestDTO>> AddRequestAsync(AddRequestDTO requestDto)
+    {
+        await _repo.BeginTransactionAsync();
+        try
+        {
+            // 1. Create and add the stock first
+            var stockEntity = new Stock
+            {
+                ProductId = requestDto.ProductId,
+                Quantity = requestDto.Quantity,
+                StockStatus = StockStatus.SoldOut,
+                StockDetails = requestDto.Stock.StockDetails.Select(sd => new StockDetails
+                {
+                    FeatureId = sd.FeatureId,
+                    FeatureValueId = sd.FeatureValueId
+                }).ToList()
+            };
+
+            await _repo.StockRepo.AddAsync(stockEntity);
+            await _repo.CompleteAsync(); // Save to get the stock ID
+
+            // Get the Buyer ID from the HTTP context
+            // var buyerId = GetCurrentUserId();
+            // if (string.IsNullOrEmpty(buyerId))
+            // {
+            //     _logger.LogError("Buyer ID not found in the HTTP context.");
+            //     return new GenericResponseDto<AddRequestDTO>
+            //     {
+            //         Status = 400,
+            //         Message = "Buyer ID is required."
+            //     };
+            // }
+            // requestDto.BuyerId = buyerId;
+
+            
+
+            // 2. Create and add the order
+            var orderEntity = new OrderProduct
+            {
+                ProductId = requestDto.ProductId,
+                Quantity = requestDto.Quantity,
+                Price = requestDto.Price,
+                OrderType = OrderType.Request,
+                Status = OrderStatus.PendingSeller,
+                StockId = stockEntity.Id,
+                SellerId = requestDto.SellerId,
+                BuyerId = requestDto.BuyerId,
+                PaymentId = requestDto.PaymentId,
+                PaymentStatus = requestDto.PaymentStatus,
+                Description = requestDto.Description,
+                CraetedAt = DateTime.UtcNow
+            };
+
+            await _repo.OrderRepo.AddAsync(orderEntity);
+            await _repo.CompleteAsync();
+            await _repo.CommitTransactionAsync();
+
+            // 3. Map back to DTO for response
+            var responseDto = new AddRequestDTO
+            {
+                ProductId = orderEntity.ProductId,
+                Quantity = orderEntity.Quantity,
+                Price = orderEntity.Price,
+                OrderType = orderEntity.OrderType,
+                Status = orderEntity.Status,
+                StockId = orderEntity.StockId,
+                SellerId = orderEntity.SellerId,
+                BuyerId = orderEntity.BuyerId,
+                PaymentId = orderEntity.PaymentId,
+                PaymentStatus = orderEntity.PaymentStatus,
+                Description = orderEntity.Description,
+                Stock = _mapper.Map<AddStockDTO>(stockEntity)
+            };
+
+            return new GenericResponseDto<AddRequestDTO>
+            {
+                Status = 201,
+                Data = responseDto,
+                Message = "Request created successfully with associated stock."
+            };
+        }
+        catch (Exception ex)
+        {
+            await _repo.RollbackTransactionAsync();
+            _logger.LogError($"Error creating request with stock: {ex.Message}");
+            return new GenericResponseDto<AddRequestDTO>
+            {
+                Status = 500,
+                Message = $"An error occurred while creating the request: {ex.Message}"
+            };
+        }
+    }
+
 
 
     // Update Order Status By its owner(Seller)
@@ -191,6 +257,7 @@ public class OrderService : IOrderService
             };
         }
     }
+
 
 
     // Get All Orders For Seller
@@ -448,7 +515,6 @@ public class OrderService : IOrderService
                 Message = "An error occurred while retrieving Request orders."
             };
         }
-
     }
 
 
@@ -550,6 +616,14 @@ public class OrderService : IOrderService
         }
 
     }
+        // helper function
+        private string GetCurrentUserId()
+        {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+            if (string.IsNullOrEmpty(userId))
+                throw new UnauthorizedAccessException("User ID not found in token.");
 
+            return userId;
+        }
 }

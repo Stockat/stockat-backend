@@ -17,6 +17,8 @@ namespace Stockat.Core.DTOs.ProductDTOs
 
         public decimal Price { get; set; }
 
+        public int MinQuantity { get; set; }
+
         public string SellerId { get; set; } = string.Empty;
 
         public string SellerName { get; set; } = string.Empty;

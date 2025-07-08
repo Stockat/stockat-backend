@@ -95,7 +95,7 @@ namespace Stockat.API.Controllers
         }
 
         // Get All Stocks For a Specific Product
-        [HttpGet("for-product/{productid}")]
+        [HttpGet("for-product/{productId}")]
         public async Task<IActionResult> GetStocksForProductAsync(int productId)
         {
             if (productId <= 0)

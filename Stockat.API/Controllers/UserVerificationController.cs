@@ -59,4 +59,49 @@ public class UserVerificationController : ControllerBase
         var response = await _serviceManager.UserVerificationService.DeleteAsync();
         return StatusCode(response.Status, response);
     }
+
+    // api/UserVerification/status
+    [HttpPut("status")]
+    [Authorize(Roles = "Admin")]
+    [ServiceFilter(typeof(ValidationFilterAttribute))]
+    public async Task<IActionResult> UpdateStatus([FromBody] UserVerificationStatusUpdateDto dto)
+    {
+        var response = await _serviceManager.UserVerificationService.UpdateStatusByAdminAsync(dto);
+        return StatusCode(response.Status, response);
+    }
+
+    // Admin-specific endpoints
+    // GET: api/UserVerification/admin/pending
+    [HttpGet("admin/pending")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetPendingVerifications(
+        [FromQuery] int page = 1, 
+        [FromQuery] int size = 10,
+        [FromQuery] string searchTerm = null)
+    {
+        var response = await _serviceManager.UserVerificationService.GetPendingVerificationsAsync(page, size, searchTerm);
+        return StatusCode(response.Status, response);
+    }
+
+    // GET: api/UserVerification/admin/statistics
+    [HttpGet("admin/statistics")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetVerificationStatistics()
+    {
+        var response = await _serviceManager.UserVerificationService.GetVerificationStatisticsAsync();
+        return StatusCode(response.Status, response);
+    }
+
+    // GET: api/UserVerification/admin/all
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllVerifications(
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 10,
+        [FromQuery] string status = null,
+        [FromQuery] string searchTerm = null)
+    {
+        var response = await _serviceManager.UserVerificationService.GetAllVerificationsAsync(page, size, status, searchTerm);
+        return StatusCode(response.Status, response);
+    }
 }

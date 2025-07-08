@@ -218,4 +218,27 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
     {
         return await _context.Set<T>().CountAsync(criteria);
     }
+
+    public async Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, string[] includes = null, int skip = 0)
+    {
+        IQueryable<T> query = _context.Set<T>();
+        if (includes != null)
+            foreach (var include in includes)
+                query = query.Include(include);
+        return await query.Where(criteria).Skip(skip).ToListAsync();
+    }
+
+    public async Task<IEnumerable<T>> FindAllAsync(Expression<Func<T, bool>> criteria, int skip, int take, object includes)
+    {
+        IQueryable<T> query = _context.Set<T>();
+        if (includes != null)
+        {
+            if (includes is string[] stringIncludes)
+            {
+                foreach (var include in stringIncludes)
+                    query = query.Include(include);
+            }
+        }
+        return await query.Where(criteria).Skip(skip).Take(take).ToListAsync();
+    }
 }

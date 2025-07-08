@@ -8,7 +8,10 @@ using Stockat.Core.Entities;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IServices;
 using Stockat.Service.Services;
+using Stockat.Core.Helpers;
+using Stockat.Core.Enums;
 using System.Security.Claims;
+using System.Linq.Expressions;
 
 public class UserService : IUserService
 {
@@ -216,6 +219,227 @@ public class UserService : IUserService
         };
     }
 
+    // Admin-specific methods
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<UserReadDto>>>> GetAllUsersAsync(int page = 1, int size = 10, string searchTerm = null, bool? isActive = null, bool? isVerified = null, bool? isBlocked = null)
+    {
+        int skip = (page - 1) * size;
+
+        // Build filter expression
+        Expression<Func<User, bool>> filter = u => true;
+        
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var lowerTerm = searchTerm.ToLower();
+            Expression<Func<User, bool>> searchFilter = u =>
+                u.FirstName.ToLower().Contains(lowerTerm) ||
+                u.LastName.ToLower().Contains(lowerTerm) ||
+                u.Email.ToLower().Contains(lowerTerm) ||
+                u.UserName.ToLower().Contains(lowerTerm);
+            filter = filter.And(searchFilter);
+        }
+
+        if (isActive.HasValue)
+        {
+            var activeFilter = (Expression<Func<User, bool>>)(u => u.IsDeleted == !isActive.Value);
+            filter = filter.And(activeFilter);
+        }
+
+        if (isVerified.HasValue)
+        {
+            if (isVerified.Value)
+            {
+                var verifiedFilter = (Expression<Func<User, bool>>)(u => u.UserVerification != null && u.UserVerification.Status == VerificationStatus.Approved);
+                filter = filter.And(verifiedFilter);
+            }
+            else
+            {
+                var unverifiedFilter = (Expression<Func<User, bool>>)(u => u.UserVerification == null || u.UserVerification.Status != VerificationStatus.Approved);
+                filter = filter.And(unverifiedFilter);
+            }
+        }
+
+        // Blocked filter
+        if (isBlocked.HasValue)
+        {
+            if (isBlocked.Value)
+            {
+                // User has an active ban (temporary or permanent)
+                filter = filter.And(u => u.Punishments.Any(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) && (p.EndDate == null || p.EndDate > DateTime.UtcNow)));
+            }
+            else
+            {
+                // User does NOT have an active ban
+                filter = filter.And(u => !u.Punishments.Any(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) && (p.EndDate == null || p.EndDate > DateTime.UtcNow)));
+            }
+        }
+
+        var users = await _repo.UserRepo.FindAllAsync(
+            filter,
+            skip: skip,
+            take: size,
+            includes: ["UserVerification", "Punishments"]
+        );
+
+        int totalCount = await _repo.UserRepo.CountAsync(filter);
+
+        var userDtos = new List<UserReadDto>();
+        foreach (var user in users)
+        {
+            var dto = _mapper.Map<UserReadDto>(user);
+            dto.IsApproved = user.IsApproved;
+            dto.IsDeleted = user.IsDeleted;
+            
+            var roles = await _userManager.GetRolesAsync(user);
+            dto.Roles = roles.ToList();
+
+            // Add punishment info
+            var currentPunishment = user.Punishments?
+                .Where(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) &&
+                           (p.EndDate == null || p.EndDate > DateTime.UtcNow))
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefault();
+
+            if (currentPunishment != null)
+            {
+                dto.CurrentPunishment = new PunishmentInfoDto
+                {
+                    Type = currentPunishment.Type.ToString(),
+                    Reason = currentPunishment.Reason,
+                    EndDate = currentPunishment.EndDate
+                };
+            }
+
+            userDtos.Add(dto);
+        }
+
+        var result = new PaginatedDto<IEnumerable<UserReadDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = totalCount,
+            PaginatedData = userDtos
+        };
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<UserReadDto>>>
+        {
+            Message = "Users retrieved successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = result
+        };
+    }
+
+    public async Task<GenericResponseDto<string>> DeactivateUserAsync(string userId)
+    {
+        var user = await _repo.UserRepo.GetByIdAsync(userId);
+        if (user == null)
+            throw new NotFoundException("User not found.");
+
+        if (user.IsDeleted)
+            throw new BadRequestException("User is already deactivated.");
+
+        user.IsDeleted = true;
+        _repo.UserRepo.Update(user);
+        await _repo.CompleteAsync();
+
+        // Send email notification
+        var emailBody = $@"
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+            <h2 style='color: #dc3545;'>Account Deactivated</h2>
+            <p>Dear {user.FirstName},</p>
+            <p>Your account has been deactivated by an administrator.</p>
+            <p>If you believe this was done in error, please contact our support team.</p>
+            <p>Best regards,<br>Stockat Support</p>
+        </div>";
+
+        await _emailService.SendEmailAsync(user.Email, "Account Deactivated - Stockat", emailBody);
+
+        return new GenericResponseDto<string>
+        {
+            Message = "User deactivated successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = userId
+        };
+    }
+
+    public async Task<GenericResponseDto<string>> ActivateUserAsync(string userId)
+    {
+        var user = await _repo.UserRepo.GetByIdAsync(userId);
+        if (user == null)
+            throw new NotFoundException("User not found.");
+
+        if (!user.IsDeleted)
+            throw new BadRequestException("User is already active.");
+
+        user.IsDeleted = false;
+        _repo.UserRepo.Update(user);
+        await _repo.CompleteAsync();
+
+        // Send email notification
+        var emailBody = $@"
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+            <h2 style='color: #28a745;'>Account Reactivated</h2>
+            <p>Dear {user.FirstName},</p>
+            <p>Your account has been reactivated by an administrator.</p>
+            <p>You can now access your account normally.</p>
+            <p>Best regards,<br>Stockat Support</p>
+        </div>";
+
+        await _emailService.SendEmailAsync(user.Email, "Account Reactivated - Stockat", emailBody);
+
+        return new GenericResponseDto<string>
+        {
+            Message = "User activated successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = userId
+        };
+    }
+
+    public async Task<GenericResponseDto<UserReadDto>> GetUserWithDetailsAsync(string userId)
+    {
+        var includes = new[] { "UserVerification", "Punishments", "Products", "Services", "CreatedAuctions" };
+
+        var user = await _repo.UserRepo.FindAsync(u => u.Id == userId, includes);
+        if (user == null)
+            throw new NotFoundException("User not found.");
+
+        var dto = _mapper.Map<UserReadDto>(user);
+        dto.IsApproved = user.IsApproved;
+        dto.IsDeleted = user.IsDeleted;
+
+        var roles = await _userManager.GetRolesAsync(user);
+        dto.Roles = roles.ToList();
+
+        // Add detailed punishment info
+        var allPunishments = user.Punishments?.OrderByDescending(p => p.CreatedAt).ToList() ?? new List<UserPunishment>();
+        dto.PunishmentHistory = allPunishments.Select(p => new PunishmentHistoryDto
+        {
+            Type = p.Type.ToString(),
+            Reason = p.Reason,
+            StartDate = p.StartDate,
+            EndDate = p.EndDate,
+            IsActive = (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) &&
+                      (p.EndDate == null || p.EndDate > DateTime.UtcNow)
+        }).ToList();
+
+        // Add statistics
+        dto.Statistics = new UserStatisticsDto
+        {
+            TotalProducts = user.Products?.Count ?? 0,
+            TotalServices = user.Services?.Count ?? 0,
+            TotalAuctions = user.CreatedAuctions?.Count ?? 0,
+            TotalPunishments = allPunishments.Count,
+            ActivePunishments = allPunishments.Count(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) &&
+                                                         (p.EndDate == null || p.EndDate > DateTime.UtcNow))
+        };
+
+        return new GenericResponseDto<UserReadDto>
+        {
+            Message = "User details retrieved successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = dto
+        };
+    }
+
     // Helper
     private string GetCurrentUserId()
     {
@@ -223,6 +447,76 @@ public class UserService : IUserService
         if (string.IsNullOrEmpty(userId))
             throw new UnauthorizedAccessException("User ID not found in token.");
         return userId;
+    }
+
+    public async Task<GenericResponseDto<object>> GetUserStatisticsAsync()
+    {
+        // Total users
+        var total = await _repo.UserRepo.CountAsync(u => true);
+        // Active users (not deleted)
+        var active = await _repo.UserRepo.CountAsync(u => !u.IsDeleted);
+        // Inactive users (deleted)
+        var inactive = await _repo.UserRepo.CountAsync(u => u.IsDeleted);
+        // Verified users
+        var verified = await _repo.UserRepo.CountAsync(u => u.UserVerification != null && u.UserVerification.Status == VerificationStatus.Approved);
+        // Unverified users
+        var unverified = await _repo.UserRepo.CountAsync(u => u.UserVerification != null && u.UserVerification.Status == VerificationStatus.Pending);
+        // Blocked users (active ban)
+        var blocked = await _repo.UserRepo.CountAsync(u => u.Punishments.Any(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) && (p.EndDate == null || p.EndDate > DateTime.UtcNow)));
+
+        var stats = new {
+            total,
+            active,
+            inactive,
+            verified,
+            unverified,
+            blocked
+        };
+
+        return new GenericResponseDto<object>
+        {
+            Message = "User statistics retrieved successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = stats
+        };
+    }
+
+    public async Task<GenericResponseDto<string>> UpgradeToSellerAsync()
+    {
+        var userId = GetCurrentUserId();
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            throw new NotFoundException("User not found.");
+
+        var roles = await _userManager.GetRolesAsync(user);
+        if (roles.Contains("Seller"))
+        {
+            return new GenericResponseDto<string>
+            {
+                Message = "User is already a seller.",
+                Status = StatusCodes.Status400BadRequest,
+                Data = userId
+            };
+        }
+
+        var result = await _userManager.AddToRoleAsync(user, "Seller");
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            return new GenericResponseDto<string>
+            {
+                Message = "Failed to upgrade to seller: " + errors,
+                Status = StatusCodes.Status400BadRequest,
+                Data = userId
+            };
+        }
+
+        return new GenericResponseDto<string>
+        {
+            Message = "User upgraded to seller successfully.",
+            Status = StatusCodes.Status200OK,
+            Data = userId
+        };
     }
 
 }

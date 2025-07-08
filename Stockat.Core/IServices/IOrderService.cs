@@ -23,5 +23,6 @@ namespace Stockat.Core.IServices
         public Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllBuyerOrdersAsync();
         public Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllBuyerRequestOrdersAsync();
 
+        public Task<GenericResponseDto<AddRequestDTO>> AddRequestAsync(AddRequestDTO requestDto);
     }
 }

@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Stockat.API.ActionFilters;
 using Stockat.Core;
 using Stockat.Core.DTOs.UserDTOs;
-using Stockat.API.ActionFilters;
+using System.Security.Claims;
 
 namespace Stockat.API.Controllers;
 
@@ -66,5 +67,78 @@ public class UserController : ControllerBase
     {
         var response = await _serviceManager.UserService.ToggleActivationAsync();
         return StatusCode(response.Status, response);
+    }
+
+    // Admin-specific endpoints
+    // GET: api/User/admin/all
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllUsers(
+        [FromQuery] int page = 1, 
+        [FromQuery] int size = 10, 
+        [FromQuery] string? searchTerm = null, 
+        [FromQuery] bool? isActive = null, 
+        [FromQuery] bool? isVerified = null,
+        [FromQuery] bool? isBlocked = null)
+    {
+        var response = await _serviceManager.UserService.GetAllUsersAsync(page, size, searchTerm, isActive, isVerified, isBlocked);
+        return StatusCode(response.Status, response);
+    }
+
+    // GET: api/User/admin/{userId}/details
+    [HttpGet("admin/{userId}/details")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetUserWithDetails(string userId)
+    {
+        var response = await _serviceManager.UserService.GetUserWithDetailsAsync(userId);
+        return StatusCode(response.Status, response);
+    }
+
+    // PUT: api/User/admin/{userId}/deactivate
+    [HttpPut("admin/{userId}/deactivate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeactivateUser(string userId)
+    {
+        var response = await _serviceManager.UserService.DeactivateUserAsync(userId);
+        return StatusCode(response.Status, response);
+    }
+
+    // PUT: api/User/admin/{userId}/activate
+    [HttpPut("admin/{userId}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ActivateUser(string userId)
+    {
+        var response = await _serviceManager.UserService.ActivateUserAsync(userId);
+        return StatusCode(response.Status, response);
+    }
+
+    // GET: api/User/admin/statistics
+    [HttpGet("admin/statistics")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetUserStatistics()
+    {
+        var response = await _serviceManager.UserService.GetUserStatisticsAsync();
+        return StatusCode(response.Status, response);
+    }
+
+    [HttpPost("upgrade-to-seller")]
+    public async Task<IActionResult> UpgradeToSeller()
+    {
+        var result = await _serviceManager.UserService.UpgradeToSellerAsync();
+        if (result.Status != 200)
+            return StatusCode(result.Status, result);
+
+        // Generate a new token with the new role
+        var userId = GetCurrentUserId();
+        var tokenDto = await _serviceManager.AuthenticationService.CreateToken(true, userId);
+        return Ok(new { message = result.Message, token = tokenDto });
+    }
+
+    private string GetCurrentUserId()
+    {
+        var userId = HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            throw new UnauthorizedAccessException("User ID not found in token.");
+        return userId;
     }
 }

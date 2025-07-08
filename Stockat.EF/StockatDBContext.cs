@@ -26,13 +26,13 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<StockDetails> StockDetails { get; set; }
     public virtual DbSet<Stock> Stocks { get; set; }
     public virtual DbSet<UserVerification> UserVerification { get; set; }
+    public virtual DbSet<UserPunishment> UserPunishments { get; set; }
     public virtual DbSet<Auction> Auction { get; set; }
     public virtual DbSet<AuctionBidRequest> AuctionBidRequest { get; set; }
     public virtual DbSet<AuctionOrder> AuctionOrder { get; set; }
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<OrderProduct> OrderProduct { get; set; }
-    //public virtual DbSet<RequestProduct> RequestProduct { get; set; }
 
 
 
