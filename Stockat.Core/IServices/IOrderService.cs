@@ -52,5 +52,7 @@ namespace Stockat.Core.IServices
 
         // 
         public Task<OrderProduct> getOrderByIdAsync(int id);
+
+        public Task InvoiceGeneratorAsync(int orderid);
     }
 }

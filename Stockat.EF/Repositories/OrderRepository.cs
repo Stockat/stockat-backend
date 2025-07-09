@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Stockat.Core;
 using Stockat.Core.Consts;
 using Stockat.Core.DTOs.OrderDTOs.OrderAnalysisDto;
 using Stockat.Core.Entities;

@@ -25,6 +25,9 @@ using System.Threading.Tasks;
 using Stripe.Checkout;
 using Stripe.Climate;
 using Stockat.Core.Consts;
+using Stripe;
+using CloudinaryDotNet.Actions;
+using Stockat.Core.Helpers;
 
 namespace Stockat.Service.Services;
 
@@ -34,13 +37,15 @@ public class OrderService : IOrderService
     private readonly IMapper _mapper;
     private readonly IRepositoryManager _repo;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IEmailService _emailService;
 
-    public OrderService(ILoggerManager logger, IMapper mapper, IRepositoryManager repo, IHttpContextAccessor httpContextAccessor)
+    public OrderService(ILoggerManager logger, IMapper mapper, IRepositoryManager repo, IHttpContextAccessor httpContextAccessor, IEmailService emailService)
     {
         _logger = logger;
         _mapper = mapper;
         _repo = repo;
         _httpContextAccessor = httpContextAccessor;
+        _emailService = emailService;
     }
 
     // Add Order
@@ -992,5 +997,16 @@ public class OrderService : IOrderService
         };
     }
 
+    // Invoice Generator 
+    public async Task InvoiceGeneratorAsync(int orderid)
+    {
 
+        var order = await _repo.OrderRepo.FindAsync(o => o.Id == orderid, ["Product"]);
+        var user = await _repo.UserRepo.GetByIdAsync(order.BuyerId);
+        var invoice = InvoiceGenerator.CreateInvoice(order.PaymentId, order.PaymentDate.ToString(), "Credit Card", order.Product.Name,
+        order.Quantity, order.Price, "stockatgroup@gmail.com");
+
+        await _emailService.SendEmailAsync(user.Email, "Payment Receipt", invoice);
+
+    }
 }
