@@ -24,6 +24,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Stripe.Checkout;
 using Stripe.Climate;
+using Stockat.Core.Consts;
 
 namespace Stockat.Service.Services;
 
@@ -81,7 +82,7 @@ public class OrderService : IOrderService
                     Currency = "usd",
                     ProductData = new SessionLineItemPriceDataProductDataOptions
                     {
-                        Name = orderDto.ProductName,
+                        Name = string.IsNullOrEmpty(orderDto.ProductName) ? "FixedName" : orderDto.ProductName,
                     }
                 },
                 Quantity = orderEntity.Quantity,
@@ -405,6 +406,53 @@ public class OrderService : IOrderService
                 Message = "An error occurred while updating the order status."
             };
         }
+    }
+
+    public async Task<GenericResponseDto<OrderDTO>> UpdateRequestOrderStatusAsync(UpdateReqDto updateReq)
+    {
+
+        try
+        {
+            // Fetch the order by ID
+            var order = await _repo.OrderRepo.GetByIdAsync(updateReq.Id);
+            if (order == null)
+            {
+                _logger.LogError($"Order with ID {updateReq.Id} not found.");
+                return new GenericResponseDto<OrderDTO>
+                {
+                    Status = 404,
+                    Message = "Order not found."
+                };
+            }
+
+            order.Status = OrderStatus.PendingBuyer;
+            order.Price = updateReq.Price;
+            order.EstimatedDeliveryTime = updateReq.DeliveryDate;
+
+            _repo.OrderRepo.Update(order);
+            await _repo.CompleteAsync();
+
+            var orderDto = _mapper.Map<OrderDTO>(order);
+
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 200,
+                Data = orderDto,
+                Message = "Order status updated successfully."
+            };
+
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error updating Req order status: {ex.Message}");
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 500,
+                Message = "An error occurred while updating the Req order status."
+            };
+        }
+
     }
 
     // Cancel Order On Payment Faliure

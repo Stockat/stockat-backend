@@ -25,6 +25,7 @@ public class OrderProduct
 
     public OrderStatus Status { get; set; }
     public DateTime CraetedAt { get; set; } = DateTime.Now;
+    public DateTime? EstimatedDeliveryTime { get; set; } =null;
 
     public string? SessionId { get; set; }
 

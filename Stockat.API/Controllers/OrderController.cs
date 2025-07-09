@@ -85,6 +85,31 @@ public class OrderController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the order status.");
         }
     }
+    // Update Order Status
+
+    [HttpPut("request/{id}")]
+    public IActionResult UpdateRequestToPendingBuyerStatus(int id, [FromBody] UpdateReqDto updateReqDto)
+    {
+        // Validate the input
+        if (updateReqDto.Status == null)
+        {
+            _logger.LogError("UpdateOrderStatus: Status is null.");
+            return BadRequest("Order status is required.");
+        }
+        try
+        {
+            // Call the service to update the order status
+            var response = _serviceManager.OrderService.UpdateRequestOrderStatusAsync(updateReqDto).Result;
+            // Return the response
+            return StatusCode(response.Status, response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"UpdateRequestToPendingBuyerStatus: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the Req order status.");
+        }
+        return Ok();
+    }
 
 
     // Cancel Order On Payment Failure
