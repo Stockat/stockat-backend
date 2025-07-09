@@ -31,6 +31,7 @@ public interface IProductService
     public Task<int> AddProductAsync(AddProductDto productDto);
     public Task<int> UpdateProduct(int id, UpdateProductDto productDto);
     public Task<GenericResponseDto<string>> ChangeProductStatus(int id, ProductStatus chosenStatus);
+    public Task<GenericResponseDto<string>> ChangeProductStatusWithReason(int id, ProductStatus chosenStatus, string reason);
     public Task<GenericResponseDto<string>> RemoveProduct(int id);
     public Task<GenericResponseDto<string>> ChangeCanBeRequested(int id);
 
