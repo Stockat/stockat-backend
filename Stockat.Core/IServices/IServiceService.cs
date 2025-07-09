@@ -8,7 +8,7 @@ namespace Stockat.Core.IServices;
 public interface IServiceService
 {
     Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetAllAvailableServicesAsync(int page, int size);
-    Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetSellerServicesAsync(string sellerId, int skip, int take);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetSellerServicesAsync(string sellerId, int skip, int take, bool isPublicView = false);
     Task<ServiceDto> GetServiceByIdAsync(int serviceId);
     Task<ServiceDto> CreateAsync(CreateServiceDto dto, string sellerId);
     Task<ServiceDto> UpdateAsync(int serviceId, UpdateServiceDto dto, string sellerId);

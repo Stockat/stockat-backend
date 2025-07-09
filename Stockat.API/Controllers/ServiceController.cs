@@ -69,9 +69,13 @@ public class ServiceController : ControllerBase
             await _service.ServiceService.DeleteAsync(serviceId, sellerId);
             return NoContent();
         }
-        catch (UnauthorizedAccessException ex)
+        catch (BadRequestException ex)
         {
-            return Forbid($"You do not have permission to delete this service: {ex.Message}");
+            return BadRequest($"Cannot delete service: {ex.Message}");
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound($"Service with ID {serviceId} not found: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -124,12 +128,8 @@ public class ServiceController : ControllerBase
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> UpdateService(int serviceId, [FromBody] UpdateServiceDto dto)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(sellerId))
-            return Unauthorized("Seller ID is required.");
-
-        var updatedService = await _service.ServiceService.UpdateAsync(serviceId, dto, sellerId);
-        return Ok(updatedService);
+        // Sellers must use the edit request flow. Only Admin can update directly (if needed).
+        return Forbid("Sellers must submit an edit request instead of direct update.");
     }
 
 

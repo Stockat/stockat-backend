@@ -241,4 +241,9 @@ public class BaseRepository<T> : IBaseRepository<T> where T : class
         }
         return await query.Where(criteria).Skip(skip).Take(take).ToListAsync();
     }
+
+    public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
+    {
+        return await _context.Set<T>().AnyAsync(predicate);
+    }
 }

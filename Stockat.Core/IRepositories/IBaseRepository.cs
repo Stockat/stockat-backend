@@ -36,4 +36,5 @@ public interface IBaseRepository<T> where T : class
     int Count(Expression<Func<T, bool>> criteria);
     Task<int> CountAsync(Expression<Func<T, bool>> criteria);
     Task DeleteAsync(System.Linq.Expressions.Expression<System.Func<T, bool>> predicate);
+    Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
 }

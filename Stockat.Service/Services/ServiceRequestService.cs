@@ -18,13 +18,17 @@ public class ServiceRequestService : IServiceRequestService
     private readonly IRepositoryManager _repo;
     private readonly IEmailService _emailService;
     private readonly IUserService _userService;
+    private readonly IServiceEditRequestService _serviceEditRequestService;
+
 
     public ServiceRequestService(
         ILoggerManager logger,
         IMapper mapper,
         IRepositoryManager repo,
         IEmailService emailService,
-        IUserService userService
+        IUserService userService,
+        IServiceEditRequestService serviceEditRequestService
+
         )
     {
         _logger = logger;
@@ -32,6 +36,7 @@ public class ServiceRequestService : IServiceRequestService
         _repo = repo;
         _emailService = emailService;
         _userService = userService;
+        _serviceEditRequestService = serviceEditRequestService;
     }
 
     public async Task<ServiceRequestDto> CreateAsync(CreateServiceRequestDto dto, string buyerId)
@@ -338,6 +343,18 @@ public class ServiceRequestService : IServiceRequestService
             "Service Request Status Update",
             $"The status of your service request '{request.Service.Name}' has been updated to {dto.Status} by the seller {request.Service.Seller.FirstName} {request.Service.Seller.LastName}."
         );
+
+        // Check if the service is now free to apply deferred edit
+        bool hasOtherActive = await _repo.ServiceRequestRepo.AnyAsync(sr =>
+            sr.ServiceId == request.ServiceId &&
+            sr.ServiceStatus != ServiceStatus.Delivered &&
+            sr.ServiceStatus != ServiceStatus.Cancelled
+        );
+
+        if (!hasOtherActive)
+        {
+            await _serviceEditRequestService.ApplyDeferredEditsAsync(request.ServiceId);
+        }
 
         _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");
         return _mapper.Map<ServiceRequestDto>(request);
