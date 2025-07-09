@@ -18,5 +18,11 @@ namespace Stockat.Core.IServices.IAuctionServices
 
         Task UpdateOrderStatusAsync(int orderId, OrderStatus newStatus);
 
+        // New: Mark payment as failed
+        Task MarkPaymentFailedAsync(int orderId, string reason = null);
+
+        // New: Update address/order info fields
+        Task UpdateOrderAddressInfoAsync(int orderId, string shippingAddress, string recipientName, string phoneNumber, string notes);
+
     }
 }

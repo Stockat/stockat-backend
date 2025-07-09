@@ -78,19 +78,82 @@ namespace Stockat.Service.Services.AuctionServices
             }
         }
 
+        public async Task MarkPaymentFailedAsync(int orderId, string reason = null)
+        {
+            await _repositoryManager.BeginTransactionAsync();
+            try
+            {
+                var order = await _repositoryManager.AuctionOrderRepo.GetByIdAsync(orderId);
+                if (order == null)
+                    throw new KeyNotFoundException($"Order with ID {orderId} not found.");
+                order.Status = OrderStatus.PaymentFailed;
+                order.PaymentStatus = false;
+                order.Notes = reason;
+                _repositoryManager.AuctionOrderRepo.Update(order);
+                await _repositoryManager.CompleteAsync();
+                await _repositoryManager.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _repositoryManager.RollbackTransactionAsync();
+                throw new InvalidOperationException("Failed to mark payment as failed.", ex);
+            }
+        }
+
+        public async Task UpdateOrderAddressInfoAsync(int orderId, string shippingAddress, string recipientName, string phoneNumber, string notes)
+        {
+            await _repositoryManager.BeginTransactionAsync();
+            try
+            {
+                var order = await _repositoryManager.AuctionOrderRepo.GetByIdAsync(orderId);
+                if (order == null)
+                    throw new KeyNotFoundException($"Order with ID {orderId} not found.");
+                order.ShippingAddress = shippingAddress;
+                order.RecipientName = recipientName;
+                order.PhoneNumber = phoneNumber;
+                order.Notes = notes;
+                _repositoryManager.AuctionOrderRepo.Update(order);
+                await _repositoryManager.CompleteAsync();
+                await _repositoryManager.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _repositoryManager.RollbackTransactionAsync();
+                throw new InvalidOperationException("Failed to update order address info.", ex);
+            }
+        }
+
         public async Task UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
         {
             await _repositoryManager.BeginTransactionAsync();
-
             try
             {
                 var order = await _repositoryManager.AuctionOrderRepo.GetByIdAsync(orderId);
                 if (order == null)
                     throw new KeyNotFoundException($"Order with ID {orderId} not found.");
 
-                order.Status = newStatus;
+                // Enforce allowed forward transitions only
+                var currentStatus = order.Status;
+                if (!IsValidStatusTransition(currentStatus, newStatus))
+                    throw new InvalidOperationException($"Invalid status transition from {currentStatus} to {newStatus}.");
 
+                order.Status = newStatus;
                 _repositoryManager.AuctionOrderRepo.Update(order);
+
+                // If cancelled, restore stock status
+                if (newStatus == OrderStatus.Cancelled)
+                {
+                    var auction = await _repositoryManager.AuctionRepo.GetByIdAsync(order.AuctionId);
+                    if (auction != null)
+                    {
+                        var stock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId);
+                        if (stock != null)
+                        {
+                            stock.StockStatus = Stockat.Core.Enums.StockStatus.ForSale;
+                            _repositoryManager.StockRepo.Update(stock);
+                        }
+                    }
+                }
 
                 await _repositoryManager.CompleteAsync();
                 await _repositoryManager.CommitTransactionAsync();
@@ -100,6 +163,36 @@ namespace Stockat.Service.Services.AuctionServices
                 await _repositoryManager.RollbackTransactionAsync();
                 throw new InvalidOperationException("Failed to update order status.", ex);
             }
+        }
+
+        // Helper: Only allow forward transitions per role
+        private bool IsValidStatusTransition(OrderStatus? current, OrderStatus next)
+        {
+            // Define allowed transitions (forward only)
+            var transitions = new Dictionary<OrderStatus, List<OrderStatus>>
+            {
+                // Buyer
+                { OrderStatus.PendingBuyer, new List<OrderStatus> { OrderStatus.Payed, OrderStatus.Cancelled } },
+                { OrderStatus.Payed, new List<OrderStatus> { OrderStatus.Processing } },
+                { OrderStatus.Shipped, new List<OrderStatus> { OrderStatus.Delivered } },
+                { OrderStatus.Delivered, new List<OrderStatus> { OrderStatus.Completed } },
+                // Seller
+                { OrderStatus.PendingSeller, new List<OrderStatus> { OrderStatus.Processing, OrderStatus.Cancelled } },
+                { OrderStatus.Processing, new List<OrderStatus> { OrderStatus.Ready } },
+                { OrderStatus.Ready, new List<OrderStatus> { OrderStatus.Shipped } },
+                // Admin (can do all forward transitions)
+                { OrderStatus.Pending, new List<OrderStatus> { OrderStatus.Processing, OrderStatus.Ready, OrderStatus.Shipped, OrderStatus.Delivered, OrderStatus.Completed, OrderStatus.Cancelled, OrderStatus.PaymentFailed } },
+                { OrderStatus.PaymentFailed, new List<OrderStatus> { OrderStatus.Cancelled } },
+            };
+            if (current == null) return false;
+            if (transitions.TryGetValue(current.Value, out var allowed))
+            {
+                return allowed.Contains(next);
+            }
+            // Allow admin to set to Cancelled, PaymentFailed, Completed at any stage (forward only)
+            if (next == OrderStatus.Cancelled || next == OrderStatus.PaymentFailed || next == OrderStatus.Completed)
+                return true;
+            return false;
         }
 
 

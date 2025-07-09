@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+//using Microsoft.AspNetCore.SignalR;
 
 namespace Stockat.Service;
 
@@ -107,8 +108,9 @@ public sealed class ServiceManager : IServiceManager
 
     public IAuctionOrderService AuctionOrderService => _auctionOrderService.Value;
 
-    public ICategoryService CategoryService => _categoryService.Value;
-    public ITagService TagService => _tagService.Value;
-
     public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+
+    public ICategoryService CategoryService => _categoryService.Value;
+
+    public ITagService TagService => _tagService.Value;
 }

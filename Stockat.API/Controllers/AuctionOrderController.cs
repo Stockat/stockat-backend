@@ -92,5 +92,33 @@ namespace Stockat.API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("payment-failed/{orderId}")]
+        public async Task<IActionResult> MarkPaymentFailed(int orderId, [FromBody] string reason = null)
+        {
+            try
+            {
+                await _serviceManager.AuctionOrderService.MarkPaymentFailedAsync(orderId, reason);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("{orderId}/address-info")]
+        public async Task<IActionResult> UpdateOrderAddressInfo(int orderId, [FromBody] AuctionOrderDto dto)
+        {
+            try
+            {
+                await _serviceManager.AuctionOrderService.UpdateOrderAddressInfoAsync(orderId, dto.ShippingAddress, dto.RecipientName, dto.PhoneNumber, dto.Notes);
+                return Ok(new { message = "Order address info updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

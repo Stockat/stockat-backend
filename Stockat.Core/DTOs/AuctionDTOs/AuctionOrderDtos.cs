@@ -11,6 +11,11 @@ namespace Stockat.Core.DTOs.AuctionDTOs
     {
         public int AuctionId { get; set; }
         public int WinningBidId { get; set; }
+        // New fields for shipping/order info
+        public string? ShippingAddress { get; set; }
+        public string? RecipientName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class AuctionOrderDto
@@ -23,6 +28,11 @@ namespace Stockat.Core.DTOs.AuctionDTOs
         public int AuctionId { get; set; }
         public int WinningBidId { get; set; }
         public decimal AmountPaid { get; set; }
+        // New fields for shipping/order info
+        public string? ShippingAddress { get; set; }
+        public string? RecipientName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class ProcessPaymentDto

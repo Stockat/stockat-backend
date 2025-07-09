@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Stockat.Core;
 using Stockat.Core.DTOs.AuctionDTOs;
 using Stockat.Core.IServices;
+using Stockat.API.Hubs;
+using Stockat.API.Services;
+using Stockat.Core.IServices.IAuctionServices;
 
 namespace Stockat.API.Controllers
 {
@@ -10,16 +14,31 @@ namespace Stockat.API.Controllers
     public class AuctionBidRequestController : ControllerBase
     {
         private readonly IServiceManager _serviceManager;
+        private readonly IAuctionNotificationService _notificationService;
 
-        public AuctionBidRequestController(IServiceManager serviceManager)
+        public AuctionBidRequestController(IServiceManager serviceManager, IAuctionNotificationService notificationService)
         {
             _serviceManager = serviceManager;
+            _notificationService = notificationService;
         }
 
         [HttpPost]
         public async Task<ActionResult<AuctionBidRequestDto>> CreateBid(AuctionBidRequestCreateDto dto)
         {
             var bid = await _serviceManager.AuctionBidRequestService.CreateBidAsync(dto);
+            
+            // Send real-time update to all users watching this auction
+            try
+            {
+                var auction = await _serviceManager.AuctionService.GetAuctionDetailsAsync(dto.AuctionId);
+                await _notificationService.NotifyBidPlacedAsync(bid, auction);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't fail the bid creation
+                // You might want to add proper logging here
+            }
+            
             return CreatedAtAction(nameof(GetBid), new { id = bid.Id }, bid);
         }
 

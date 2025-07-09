@@ -99,5 +99,11 @@ namespace Stockat.Core.Entities
 
         public int AuctionRequestId { get; set; }
         public AuctionBidRequest AuctionRequest { get; set; }
+
+        // New fields for shipping/order info
+        public string? ShippingAddress { get; set; }
+        public string? RecipientName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Notes { get; set; }
     }
 }
