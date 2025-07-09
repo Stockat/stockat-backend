@@ -39,3 +39,11 @@ public class UpdateRequestDTO
     public string PaymentStatus { get; set; } // Status of the payment (e.g., Completed, Failed)
     public string Description { get; set; } // Optional description for the request
 }
+
+public class UpdateReqDto
+{
+    public int Id { get; set; }
+    public OrderStatus Status { get; set; }
+    public decimal Price { get; set; }
+    public DateTime DeliveryDate { get; set; }
+}
