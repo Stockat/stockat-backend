@@ -52,7 +52,8 @@ public class ProductProfile : Profile
 
         // View Seller Product
         CreateMap<Product, GetSellerProductDto>()
-                 .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.Images.Select(img => img.ImageUrl)));
+                 .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.Images.Select(img => img.ImageUrl)))
+                 .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.RejectionReason));
 
         CreateMap<Product, ProductWithFeaturesDTO>()
             .ForMember(dest => dest.Images,

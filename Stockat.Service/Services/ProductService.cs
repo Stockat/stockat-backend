@@ -371,6 +371,26 @@ public class ProductService : IProductService
             Status = 200
         };
     }
+    public async Task<GenericResponseDto<string>> ChangeProductStatusWithReason(int id, ProductStatus chosenStatus, string reason)
+    {
+        var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false);
+
+        if (product == null)
+            throw new NotFoundException($"Product With Id:{id} Not Found, please Contact with Admin for further information");
+
+        product.ProductStatus = chosenStatus;
+        product.RejectionReason = reason;
+
+        _repo.ProductRepository.Update(product);
+        await _repo.CompleteAsync();
+
+        return new GenericResponseDto<string>()
+        {
+            Data = "",
+            Message = "Product Status Updated",
+            Status = 200
+        };
+    }
     public async Task<GenericResponseDto<string>> RemoveProduct(int id)
     {
         var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false);

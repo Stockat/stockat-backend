@@ -38,6 +38,7 @@ public class Product
     public bool isDeleted { get; set; } = false;
     public bool canBeRequested { get; set; } = true;
     public string Location { get; set; } = string.Empty;
+    public string RejectionReason { get; set; } = string.Empty;
 
     //ForeignKey
     [Required(ErrorMessage = "Seller Id is Required")]
