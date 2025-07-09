@@ -112,7 +112,7 @@ public class ServiceEditRequestService : IServiceEditRequestService
 
     public async Task SubmitEditRequestAsync(int serviceId, string sellerId, ServiceEditRequestDto dto)
     {
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId) ?? throw new NotFoundException("Service not found.");
+        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId && !s.IsDeleted) ?? throw new NotFoundException("Service not found.");
 
         if (service.SellerId != sellerId)
         {
@@ -142,7 +142,7 @@ public class ServiceEditRequestService : IServiceEditRequestService
 
         if (editRequest == null) return;
 
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId);
+        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId && !s.IsDeleted);
         if (service == null) return;
 
         _mapper.Map(editRequest, service);

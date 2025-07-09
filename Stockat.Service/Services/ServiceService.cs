@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Linq.Expressions;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Stockat.Core;
@@ -56,14 +57,33 @@ public class ServiceService : IServiceService
         return _mapper.Map<ServiceDto>(service);
     }
 
-    public async Task DeleteAsync(int serviceId, string sellerId)
+    public async Task DeleteAsync(int serviceId, string sellerId, bool isAdmin = false)
     {
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId && s.SellerId == sellerId, includes: ["ServiceRequests"]);
+        Expression<Func<Stockat.Core.Entities.Service, bool>> expression;
+
+        if (isAdmin)
+        {
+            expression = s => s.Id == serviceId;
+        }
+        else
+        {
+            expression = s => s.Id == serviceId && s.SellerId == sellerId;
+        }
+
+        var service = await _repo.ServiceRepo.FindAsync(expression, includes: ["ServiceRequests"]);
 
         if (service == null)
         {
-            _logger.LogError($"Service with ID {serviceId} not found for seller {sellerId}.");
-            throw new NotFoundException("You do not own this service or it does not exist.");
+            if (isAdmin)
+            {
+                _logger.LogError($"Service with ID {serviceId} not found for admin deletion.");
+                throw new NotFoundException("Service not found.");
+            }
+            else
+            {
+                _logger.LogError($"Service with ID {serviceId} not found for seller {sellerId}.");
+                throw new NotFoundException("You do not own this service or it does not exist.");
+            }
         }
 
         bool hasOngoingRequests = service.ServiceRequests.Any(r =>
@@ -73,16 +93,18 @@ public class ServiceService : IServiceService
         if (hasOngoingRequests)
             throw new BadRequestException("Service has ongoing requests and cannot be deleted.");
 
-        _repo.ServiceRepo.Delete(service);
+        service.IsDeleted = true;
+
+        _repo.ServiceRepo.Update(service);
         await _repo.CompleteAsync();
     }
 
-    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetAllAvailableServicesAsync(int page, int size)
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetAllAvailableServicesAsync(int page, int size, bool pendingOnly = false)
     {
         int skip = (page - 1) * size;
-        int count = await _repo.ServiceRepo.CountAsync(s => s.IsApproved);
+        int count = await _repo.ServiceRepo.CountAsync(s => s.IsApproved == ApprovalStatus.Approved && s.IsDeleted == false);
 
-        var services = await _repo.ServiceRepo.GetAllAvailableServicesWithSeller(skip, size);
+        var services = await _repo.ServiceRepo.GetAllAvailableServicesWithSeller(skip, size, pendingOnly);
 
         if (services == null || !services.Any())
         {
@@ -138,8 +160,11 @@ public class ServiceService : IServiceService
 
         if (isPublicView)
         {
-            services = await _repo.ServiceRepo.FindAllAsync(s => s.SellerId == sellerId && s.IsApproved == true, skip, size);
-            totalCount = await _repo.ServiceRepo.CountAsync(s => s.SellerId == sellerId && s.IsApproved == true);
+            Expression<Func<Stockat.Core.Entities.Service, bool>> expression;
+            expression = s => !s.IsDeleted && s.SellerId == sellerId && s.IsApproved == ApprovalStatus.Approved;
+
+            services = await _repo.ServiceRepo.FindAllAsync(expression , skip, size);
+            totalCount = await _repo.ServiceRepo.CountAsync(expression);
         }
         else
         {
@@ -174,7 +199,7 @@ public class ServiceService : IServiceService
             throw new NotFoundException($"Service with ID {serviceId} not found.");
         }
 
-        if(service.SellerId != userId && service.IsApproved == false)
+        if(service.SellerId != userId && service.IsApproved != ApprovalStatus.Approved)
         {
             _logger.LogError($"Service with ID {serviceId} not found.");
             throw new NotFoundException($"Service with ID {serviceId} not found.");
@@ -185,7 +210,7 @@ public class ServiceService : IServiceService
 
     public async Task<ServiceDto> UpdateAsync(int serviceId, UpdateServiceDto dto, string sellerId)
     {
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId && s.SellerId == sellerId);
+        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId && !s.IsDeleted && s.SellerId == sellerId);
         if (service == null)
         {
             _logger.LogError($"Service with ID {serviceId} not found for seller {sellerId}.");
@@ -202,7 +227,7 @@ public class ServiceService : IServiceService
 
     public async Task<ImageUploadResultDto> UploadServiceImageAsync(int serviceId, string sellerId, IFormFile file)
     {
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId && s.SellerId == sellerId);
+        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId && !s.IsDeleted && s.SellerId == sellerId);
 
         if (service == null)
         {
@@ -223,7 +248,7 @@ public class ServiceService : IServiceService
 
     public async Task<ServiceDto> UpdateApprovalStatusAsync(int serviceId, bool isApproved)
     {
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId);
+        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == serviceId && !s.IsDeleted);
         
         if (service == null)
         {
@@ -231,10 +256,10 @@ public class ServiceService : IServiceService
             throw new NotFoundException($"Service with ID {serviceId} not found.");
         }
 
-        if (service.IsApproved == true)
+        if (service.IsApproved == ApprovalStatus.Approved)
             throw new BadRequestException("Service is already approved by admin.");
 
-        service.IsApproved = isApproved;
+        service.IsApproved = isApproved ? ApprovalStatus.Approved : ApprovalStatus.Rejected;
 
         _repo.ServiceRepo.Update(service);
         await _repo.CompleteAsync();

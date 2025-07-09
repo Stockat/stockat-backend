@@ -14,11 +14,12 @@ public class ServiceRepository : BaseRepository<Stockat.Core.Entities.Service>, 
         _context = context;
     }
 
-    public async Task<IEnumerable<Service>> GetAllAvailableServicesWithSeller(int skip, int take)
+    public async Task<IEnumerable<Service>> GetAllAvailableServicesWithSeller(int skip, int take, bool pendingOnly = false)
     {
         return await _context.Set<Service>()
             .Include(s => s.Seller)
-            .Where(s => s.IsApproved
+            .Where(s => (pendingOnly ? s.IsApproved == ApprovalStatus.Pending : s.IsApproved == ApprovalStatus.Approved)
+                && s.IsDeleted == false
                 && !s.Seller.IsDeleted
                 && s.Seller.UserVerification.Status == VerificationStatus.Approved
                 && !s.Seller.Punishments.Any(p =>

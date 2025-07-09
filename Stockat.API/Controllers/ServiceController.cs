@@ -65,12 +65,14 @@ public class ServiceController : ControllerBase
     {
         try
         {
-            var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(sellerId))
+            var userID = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userID))
                 return Unauthorized("Seller ID is required.");
 
+            // Check if user is admin
+            bool isAdmin = User.IsInRole("Admin");
 
-            await _service.ServiceService.DeleteAsync(serviceId, sellerId);
+            await _service.ServiceService.DeleteAsync(serviceId, userID, isAdmin);
             return NoContent();
         }
         catch (BadRequestException ex)
@@ -196,7 +198,7 @@ public class ServiceController : ControllerBase
         }
     }
 
-   [HttpPatch("{serviceId:int}/approve")]
+   [HttpPatch("approve/{serviceId:int}")]
    [Authorize(Roles = "Admin")]
    public async Task<IActionResult> ApproveService(int serviceId, [FromBody] bool isApproved)
    {
@@ -217,4 +219,12 @@ public class ServiceController : ControllerBase
            return StatusCode(500, $"An error occurred while updating service approval status: {ex.Message}");
        }
    }
+
+    [HttpGet("admin/pending")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetPendingServicesForApproval([FromQuery] int page = 1, [FromQuery] int size = 10)
+    {
+        var result = await _service.ServiceService.GetAllAvailableServicesAsync(page, size, pendingOnly: true);
+        return Ok(result);
+    }
 }

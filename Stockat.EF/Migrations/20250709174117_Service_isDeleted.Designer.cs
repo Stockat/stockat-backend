@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Stockat.EF;
 
@@ -11,9 +12,11 @@ using Stockat.EF;
 namespace Stockat.EF.Migrations
 {
     [DbContext(typeof(StockatDBContext))]
-    partial class StockatDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250709174117_Service_isDeleted")]
+    partial class Service_isDeleted
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

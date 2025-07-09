@@ -74,7 +74,7 @@ public class ServiceRequestService : IServiceRequestService
 
         // Fetch the service
         var service = await _repo.ServiceRepo.FindAsync(
-            s => s.Id == dto.ServiceId && s.IsApproved == true,
+            s => s.Id == dto.ServiceId && !s.IsDeleted && s.IsApproved == ApprovalStatus.Approved,
             includes: ["Seller"]);
 
         if (service == null)
