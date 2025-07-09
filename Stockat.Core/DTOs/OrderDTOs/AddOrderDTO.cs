@@ -14,6 +14,7 @@ namespace Stockat.Core.DTOs.OrderDTOs
         public OrderType OrderType { get; set; } = OrderType.Order; // Default to Order, can be Request
         public OrderStatus Status { get; set; } = OrderStatus.Pending; // Default to Pending
         public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
         public int StockId { get; set; }
         public string SellerId { get; set; } // Seller's UserId
         public string BuyerId { get; set; } // Buyer's UserId

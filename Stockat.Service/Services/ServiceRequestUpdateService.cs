@@ -250,13 +250,22 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
             var weeks = int.Parse(new string(timeText.Where(char.IsDigit).ToArray()));
             return TimeSpan.FromDays(weeks * 7);
         }
+        else if (timeText.Contains("month"))
+        {
+            var months = int.Parse(new string(timeText.Where(char.IsDigit).ToArray()));
+            return TimeSpan.FromDays(months * 30); // or 28/31 as you prefer
+        }
 
         throw new ArgumentException("Unsupported time format.");
     }
 
     private string FormatTimeSpan(TimeSpan span)
     {
-        if (span.TotalDays >= 7 && span.TotalDays % 7 == 0)
+        if (span.TotalDays >= 30 && span.TotalDays % 30 == 0)
+        {
+            return $"{(int)(span.TotalDays / 30)} month(s)";
+        }
+        else if (span.TotalDays >= 7 && span.TotalDays % 7 == 0)
         {
             return $"{(int)(span.TotalDays / 7)} week(s)";
         }

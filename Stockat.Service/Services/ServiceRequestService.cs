@@ -41,20 +41,42 @@ public class ServiceRequestService : IServiceRequestService
 
     public async Task<ServiceRequestDto> CreateAsync(CreateServiceRequestDto dto, string buyerId)
     {
-        // Prevent duplicate pending request for the same service by the same buyer
-        var existingPendingRequest = await _repo.ServiceRequestRepo.FindAsync(
-            r => r.ServiceId == dto.ServiceId
-              && r.BuyerId == buyerId
-              && r.ServiceStatus == ServiceStatus.Pending
+
+        var buyer = await _repo.UserRepo.FindAsync(
+            u => u.Id == buyerId,
+            includes: ["UserVerification", "Punishments"]
         );
 
-        if (existingPendingRequest != null)
+        if (buyer == null || buyer.IsDeleted || buyer.IsBlocked)
+        {
+            _logger.LogError($"Unauthorized buyer {buyerId} tried to create a service request.");
+            throw new UnauthorizedAccessException("You are not authorized to create a service request.");
+        }
+
+        if (!buyer.IsApproved)
+        {
+            throw new BadRequestException("Your account is not approved yet.");
+        }
+
+
+        // Check for existing pending request
+        var hasPending = await _repo.ServiceRequestRepo.AnyAsync(
+            r => r.ServiceId == dto.ServiceId &&
+                 r.BuyerId == buyerId &&
+                 r.ServiceStatus == ServiceStatus.Pending
+        );
+
+        if (hasPending)
         {
             throw new BadRequestException("You already have a pending request for this service.");
         }
 
+
         // Fetch the service
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == dto.ServiceId, ["Seller"]);
+        var service = await _repo.ServiceRepo.FindAsync(
+            s => s.Id == dto.ServiceId && s.IsApproved == true,
+            includes: ["Seller"]);
+
         if (service == null)
         {
             _logger.LogError($"Service with ID {dto.ServiceId} not found.");
@@ -94,8 +116,6 @@ public class ServiceRequestService : IServiceRequestService
 
         _logger.LogInfo($"Service request created successfully for service {dto.ServiceId} by buyer {buyerId}.");
 
-        var buyer = await _userService.GetUserAsync(buyerId);
-
         await _emailService.SendEmailAsync(
             service.Seller.Email,
             "New Service Request",
@@ -104,7 +124,7 @@ public class ServiceRequestService : IServiceRequestService
         );
 
         await _emailService.SendEmailAsync(
-            buyer.Data.Email,
+            buyer.Email,
             "Service Request Created",
             $"Your service request for '{service.Name}' has been created successfully. " +
             $"You will be notified once the seller responds."

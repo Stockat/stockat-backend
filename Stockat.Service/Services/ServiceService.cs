@@ -5,6 +5,7 @@ using Stockat.Core;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.MediaDTOs;
 using Stockat.Core.DTOs.ServiceDTOs;
+using Stockat.Core.Entities;
 using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IServices;
@@ -33,8 +34,17 @@ public class ServiceService : IServiceService
 
     public async Task<ServiceDto> CreateAsync(CreateServiceDto dto, string sellerId)
     {
-        var seller = await _repo.UserRepo.FindAsync(s => s.Id == sellerId);
-        
+        var seller = await _repo.UserRepo.FindAsync(u => u.Id == sellerId, includes: ["UserVerification", "Punishments"])
+        ?? throw new NotFoundException("Seller not found.");
+
+        if (seller.IsDeleted)
+            throw new BadRequestException("Your account is deleted. You cannot create a service.");
+
+        if (!seller.IsApproved)
+            throw new BadRequestException("Your account is not verified by admin yet.");
+
+        if (seller.IsBlocked)
+            throw new BadRequestException("You are currently blocked from creating services.");
 
         var service = _mapper.Map<Stockat.Core.Entities.Service>(dto);
         service.SellerId = sellerId;
@@ -56,11 +66,12 @@ public class ServiceService : IServiceService
             throw new NotFoundException("You do not own this service or it does not exist.");
         }
 
-        foreach(var request in service.ServiceRequests)
-        {
-            if (request.ServiceStatus != ServiceStatus.Delivered)
-                throw new BadRequestException("Service has ongoing requests.");
-        }
+        bool hasOngoingRequests = service.ServiceRequests.Any(r =>
+               r.ServiceStatus == ServiceStatus.Pending ||
+               r.ServiceStatus == ServiceStatus.InProgress);
+
+        if (hasOngoingRequests)
+            throw new BadRequestException("Service has ongoing requests and cannot be deleted.");
 
         _repo.ServiceRepo.Delete(service);
         await _repo.CompleteAsync();
@@ -107,9 +118,18 @@ public class ServiceService : IServiceService
 
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetSellerServicesAsync(string sellerId, int page, int size, bool isPublicView = false)
     {
-        var seller = await _repo.UserRepo.FindAsync(s => s.Id == sellerId && s.IsDeleted == false);
+        var seller = await _repo.UserRepo.FindAsync(
+            s => s.Id == sellerId && s.IsDeleted == false,
+            includes: ["UserVerification", "Punishments"]);
+
         if (seller == null)
             throw new NotFoundException("Seller not found.");
+
+        if (!seller.IsApproved)
+            throw new BadRequestException("Account is not verified by admin yet.");
+
+        if (seller.IsBlocked)
+            throw new BadRequestException("Account is currently blocked.");
 
         int skip = page * size;
 
@@ -145,7 +165,7 @@ public class ServiceService : IServiceService
 
 
 
-    public async Task<ServiceDto> GetServiceByIdAsync(int serviceId)
+    public async Task<ServiceDto> GetServiceByIdAsync(int serviceId, string userId)
     {
         var service = await _repo.ServiceRepo.GetByIdWithSeller(serviceId);
         if (service == null)
@@ -153,6 +173,13 @@ public class ServiceService : IServiceService
             _logger.LogError($"Service with ID {serviceId} not found.");
             throw new NotFoundException($"Service with ID {serviceId} not found.");
         }
+
+        if(service.SellerId != userId && service.IsApproved == false)
+        {
+            _logger.LogError($"Service with ID {serviceId} not found.");
+            throw new NotFoundException($"Service with ID {serviceId} not found.");
+        }
+
         return _mapper.Map<ServiceDto>(service);
     }
 
@@ -215,5 +242,44 @@ public class ServiceService : IServiceService
         _logger.LogInfo($"Service {serviceId} approval status updated to {(isApproved ? "approved" : "rejected")}");
 
         return _mapper.Map<ServiceDto>(service);
+    }
+
+    private TimeSpan ParseTime(string timeText)
+    {
+        timeText = timeText.ToLower().Trim();
+
+        if (timeText.Contains("day"))
+        {
+            var days = int.Parse(new string(timeText.Where(char.IsDigit).ToArray()));
+            return TimeSpan.FromDays(days);
+        }
+        else if (timeText.Contains("week"))
+        {
+            var weeks = int.Parse(new string(timeText.Where(char.IsDigit).ToArray()));
+            return TimeSpan.FromDays(weeks * 7);
+        }
+        else if (timeText.Contains("month"))
+        {
+            var months = int.Parse(new string(timeText.Where(char.IsDigit).ToArray()));
+            return TimeSpan.FromDays(months * 30); // or 28/31 as you prefer
+        }
+
+        throw new ArgumentException("Unsupported time format.");
+    }
+
+    private string FormatTimeSpan(TimeSpan span)
+    {
+        if (span.TotalDays >= 30 && span.TotalDays % 30 == 0)
+        {
+            return $"{(int)(span.TotalDays / 30)} month(s)";
+        }
+        else if (span.TotalDays >= 7 && span.TotalDays % 7 == 0)
+        {
+            return $"{(int)(span.TotalDays / 7)} week(s)";
+        }
+        else
+        {
+            return $"{(int)span.TotalDays} day(s)";
+        }
     }
 }

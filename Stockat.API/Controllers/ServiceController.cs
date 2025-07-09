@@ -37,17 +37,21 @@ public class ServiceController : ControllerBase
     }
 
     [HttpGet("{serviceId:int}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> GetServiceById(int serviceId)
     {
         try
         {
-            var service = await _service.ServiceService.GetServiceByIdAsync(serviceId);
+            var userId = User.Identity?.IsAuthenticated == true
+            ? User.FindFirstValue(ClaimTypes.NameIdentifier)
+            : null;
+
+            var service = await _service.ServiceService.GetServiceByIdAsync(serviceId, userId);
             return Ok(service);
         } 
         catch (NotFoundException ex)
         {
-            return NotFound($"Service with ID {serviceId} not found: {ex.Message}");
+            return NotFound($"{ex.Message}");
         }
         catch (Exception ex)
         {
@@ -84,7 +88,7 @@ public class ServiceController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAllAvailableServices([FromQuery] int page = 0, [FromQuery] int size = 10)
     {
         var services = await _service.ServiceService.GetAllAvailableServicesAsync(page,size);
@@ -92,14 +96,14 @@ public class ServiceController : ControllerBase
     }
 
     [HttpGet("seller/{sellerId}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> GetSellerServices(string sellerId, [FromQuery] int page = 0, [FromQuery] int size = 10)
     {
         if (string.IsNullOrEmpty(sellerId))
             return BadRequest("Seller ID is required.");
 
 
-        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId, page, size);
+        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId, page, size, isPublicView: true);
         if (services == null)
             return NotFound($"No services found for seller with ID {sellerId}.");
 
@@ -192,7 +196,7 @@ public class ServiceController : ControllerBase
         }
     }
 
-       [HttpPatch("{serviceId:int}/approve")]
+   [HttpPatch("{serviceId:int}/approve")]
    [Authorize(Roles = "Admin")]
    public async Task<IActionResult> ApproveService(int serviceId, [FromBody] bool isApproved)
    {

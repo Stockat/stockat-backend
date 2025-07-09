@@ -25,10 +25,14 @@ public class OrderProduct
 
     public OrderStatus Status { get; set; }
     public DateTime CraetedAt { get; set; } = DateTime.Now;
+    public DateTime? EstimatedDeliveryTime { get; set; } =null;
+
+    public string? SessionId { get; set; }
 
     // Payment Info
     public string PaymentId { get; set; }
-    public string PaymentStatus { get; set; }
+    public PaymentStatus PaymentStatus { get; set; }
+    public DateTime? PaymentDate { get; set; }
 
     // ForeinKey
     public int ProductId { get; set; }
@@ -50,3 +54,4 @@ public class OrderProduct
     public string? Description { get; set; } = string.Empty;
 
 }
+

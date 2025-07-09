@@ -2,13 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
+using Azure;
+using Azure.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Stockat.Core;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.OrderDTOs;
+using Stockat.Core.DTOs.OrderDTOs.OrderAnalysisDto;
 using Stockat.Core.DTOs.StockDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
@@ -17,6 +22,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Stripe.Checkout;
+using Stripe.Climate;
+using Stockat.Core.Consts;
 
 namespace Stockat.Service.Services;
 
@@ -36,7 +44,7 @@ public class OrderService : IOrderService
     }
 
     // Add Order
-    public async Task<GenericResponseDto<AddOrderDTO>> AddOrderAsync(AddOrderDTO orderDto)
+    public async Task<GenericResponseDto<AddOrderDTO>> AddOrderAsync(AddOrderDTO orderDto, string domain)
     {
         try
         {
@@ -59,18 +67,61 @@ public class OrderService : IOrderService
             await _repo.OrderRepo.AddAsync(orderEntity);
             // Set the Stock Status to SoldOut
             stock.StockStatus = StockStatus.SoldOut;
+
             // Update the stock in the repository
             _repo.StockRepo.Update(stock);
 
             await _repo.CompleteAsync();
+            //*******************************************************************************************************************
+            // Begin Stripe 
+            var sessionItems = new SessionLineItemOptions
+            {
+                PriceData = new SessionLineItemPriceDataOptions
+                {
+                    UnitAmount = (long)(orderEntity.Price * 100),
+                    Currency = "usd",
+                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                    {
+                        Name = string.IsNullOrEmpty(orderDto.ProductName) ? "FixedName" : orderDto.ProductName,
+                    }
+                },
+                Quantity = orderEntity.Quantity,
+            };
+            var options = new Stripe.Checkout.SessionCreateOptions
+            {
+                SuccessUrl = "http://localhost:4200/",
+                CancelUrl = $"http://localhost:4200/product-stocks/{orderEntity.ProductId}?session_id={{CHECKOUT_SESSION_ID}}",
+                LineItems = new List<Stripe.Checkout.SessionLineItemOptions>(),
+                Mode = "payment",
+                Metadata = new Dictionary<string, string>
+    {
+        { "orderId", orderEntity.Id.ToString() },
+        { "type", "order" }
+    }
+            };
+            options.LineItems.Add(sessionItems);
+
+            var service = new Stripe.Checkout.SessionService();
+            Stripe.Checkout.Session session = service.Create(options);
+
+
+            // Append sessionId in order
+            await UpdateStripePaymentID(orderEntity.Id, session.Id, session.PaymentIntentId);
             // Map back to DTO for response
             var responseDto = _mapper.Map<AddOrderDTO>(orderEntity);
+
             return new GenericResponseDto<AddOrderDTO>
             {
                 Status = 201,
                 Data = responseDto,
-                Message = "Order added successfully."
+                Message = "Order added successfully.",
+                RedirectUrl = session.Url
             };
+
+
+            // End Stripe 
+            //******************************************************************************************************************
+
         }
         catch (Exception ex)
         {
@@ -81,6 +132,105 @@ public class OrderService : IOrderService
                 Message = "An error occurred while adding the order."
             };
         }
+    }
+
+    public async Task<GenericResponseDto<UpdateRequestDTO>> AddStripeWithRequestAsync(UpdateRequestDTO requestDto)
+    {
+
+        var res = _repo.OrderRepo.GetByIdAsync(requestDto.Id).Result;
+
+        if (res == null)
+            return new GenericResponseDto<UpdateRequestDTO>()
+            {
+                Data = requestDto,
+                Status = 404,
+                Message = "Could not Found an Req Order with id =" + requestDto.Id
+            };
+
+        //*******************************************************************************************************************
+        // Begin Stripe 
+        var sessionItems = new SessionLineItemOptions
+        {
+            PriceData = new SessionLineItemPriceDataOptions
+            {
+                UnitAmount = (long)(requestDto.Price * 100),
+                Currency = "usd",
+                ProductData = new SessionLineItemPriceDataProductDataOptions
+                {
+                    Name = requestDto.ProductName,
+                }
+            },
+            Quantity = requestDto.Quantity,
+        };
+        var options = new Stripe.Checkout.SessionCreateOptions
+        {
+            SuccessUrl = "http://localhost:4200/profile",
+            CancelUrl = "http://localhost:4200/profile",
+            LineItems = new List<Stripe.Checkout.SessionLineItemOptions>(),
+            Mode = "payment",
+            Metadata = new Dictionary<string, string>
+    {
+        { "orderId", requestDto.Id.ToString() },
+        { "type", "req" }
+    }
+        };
+        options.LineItems.Add(sessionItems);
+
+        var service = new Stripe.Checkout.SessionService();
+        Stripe.Checkout.Session session = service.Create(options);
+
+
+        // Append sessionId in order
+        await UpdateStripePaymentID(requestDto.Id, session.Id, session.PaymentIntentId);
+
+        return new GenericResponseDto<UpdateRequestDTO>
+        {
+            Status = 201,
+            Data = requestDto,
+            Message = "Order Request Updated successfully.",
+            RedirectUrl = session.Url
+        };
+
+    }
+
+
+    // Stripe Internals 
+    public async Task UpdateStripePaymentID(int id, string sessionId, string paymentIntentId)
+    {
+
+        var order = await _repo.OrderRepo.GetByIdAsync(id);
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            order.SessionId = sessionId;
+        }
+        if (!string.IsNullOrEmpty(paymentIntentId))
+        {
+            order.PaymentId = paymentIntentId;
+            order.PaymentDate = DateTime.Now;
+        }
+
+        _repo.OrderRepo.Update(order);
+        await _repo.CompleteAsync();
+    }
+
+    public async Task UpdateStatus(int id, OrderStatus orderStatus, PaymentStatus paymentStatus)
+    {
+        var order = await _repo.OrderRepo.GetByIdAsync(id);
+        if (order != null)
+        {
+            order.PaymentStatus = paymentStatus;
+            order.Status = orderStatus;
+        }
+        _repo.OrderRepo.Update(order);
+        await _repo.CompleteAsync();
+    }
+
+
+    // Get Order By Id Async
+    public async Task<OrderProduct> getOrderByIdAsync(int id)
+    {
+
+        return await _repo.OrderRepo.GetByIdAsync(id);
     }
 
     // Add Request
@@ -118,7 +268,7 @@ public class OrderService : IOrderService
             // }
             // requestDto.BuyerId = buyerId;
 
-            
+
 
             // 2. Create and add the order
             var orderEntity = new OrderProduct
@@ -132,7 +282,7 @@ public class OrderService : IOrderService
                 SellerId = requestDto.SellerId,
                 BuyerId = requestDto.BuyerId,
                 PaymentId = requestDto.PaymentId,
-                PaymentStatus = requestDto.PaymentStatus,
+                PaymentStatus = PaymentStatus.Pending,
                 Description = requestDto.Description,
                 CraetedAt = DateTime.UtcNow
             };
@@ -153,7 +303,7 @@ public class OrderService : IOrderService
                 SellerId = orderEntity.SellerId,
                 BuyerId = orderEntity.BuyerId,
                 PaymentId = orderEntity.PaymentId,
-                PaymentStatus = orderEntity.PaymentStatus,
+                PaymentStatus = orderEntity.PaymentStatus.ToString(),
                 Description = orderEntity.Description,
                 Stock = _mapper.Map<AddStockDTO>(stockEntity)
             };
@@ -258,7 +408,110 @@ public class OrderService : IOrderService
         }
     }
 
+    public async Task<GenericResponseDto<OrderDTO>> UpdateRequestOrderStatusAsync(UpdateReqDto updateReq)
+    {
 
+        try
+        {
+            // Fetch the order by ID
+            var order = await _repo.OrderRepo.GetByIdAsync(updateReq.Id);
+            if (order == null)
+            {
+                _logger.LogError($"Order with ID {updateReq.Id} not found.");
+                return new GenericResponseDto<OrderDTO>
+                {
+                    Status = 404,
+                    Message = "Order not found."
+                };
+            }
+
+            order.Status = OrderStatus.PendingBuyer;
+            order.Price = updateReq.Price;
+            order.EstimatedDeliveryTime = updateReq.DeliveryDate;
+
+            _repo.OrderRepo.Update(order);
+            await _repo.CompleteAsync();
+
+            var orderDto = _mapper.Map<OrderDTO>(order);
+
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 200,
+                Data = orderDto,
+                Message = "Order status updated successfully."
+            };
+
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error updating Req order status: {ex.Message}");
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 500,
+                Message = "An error occurred while updating the Req order status."
+            };
+        }
+
+    }
+
+    // Cancel Order On Payment Faliure
+    public async Task<GenericResponseDto<OrderDTO>> CancelOrderOnPaymentFailureAsync(string sessionId)
+    {
+        // Open Transaction
+        await _repo.BeginTransactionAsync(); // Open transaction
+        try
+        {
+            // Fetch the order by session ID
+            var order = await _repo.OrderRepo.FindAsync(o => o.SessionId == sessionId, ["Seller", "Buyer", "Product"]);
+            if (order == null)
+            {
+                _logger.LogError($"Order with Session ID {sessionId} not found.");
+                return new GenericResponseDto<OrderDTO>
+                {
+                    Status = 404,
+                    Message = "Order not found."
+                };
+            }
+
+            // Update the order status to Cancelled
+            order.Status = OrderStatus.Cancelled;
+            _repo.OrderRepo.Update(order);
+            // Update the stock status to ForSale
+            var stock = await _repo.StockRepo.GetByIdAsync(order.StockId);
+            if (stock == null)
+            {
+                _logger.LogError("Stock not found for the given StockId.");
+                return new GenericResponseDto<OrderDTO>
+                {
+                    Status = 404,
+                    Message = "Stock not found."
+                };
+            }
+            stock.StockStatus = StockStatus.ForSale;
+            _repo.StockRepo.Update(stock);
+            await _repo.CompleteAsync();
+            await _repo.CommitTransactionAsync(); // Commit the transaction
+            // Map to DTO for response
+            var orderDto = _mapper.Map<OrderDTO>(order);
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 200,
+                Data = orderDto,
+                Message = "Order cancelled successfully due to payment failure."
+            };
+        }
+        catch (Exception ex)
+        {
+            await _repo.RollbackTransactionAsync(); // Rollback on error
+            _logger.LogError($"Error cancelling order on payment failure: {ex.Message}");
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 500,
+                Message = "An error occurred while cancelling the order."
+            };
+        }
+    }
 
     // Get All Orders For Seller
     public async Task<GenericResponseDto<IEnumerable<OrderDTO>>> GetAllSellerOrdersAsync()
@@ -430,7 +683,7 @@ public class OrderService : IOrderService
             // Fetch orders for the seller
             //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
 
-            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Request, ["Seller", "Buyer"]);
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Request, ["Seller", "Buyer", "Product"]);
             if (orders == null || !orders.Any())
             {
                 _logger.LogInfo("No Request orders found for the seller.");
@@ -616,14 +869,128 @@ public class OrderService : IOrderService
         }
 
     }
-        // helper function
-        private string GetCurrentUserId()
+
+    // Analysis 
+    public async Task<GenericResponseDto<Dictionary<OrderType, decimal>>> GetTotalSalesByOrderTypeAsync()
+    {
+        var res = await _repo.OrderRepo.GetTotalSalesByOrderTypeAsync();
+
+        return new GenericResponseDto<Dictionary<OrderType, decimal>>()
         {
-            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (string.IsNullOrEmpty(userId))
-                throw new UnauthorizedAccessException("User ID not found in token.");
+            Data = res,
+            Status = 200,
+            Message = "Data Fetched Successfully"
+        };
 
-            return userId;
-        }
+    }
+
+    public async Task<GenericResponseDto<Dictionary<OrderType, int>>> GetOrderCountsByTypeAsync()
+    {
+        var res = await _repo.OrderRepo.GetOrderCountsByTypeAsync();
+
+        return new GenericResponseDto<Dictionary<OrderType, int>>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "Data Fetched Successfully"
+        };
+    }
+
+    public GenericResponseDto<ReportDto> CalculateMonthlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+
+        var res = _repo.OrderRepo.CalculateMonthlyRevenueOrderVsStatus(type, status, metricType);
+
+        return new GenericResponseDto<ReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "CalculateMonthlyRevenueOrderVsStatus Fetched Successfully"
+        };
+    }
+    public GenericResponseDto<ReportDto> CalculateWeeklyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.CalculateWeeklyRevenueOrderVsStatus(type, status, metricType);
+
+        return new GenericResponseDto<ReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "CalculateWeeklyRevenueOrderVsStatus Fetched Successfully"
+        };
+    }
+
+    public GenericResponseDto<ReportDto> CalculateYearlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.CalculateYearlyRevenueOrderVsStatus(type, status, metricType);
+
+        return new GenericResponseDto<ReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "CalculateYearlyRevenueOrderVsStatus Fetched Successfully"
+        };
+    }
+
+    public async Task<GenericResponseDto<ReportDto>> CalculateOrdersVsPaymentStatusAsync(OrderType? type, ReportMetricType metricType)
+    {
+        var res = await _repo.OrderRepo.CalculateOrdersVsPaymentStatusAsync(type, metricType);
+
+        return new GenericResponseDto<ReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "CalculateOrdersVsPaymentStatusAsync Fetched Successfully"
+        };
+    }
+
+
+
+
+
+
+    public GenericResponseDto<TopProductReportDto> GetTopProductPerYearAsync(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.GetTopProductPerYearAsync(type, status, metricType);
+
+        return new GenericResponseDto<TopProductReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "GetTopProductPerYearAsync Fetched Successfully"
+        };
+    }
+    public GenericResponseDto<TopProductReportDto> GetTopProductPerMonthAsync(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.GetTopProductPerMonthAsync(type, status, metricType);
+
+        return new GenericResponseDto<TopProductReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "GetTopProductPerMonthAsync Fetched Successfully"
+        };
+    }
+    public GenericResponseDto<TopProductReportDto> GetTopProductPerWeekAsync(OrderType? type, OrderStatus? status, ReportMetricType metricType)
+    {
+        var res = _repo.OrderRepo.GetTopProductPerWeekAsync(type, status, metricType);
+
+        return new GenericResponseDto<TopProductReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "GetTopProductPerWeekAsync Fetched Successfully"
+        };
+    }
+
+
 }
