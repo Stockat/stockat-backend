@@ -15,4 +15,5 @@ public interface IServiceService
     Task DeleteAsync(int serviceId, string sellerId, bool isAdmin = false);
     public Task<ImageUploadResultDto> UploadServiceImageAsync(int serviceId, string sellerId, IFormFile file);
     Task<ServiceDto> UpdateApprovalStatusAsync(int serviceId, bool isApproved);
+    Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetAllServicesForAdminAsync(int page, int size, bool? includeBlockedSellers = null, bool? includeDeletedSellers = null, bool? includeDeletedServices = null);
 }

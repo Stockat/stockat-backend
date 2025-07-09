@@ -59,7 +59,8 @@ public class ServiceController : ControllerBase
         }
     }
 
-    [HttpDelete("{serviceId:int}")]
+    // soft delete
+    [HttpPatch("{serviceId:int}/delete")]
     [Authorize(Roles = "Seller, Admin")]
     public async Task<IActionResult> DeleteService(int serviceId)
     {
@@ -225,6 +226,19 @@ public class ServiceController : ControllerBase
     public async Task<IActionResult> GetPendingServicesForApproval([FromQuery] int page = 1, [FromQuery] int size = 10)
     {
         var result = await _service.ServiceService.GetAllAvailableServicesAsync(page, size, pendingOnly: true);
+        return Ok(result);
+    }
+
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllServicesForAdmin(
+        [FromQuery] int page = 1, 
+        [FromQuery] int size = 10,
+        [FromQuery] bool? includeBlockedSellers = null,
+        [FromQuery] bool? includeDeletedSellers = null,
+        [FromQuery] bool? includeDeletedServices = null)
+    {
+        var result = await _service.ServiceService.GetAllServicesForAdminAsync(page, size, includeBlockedSellers, includeDeletedSellers, includeDeletedServices);
         return Ok(result);
     }
 }

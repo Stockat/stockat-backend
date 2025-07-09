@@ -307,4 +307,80 @@ public class ServiceService : IServiceService
             return $"{(int)span.TotalDays} day(s)";
         }
     }
+
+    public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>> GetAllServicesForAdminAsync(int page, int size, bool? includeBlockedSellers = null, bool? includeDeletedSellers = null, bool? includeDeletedServices = null)
+    {
+        int skip = (page - 1) * size;
+        
+        // Build filter expression
+        Expression<Func<Stockat.Core.Entities.Service, bool>> filter = s => includeDeletedServices == true || !s.IsDeleted;
+        
+        // Get all services with seller information including verification and punishments
+        var services = await _repo.ServiceRepo.FindAllAsync(
+            filter,
+            skip: skip,
+            take: size,
+            includes: ["Seller", "Seller.UserVerification", "Seller.Punishments"]
+        );
+
+        if (services == null || !services.Any())
+        {
+            _logger.LogInfo("No services found for admin.");
+            return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>
+            {
+                Status = 200,
+                Message = "No services available",
+                Data = new PaginatedDto<IEnumerable<ServiceDto>>
+                {
+                    Page = page,
+                    Size = size,
+                    Count = 0,
+                    PaginatedData = new List<ServiceDto>()
+                }
+            };
+        }
+
+        // Apply seller status filtering if specified
+        if (includeBlockedSellers.HasValue || includeDeletedSellers.HasValue)
+        {
+            services = services.Where(s => 
+                (includeBlockedSellers.HasValue ? 
+                    (includeBlockedSellers.Value || !s.Seller.Punishments.Any(p => 
+                        (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) && 
+                        (p.EndDate == null || p.EndDate > DateTime.UtcNow))) : true) &&
+                (includeDeletedSellers.HasValue ? 
+                    (includeDeletedSellers.Value || !s.Seller.IsDeleted) : true)
+            ).ToList();
+        }
+
+        // Get total count based on the same filter
+        int totalCount = await _repo.ServiceRepo.CountAsync(filter);
+
+        var mappedServices = _mapper.Map<IEnumerable<ServiceDto>>(services);
+        
+        _logger.LogInfo($"Returning {services.Count()} services");
+        if (services.Any())
+        {
+            var sampleService = services.First();
+            var sampleMappedService = mappedServices.First();
+            _logger.LogInfo($"Sample service - ID: {sampleService.Id}, Seller: {sampleService.Seller?.FirstName} {sampleService.Seller?.LastName}");
+            _logger.LogInfo($"Sample service seller status - IsDeleted: {sampleService.Seller?.IsDeleted}, HasPunishments: {sampleService.Seller?.Punishments?.Any()}");
+            _logger.LogInfo($"Sample service seller punishments count: {sampleService.Seller?.Punishments?.Count() ?? 0}");
+            _logger.LogInfo($"Sample service seller verification status: {sampleService.Seller?.UserVerification?.Status}");
+            _logger.LogInfo($"Sample mapped service - ID: {sampleMappedService.Id}, SellerIsDeleted: {sampleMappedService.SellerIsDeleted}, SellerIsBlocked: {sampleMappedService.SellerIsBlocked}");
+        }
+
+        return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>
+        {
+            Status = 200,
+            Message = "All services retrieved successfully for admin",
+            Data = new PaginatedDto<IEnumerable<ServiceDto>>
+            {
+                Page = page,
+                Size = size,
+                Count = totalCount,
+                PaginatedData = mappedServices
+            }
+        };
+    }
 }
