@@ -29,9 +29,9 @@ namespace Stockat.Core.IServices
         // Analysis 
         public Task<GenericResponseDto<Dictionary<OrderType, int>>> GetOrderCountsByTypeAsync();
         public Task<GenericResponseDto<Dictionary<OrderType, decimal>>> GetTotalSalesByOrderTypeAsync();
+        public Task<GenericResponseDto<ReportDto>> CalculateOrdersVsPaymentStatusAsync(OrderType? type, ReportMetricType metricType);
         public GenericResponseDto<ReportDto> CalculateMonthlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType);
         public GenericResponseDto<ReportDto> CalculateWeeklyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType);
-
         public GenericResponseDto<ReportDto> CalculateYearlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metricType);
 
         public GenericResponseDto<TopProductReportDto> GetTopProductPerYearAsync(OrderType? type, OrderStatus? status, ReportMetricType metric);

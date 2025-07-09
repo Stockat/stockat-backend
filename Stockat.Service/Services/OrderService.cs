@@ -889,6 +889,24 @@ public class OrderService : IOrderService
         };
     }
 
+    public async Task<GenericResponseDto<ReportDto>> CalculateOrdersVsPaymentStatusAsync(OrderType? type, ReportMetricType metricType)
+    {
+        var res = await _repo.OrderRepo.CalculateOrdersVsPaymentStatusAsync(type, metricType);
+
+        return new GenericResponseDto<ReportDto>()
+        {
+
+            Data = res,
+            Status = 200,
+            Message = "CalculateOrdersVsPaymentStatusAsync Fetched Successfully"
+        };
+    }
+
+
+
+
+
+
     public GenericResponseDto<TopProductReportDto> GetTopProductPerYearAsync(OrderType? type, OrderStatus? status, ReportMetricType metricType)
     {
         var res = _repo.OrderRepo.GetTopProductPerYearAsync(type, status, metricType);

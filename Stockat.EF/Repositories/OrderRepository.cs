@@ -132,6 +132,29 @@ public class OrderRepository : BaseRepository<OrderProduct>, IOrderRepository
         return result;
     }
 
+    public async Task<ReportDto> CalculateOrdersVsPaymentStatusAsync(OrderType? type, ReportMetricType metricType)
+    {
+        var orders = await _context.OrderProduct.Where(o => (!type.HasValue || o.OrderType == type.Value)).ToListAsync();
+
+
+        var grouped = orders.GroupBy(o => o.PaymentStatus)
+            .OrderBy(g => g.Key) // optional: keep enum order
+            .ToList();
+
+        var labels = grouped.Select(g => g.Key.ToString()).ToArray();
+        var values = grouped
+            .Select(g => metricType == ReportMetricType.Revenue
+                ? g.Sum(o => o.Price * o.Quantity)
+                : g.Count()
+            ).Select(v => Convert.ToDecimal(v)) // ensures decimal[]
+            .ToArray();
+
+        return new ReportDto
+        {
+            Labels = labels,
+            Values = values
+        };
+    }
 
     public async Task<Dictionary<OrderType, decimal>> GetTotalSalesByOrderTypeAsync()
     {

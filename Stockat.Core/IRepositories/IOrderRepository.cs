@@ -15,6 +15,8 @@ public interface IOrderRepository : IBaseRepository<OrderProduct>
 {
     public Task<Dictionary<OrderType, int>> GetOrderCountsByTypeAsync();
     public Task<Dictionary<OrderType, decimal>> GetTotalSalesByOrderTypeAsync();
+
+    public Task<ReportDto> CalculateOrdersVsPaymentStatusAsync(OrderType? type, ReportMetricType metricType);
     public ReportDto CalculateYearlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metric);
     public ReportDto CalculateMonthlyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metric);
     public ReportDto CalculateWeeklyRevenueOrderVsStatus(OrderType? type, OrderStatus? status, ReportMetricType metric);

@@ -270,6 +270,13 @@ public class OrderController : ControllerBase
         var res = _serviceManager.OrderService.GetOrderCountsByTypeAsync().Result;
         return Ok(res);
     }
+    [AllowAnonymous]
+    [HttpGet("analysis/orderPayment")]
+    public async Task<IActionResult> GetOrderByPaymentTypeAsync([FromQuery] OrderType? type, [FromQuery] ReportMetricType metricType)
+    {
+        var res = _serviceManager.OrderService.CalculateOrdersVsPaymentStatusAsync(type, metricType).Result;
+        return Ok(res);
+    }
 
     [AllowAnonymous]
     [HttpGet("analysis/orderSales")]
