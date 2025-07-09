@@ -133,6 +133,19 @@ public class ProductController : ControllerBase
 
         return Ok(res);
     }
+
+    [HttpPost("reason/{id:int}")]
+    public async Task<IActionResult> ChangeProductStatusWithReason(int id, [FromBody] ChangeProductStatusWithReasonDto dto)
+
+    {
+        var res = await _serviceManager.ProductService.ChangeProductStatusWithReason(id, dto.ChosenStatus, dto.Reason);
+
+        return Ok();
+    }
+
+
+
+
     [HttpPost("seller/delete")]
     public async Task<IActionResult> removeSellerProduct([FromBody] int id)
 
