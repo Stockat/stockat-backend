@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Authorization;
 using Stockat.Core.Enums;
 using Stripe;
 using Stripe.Checkout;
+using Stockat.Core.Entities;
+using System.Net.Mail;
+using Stockat.Core.Helpers;
 
 namespace Stockat.API.Controllers;
 
@@ -15,6 +18,7 @@ public class PaymentController : ControllerBase
 {
     private readonly ILoggerManager _logger;
     private readonly IServiceManager _serviceManager;
+
 
     public PaymentController(ILoggerManager logger, IServiceManager serviceManager)
     {
@@ -47,6 +51,7 @@ public class PaymentController : ControllerBase
                     var type = session.Metadata["type"];
                     int id = int.Parse(orderId);
 
+
                     switch (type)
                     {
                         case "order":
@@ -55,7 +60,7 @@ public class PaymentController : ControllerBase
                             // TODO: Confirm the order in DB
                             await _serviceManager.OrderService.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
                             await _serviceManager.OrderService.UpdateStatus(id, OrderStatus.Processing, PaymentStatus.Paid);
-
+                            await _serviceManager.OrderService.InvoiceGeneratorAsync(id);
                             break;
                         case "req":
                             await _serviceManager.OrderService.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
