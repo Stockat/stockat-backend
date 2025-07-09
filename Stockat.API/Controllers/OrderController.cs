@@ -350,6 +350,17 @@ public class OrderController : ControllerBase
 
 
 
+
+    [AllowAnonymous]
+    [HttpGet("test/email")]
+    public async Task<IActionResult> TestInvoice(int orderid)
+    {
+
+        await _serviceManager.OrderService.InvoiceGeneratorAsync(orderid);
+        return Ok();
+    }
+
+
 }
 
 
