@@ -69,6 +69,7 @@ namespace Stockat.Core.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<ServiceRequestUpdate> RequestUpdates { get; set; } = new List<ServiceRequestUpdate>();
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
 
         // SNAPSHOT FIELDS: store service data at request creation
         [Required]

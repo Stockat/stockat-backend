@@ -40,6 +40,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<OrderProduct> OrderProduct { get; set; }
+    public virtual DbSet<Review> Reviews { get; set; }
 
 
 
