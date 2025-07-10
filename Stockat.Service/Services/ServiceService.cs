@@ -168,8 +168,8 @@ public class ServiceService : IServiceService
         }
         else
         {
-            services = await _repo.ServiceRepo.FindAllAsync(s => s.SellerId == sellerId, skip, size, null);
-            totalCount = await _repo.ServiceRepo.CountAsync(s => s.SellerId == sellerId);
+            services = await _repo.ServiceRepo.FindAllAsync(s => s.SellerId == sellerId && !s.IsDeleted, skip, size, null);
+            totalCount = await _repo.ServiceRepo.CountAsync(s => s.SellerId == sellerId && !s.IsDeleted);
         }
 
         var paginated = new PaginatedDto<IEnumerable<ServiceDto>>

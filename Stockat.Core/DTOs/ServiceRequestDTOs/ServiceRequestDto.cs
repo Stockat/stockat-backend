@@ -32,10 +32,18 @@ public class ServiceRequestDto
     public string BuyerApprovalStatus { get; set; }
     public string ServiceStatus { get; set; }
     public string PaymentStatus { get; set; }
-    public string SelledId { get; set; }
+    public string SellerId { get; set; }
     public string SellerName { get; set; }
     public int SellerOfferAttempts { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<ServiceRequestUpdateDto> RequestUpdates { get; set; } = new();
+
+    // SNAPSHOT FIELDS
+    public string ServiceNameSnapshot { get; set; }
+    public string? ServiceDescriptionSnapshot { get; set; }
+    public int ServiceMinQuantitySnapshot { get; set; }
+    public decimal ServicePricePerProductSnapshot { get; set; }
+    public string? ServiceEstimatedTimeSnapshot { get; set; }
+    public string? ServiceImageUrlSnapshot { get; set; }
 }

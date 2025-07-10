@@ -26,7 +26,9 @@ public interface IServiceRequestService
 
     // System/Admin: Update payment info
     Task<ServiceRequestDto> UpdatePaymentStatusAsync(int requestId, string paymentId, PaymentStatus status);
-    Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string sellerId, ServiceStatusDto dto);
+    Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string userId, bool isAdmin, ServiceStatusDto dto);
     Task<IEnumerable<int>> GetBuyerServiceIDsWithPendingRequests(string buyerId);
     Task<ServiceRequestDto> CancelBuyerRequest(int requestId, string buyerId);
+    // Admin: Get all service requests (with optional status filter)
+    Task<GenericResponseDto<AdminServiceRequestListDto>> GetAllRequestsForAdminAsync(int page, int size, ServiceStatus? status = null);
 }

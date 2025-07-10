@@ -55,7 +55,5 @@ public class ServiceEditRequest
 
     public string? AdminNote { get; set; }
 
-    public bool IsDeferred { get; set; } = false;
-
     public bool IsReactivationRequest { get; set; } = false;
 }

@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using Stockat.Core;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.ServiceRequestDTOs;
@@ -17,7 +18,7 @@ public class ServiceRequestService : IServiceRequestService
     private readonly IMapper _mapper;
     private readonly IRepositoryManager _repo;
     private readonly IEmailService _emailService;
-    private readonly IUserService _userService;
+    private readonly UserManager<User> _userManager;
     private readonly IServiceEditRequestService _serviceEditRequestService;
 
 
@@ -26,7 +27,7 @@ public class ServiceRequestService : IServiceRequestService
         IMapper mapper,
         IRepositoryManager repo,
         IEmailService emailService,
-        IUserService userService,
+        UserManager<User> userManager,
         IServiceEditRequestService serviceEditRequestService
 
         )
@@ -35,7 +36,7 @@ public class ServiceRequestService : IServiceRequestService
         _mapper = mapper;
         _repo = repo;
         _emailService = emailService;
-        _userService = userService;
+        _userManager = userManager;
         _serviceEditRequestService = serviceEditRequestService;
     }
 
@@ -105,10 +106,18 @@ public class ServiceRequestService : IServiceRequestService
             SellerApprovalStatus = ApprovalStatus.Pending,
             BuyerApprovalStatus = ApprovalStatus.Pending,
             ServiceStatus = ServiceStatus.Pending,
-            PricePerProduct = 0, // Include the price from service
-            TotalPrice = 0, // Total to be set after seller/buyer approval logic
+            PricePerProduct = 0, // Seller sets later
+            TotalPrice = 0, // Set after offer
             ImageId = service.ImageId,
-            ImageUrl = service.ImageUrl
+            ImageUrl = service.ImageUrl,
+
+            // SNAPSHOT FIELDS
+            ServiceNameSnapshot = service.Name,
+            ServiceDescriptionSnapshot = service.Description,
+            ServiceMinQuantitySnapshot = service.MinQuantity,
+            ServicePricePerProductSnapshot = 0, // Not set until seller offers
+            ServiceEstimatedTimeSnapshot = null, // Not set until seller offers
+            ServiceImageUrlSnapshot = service.ImageUrl
         };
 
         await _repo.ServiceRequestRepo.AddAsync(request);
@@ -262,6 +271,10 @@ public class ServiceRequestService : IServiceRequestService
         request.TotalPrice = request.RequestedQuantity * dto.PricePerProduct;
         request.SellerApprovalStatus = ApprovalStatus.Approved;
 
+        // Set the snapshot fields for offer
+        request.ServicePricePerProductSnapshot = dto.PricePerProduct;
+        request.ServiceEstimatedTimeSnapshot = dto.EstimatedTime;
+
         request.SellerOfferAttempts += 1;
 
         _repo.ServiceRequestRepo.Update(request);
@@ -333,56 +346,53 @@ public class ServiceRequestService : IServiceRequestService
         throw new NotImplementedException();
     }
 
-    public async Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string sellerId, ServiceStatusDto dto)
+    public async Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string userId, bool isAdmin, ServiceStatusDto dto)
     {
-        var request = await _repo.ServiceRequestRepo.FindAsync(
-            r => r.Id == requestId && r.Service.SellerId == sellerId,
-            ["Service", "Buyer", "Service.Seller"]
-        );
-
-        if (request == null)
+        ServiceRequest? request = null;
+        if (isAdmin)
         {
-            _logger.LogError($"Service request with ID {requestId} not found for seller {sellerId}.");
-            throw new NotFoundException($"Service request with ID {requestId} not found for seller {sellerId}.");
+            request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.Id == requestId,
+                ["Service", "Buyer", "Service.Seller"]
+            );
+            if (request == null)
+            {
+                _logger.LogError($"Service request with ID {requestId} not found for admin {userId}.");
+                throw new NotFoundException($"Service request with ID {requestId} not found for admin {userId}.");
+            }
+            // Only allow admin to set status to Delivered if current status is InProgress
+            if (request.ServiceStatus != ServiceStatus.InProgress || dto.Status != ServiceStatus.Delivered)
+            {
+                throw new BadRequestException("Admin can only set status to Delivered for requests that are In Progress.");
+            }
         }
-
-        if (request.SellerApprovalStatus != ApprovalStatus.Approved || request.BuyerApprovalStatus != ApprovalStatus.Approved)
+        else
         {
-            _logger.LogError($"Service request with ID {requestId} has not been approved by the seller or the buyer.");
-            throw new BadRequestException("You cannot update the service status as the request has not been approved by both parties.");
+            request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.Id == requestId && r.Service.SellerId == userId,
+                ["Service", "Buyer", "Service.Seller"]
+            );
+            if (request == null)
+            {
+                _logger.LogError($"Service request with ID {requestId} not found for seller {userId}.");
+                throw new NotFoundException($"Service request with ID {requestId} not found for seller {userId}.");
+            }
+            if (request.SellerApprovalStatus != ApprovalStatus.Approved || request.BuyerApprovalStatus != ApprovalStatus.Approved)
+            {
+                _logger.LogError($"Service request with ID {requestId} has not been approved by the seller or the buyer.");
+                throw new BadRequestException("You cannot update the service status as the request has not been approved by both parties.");
+            }
         }
-
-
         request.ServiceStatus = dto.Status;
         _repo.ServiceRequestRepo.Update(request);
         await _repo.CompleteAsync();
-
         // Notify the buyer about the service status update
         await _emailService.SendEmailAsync(
             request.Buyer.Email,
             "Service Request Status Update",
-            $"The status of your service request '{request.Service.Name}' has been updated to {dto.Status} by the seller {request.Service.Seller.FirstName} {request.Service.Seller.LastName}."
+            $"The status of your service request '{request.Service.Name}' has been updated to {dto.Status}."
         );
-
-        // Check if the service is now free to apply deferred edit
-        // Exclude the current request being updated from the check
-        bool hasOtherActive = await _repo.ServiceRequestRepo.AnyAsync(sr =>
-            sr.ServiceId == request.ServiceId &&
-            sr.ServiceStatus != ServiceStatus.Delivered &&
-            sr.ServiceStatus != ServiceStatus.Cancelled
-        );
-
-        if (!hasOtherActive)
-        {
-            _logger.LogInfo($"No active requests found for service {request.ServiceId}, applying deferred edits.");
-            await _serviceEditRequestService.ApplyDeferredEditsAsync(request.ServiceId);
-        }
-        else
-        {
-            _logger.LogInfo($"Service {request.ServiceId} still has active requests, deferred edits will not be applied yet.");
-        }
-
-        _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");
+        _logger.LogInfo($"Service status for service request {requestId} updated to {dto.Status} by user {userId}.");
         return _mapper.Map<ServiceRequestDto>(request);
     }
 
@@ -411,5 +421,54 @@ public class ServiceRequestService : IServiceRequestService
         await _repo.CompleteAsync();
         _logger.LogInfo($"Service request with ID {requestId} cancelled by buyer {buyerId}.");
         return _mapper.Map<ServiceRequestDto>(request);
+    }
+
+    public async Task<GenericResponseDto<AdminServiceRequestListDto>> GetAllRequestsForAdminAsync(int page, int size, ServiceStatus? status = null)
+    {
+        int skip = (page - 1) * size;
+        Expression<Func<ServiceRequest, bool>> filter = status.HasValue
+            ? r => r.ServiceStatus == status.Value
+            : r => true;
+
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            filter,
+            skip,
+            size,
+            includes: ["Buyer", "Service", "Service.Seller"]
+        );
+
+        int totalCount = await _repo.ServiceRequestRepo.CountAsync(r => true);
+        int inProgressCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.InProgress);
+        int deliveredCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.Delivered);
+
+        var paginated = new PaginatedDto<IEnumerable<ServiceRequestDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = status.HasValue
+                ? await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == status.Value)
+                : totalCount,
+            PaginatedData = _mapper.Map<IEnumerable<ServiceRequestDto>>(requests)
+        };
+
+        var stats = new ServiceRequestStatsDto
+        {
+            Total = totalCount,
+            InProgress = inProgressCount,
+            Delivered = deliveredCount
+        };
+
+        var result = new AdminServiceRequestListDto
+        {
+            Paginated = paginated,
+            Stats = stats
+        };
+
+        return new GenericResponseDto<AdminServiceRequestListDto>
+        {
+            Status = 200,
+            Message = "All service requests retrieved successfully for admin.",
+            Data = result
+        };
     }
 }

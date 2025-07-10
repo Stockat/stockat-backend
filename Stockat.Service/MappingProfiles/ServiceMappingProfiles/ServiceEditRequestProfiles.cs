@@ -23,8 +23,7 @@ public class ServiceEditRequestProfiles : Profile
             .ForMember(dest => dest.EstimatedTime, opt => opt.MapFrom(src => src.EditedEstimatedTime))
             .ForMember(dest => dest.ImageId, opt => opt.MapFrom(src => src.EditedImageId))
             .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.EditedImageUrl))
-            .ForSourceMember(src => src.IsDeferred, opt => opt.DoNotValidate()) // << this avoids mapping back
-            .ForMember(dest => dest.Id, opt => opt.Ignore()) // 🔒 Don't try to overwrite the primary key
+            .ForMember(dest => dest.Id, opt => opt.Ignore()) // Don't try to overwrite the primary key
             .ForMember(dest => dest.SellerId, opt => opt.Ignore()); // optional: ignore seller link too
 
     }
