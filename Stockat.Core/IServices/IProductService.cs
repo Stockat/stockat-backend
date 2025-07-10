@@ -38,4 +38,5 @@ public interface IProductService
     public Task<GenericResponseDto<IEnumerable<ImageUploadResultDto>>> UploadProductImages(IFormFile[] imgs);
 
     public Task<GenericResponseDto<ProductWithFeaturesDTO>> GetProductWithFeaturesAsync(int id);
+    public Task<GenericResponseDto<ProductWithStocksDTO>> GetProductWithStocksForAdminAsync(int id);
 }

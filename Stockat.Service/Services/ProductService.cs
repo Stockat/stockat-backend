@@ -16,6 +16,7 @@ using Stockat.Core.IServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -467,6 +468,51 @@ public class ProductService : IProductService
             Message = "Product retrieved successfully",
             Status = 200,
             RedirectUrl = null
+        };
+    }
+
+
+    // Get a product with its stocks for admin by ID
+    public async Task<GenericResponseDto<ProductWithStocksDTO>> GetProductWithStocksForAdminAsync(int id)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            throw new UnauthorizedAccessException("User not authenticated");
+        }
+
+        // Check if user is admin (assuming admin ID)
+        if (userId != "1a44c91f-138e-4cf2-a5ef-915e5c882673")
+        {
+            throw new UnauthorizedAccessException("Only administrators can access this resource");
+        }
+
+        var product = await _repo.ProductRepository.FindAsync(
+            p => p.Id == id,
+            new[] { 
+                "Images", 
+                "Category", 
+                "User", 
+                "Stocks",
+                "Stocks.StockDetails",
+                "Stocks.StockDetails.Feature",
+                "Stocks.StockDetails.FeatureValue"
+            }
+        );
+
+        if (product == null)
+        {
+            _logger.LogError($"Product with ID {id} not found.");
+            throw new NotFoundException($"Product with ID {id} not found.");
+        }
+
+        var productDto = _mapper.Map<ProductWithStocksDTO>(product);
+
+        return new GenericResponseDto<ProductWithStocksDTO>
+        {
+            Data = productDto,
+            Message = "Product details retrieved successfully",
+            Status = 200
         };
     }
 

@@ -179,6 +179,11 @@ public class ProductController : ControllerBase
         return Ok(res);
     }
 
-
+    [HttpGet("admin/product-with-stocks/{id:int}")]
+    public async Task<IActionResult> GetProductWithStocksForAdmin(int id)
+    {
+        var res = await _serviceManager.ProductService.GetProductWithStocksForAdminAsync(id);
+        return Ok(res);
+    }
 
 }
