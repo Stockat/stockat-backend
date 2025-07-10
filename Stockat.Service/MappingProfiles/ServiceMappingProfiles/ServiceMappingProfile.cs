@@ -1,6 +1,9 @@
 ﻿using AutoMapper;
 using Stockat.Core.DTOs.ServiceDTOs;
 using Stockat.Core.Entities;
+using Stockat.Core.Enums;
+using System;
+using System.Linq;
 
 namespace Stockat.Service.MappingProfiles.ServiceMappingProfiles;
 
@@ -10,7 +13,18 @@ public class ServiceMappingProfile : Profile
         CreateMap<CreateServiceDto, Stockat.Core.Entities.Service>();
         CreateMap<Stockat.Core.Entities.Service, ServiceDto>()
             .ForMember(dest => dest.SellerName,
-                       opt => opt.MapFrom(src => src.Seller.FirstName + " " + src.Seller.LastName));
+                       opt => opt.MapFrom(src => src.Seller.FirstName + " " + src.Seller.LastName))
+            .ForMember(dest => dest.SellerIsDeleted,
+                       opt => opt.MapFrom(src => src.Seller.IsDeleted))
+            .ForMember(dest => dest.SellerIsBlocked,
+                        opt => opt.MapFrom(src =>
+                            src.Seller.Punishments != null &&
+                            src.Seller.Punishments.Any(p =>
+                                (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) &&
+                                (p.EndDate == null || p.EndDate > DateTime.UtcNow)
+                            )
+                        )
+            );
 
         CreateMap<UpdateServiceDto, Stockat.Core.Entities.Service>()
             .ForMember(dest => dest.Name, opt => opt.Condition(src => !string.IsNullOrEmpty(src.Name)))

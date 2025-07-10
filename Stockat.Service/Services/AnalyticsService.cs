@@ -83,7 +83,7 @@ public class AnalyticsService : IAnalyticsService
         {
             // Get all approved services with their related data
             var services = await _repositoryManager.ServiceRepo.FindAllAsync(
-                s => s.IsApproved,
+                s => s.IsApproved == ApprovalStatus.Approved,
                 skip: 0,
                 take: 100, // Get more to calculate rankings
                 includes: ["Seller", "ServiceRequests"]
