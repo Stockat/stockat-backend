@@ -45,6 +45,8 @@ public class RepositoryManager : IRepositoryManager
 
     private readonly Lazy<IUserRepository> _userRepo;
     private readonly Lazy<IChatBotMessageRepository> _chatBotMessageRepository;
+
+    private readonly Lazy<IBaseRepository<ServiceEditRequest>> _serviceEditRequestRepo;
     public RepositoryManager(StockatDBContext context, IMapper mapper)
     {
         _context = context;
@@ -76,6 +78,8 @@ public class RepositoryManager : IRepositoryManager
         _messageReactionRepo = new Lazy<IBaseRepository<MessageReaction>>(() => new BaseRepository<MessageReaction>(_context));
 
         _chatBotMessageRepository = new Lazy<IChatBotMessageRepository>(() => new ChatBotMessageRepository(_context));
+
+        _serviceEditRequestRepo = new Lazy<IBaseRepository<ServiceEditRequest>>(() => new BaseRepository<ServiceEditRequest>(_context));
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
@@ -104,6 +108,8 @@ public class RepositoryManager : IRepositoryManager
 
     public IChatBotMessageRepository ChatBotMessageRepository => _chatBotMessageRepository.Value;
 
+    public IBaseRepository<ServiceEditRequest> ServiceEditRequestRepo => _serviceEditRequestRepo.Value;
+
     public int Complete()
     {
         return _context.SaveChanges(); // returns no. of rows affected
@@ -111,6 +117,9 @@ public class RepositoryManager : IRepositoryManager
 
     public async Task<int> CompleteAsync()
     {
+
+
+
         return await _context.SaveChangesAsync();
     }
 
@@ -121,7 +130,7 @@ public class RepositoryManager : IRepositoryManager
 
     public async Task DisposeAsync()
     {
-        _context.DisposeAsync();
+        await _context.DisposeAsync();
     }
 
     public async Task BeginTransactionAsync() =>

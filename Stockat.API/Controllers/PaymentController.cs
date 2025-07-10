@@ -35,7 +35,7 @@ public class PaymentController : ControllerBase
 
         try
         {
-            var endpointSecret = "whsec_bc6ecd5524ac3fc58389066e50b5b26a5147f9ea96f8d7cec244370d5eb4c178";
+            var endpointSecret = "whsec_998b0fe189fdd578f23438e132d9f7f2425b5982eb5f3ec3d98e14275daa0d3e";
             var stripeEvent = EventUtility.ConstructEvent(
                 json,
                 Request.Headers["Stripe-Signature"],
@@ -65,7 +65,9 @@ public class PaymentController : ControllerBase
                         case "req":
                             await _serviceManager.OrderService.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
                             await _serviceManager.OrderService.UpdateStatus(id, OrderStatus.Processing, PaymentStatus.Paid);
+                            await _serviceManager.OrderService.InvoiceGeneratorAsync(id);
                             break;
+
                     }
 
                     break;
@@ -110,5 +112,5 @@ public class PaymentController : ControllerBase
 
 // stripe listen --forward-to http://localhost:5250/api/Payment/webhook/confirm --skip-verify
 //
-// Secret Key whsec_bc6ecd5524ac3fc58389066e50b5b26a5147f9ea96f8d7cec244370d5eb4c178
+// Secret Key whsec_998b0fe189fdd578f23438e132d9f7f2425b5982eb5f3ec3d98e14275daa0d3e
 

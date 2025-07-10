@@ -24,8 +24,47 @@ public class CategoryController : ControllerBase
     public async Task<IActionResult> getAllCategories()
     {
 
+        var res = await _serviceManager.CategoryService.getAllActiveCategory();
+
+        return Ok(res);
+    }
+
+    [HttpGet("admin")]
+    public async Task<IActionResult> getAllCategoriesForAdmin()
+    {
+
         var res = await _serviceManager.CategoryService.getAllCategory();
 
+        return Ok(res);
+    }
+
+    [HttpPost("add")]
+    public async Task<IActionResult> AddCategory([FromBody] string categoryName)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var res = await _serviceManager.CategoryService.AddCategory(categoryName);
+        return Ok(res);
+
+    }
+    [HttpPost("edit/{id}")]
+    public async Task<IActionResult> EditCategory(int id, CategoryDto categoryDto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var res = await _serviceManager.CategoryService.EditCategory(id, categoryDto);
+        return Ok(res);
+    }
+    [HttpPost("delete/{id}")]
+    public async Task<IActionResult> DeleteCategory(int id)
+    {
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var res = await _serviceManager.CategoryService.DeleteCategory(id);
         return Ok(res);
     }
 
