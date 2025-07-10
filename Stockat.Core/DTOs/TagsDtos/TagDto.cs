@@ -10,4 +10,12 @@ public class TagDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+
+    public TagStatus Status { get; set; }
+
+}
+
+public enum TagStatus
+{
+    Activated, Deactivated
 }
