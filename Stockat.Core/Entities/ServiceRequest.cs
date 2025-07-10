@@ -69,5 +69,23 @@ namespace Stockat.Core.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<ServiceRequestUpdate> RequestUpdates { get; set; } = new List<ServiceRequestUpdate>();
+
+        // SNAPSHOT FIELDS: store service data at request creation
+        [Required]
+        [MaxLength(255)]
+        public string ServiceNameSnapshot { get; set; }
+
+        [MaxLength(1000)]
+        public string? ServiceDescriptionSnapshot { get; set; }
+
+        public int ServiceMinQuantitySnapshot { get; set; }
+
+        public decimal ServicePricePerProductSnapshot { get; set; }
+
+        [MaxLength(100)]
+        public string? ServiceEstimatedTimeSnapshot { get; set; }
+
+        [MaxLength(2083)]
+        public string? ServiceImageUrlSnapshot { get; set; }
     }
 }

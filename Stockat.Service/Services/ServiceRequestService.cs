@@ -105,10 +105,18 @@ public class ServiceRequestService : IServiceRequestService
             SellerApprovalStatus = ApprovalStatus.Pending,
             BuyerApprovalStatus = ApprovalStatus.Pending,
             ServiceStatus = ServiceStatus.Pending,
-            PricePerProduct = 0, // Include the price from service
-            TotalPrice = 0, // Total to be set after seller/buyer approval logic
+            PricePerProduct = 0, // Seller sets later
+            TotalPrice = 0, // Set after offer
             ImageId = service.ImageId,
-            ImageUrl = service.ImageUrl
+            ImageUrl = service.ImageUrl,
+
+            // SNAPSHOT FIELDS
+            ServiceNameSnapshot = service.Name,
+            ServiceDescriptionSnapshot = service.Description,
+            ServiceMinQuantitySnapshot = service.MinQuantity,
+            ServicePricePerProductSnapshot = 0, // Not set until seller offers
+            ServiceEstimatedTimeSnapshot = null, // Not set until seller offers
+            ServiceImageUrlSnapshot = service.ImageUrl
         };
 
         await _repo.ServiceRequestRepo.AddAsync(request);
@@ -262,6 +270,10 @@ public class ServiceRequestService : IServiceRequestService
         request.TotalPrice = request.RequestedQuantity * dto.PricePerProduct;
         request.SellerApprovalStatus = ApprovalStatus.Approved;
 
+        // Set the snapshot fields for offer
+        request.ServicePricePerProductSnapshot = dto.PricePerProduct;
+        request.ServiceEstimatedTimeSnapshot = dto.EstimatedTime;
+
         request.SellerOfferAttempts += 1;
 
         _repo.ServiceRequestRepo.Update(request);
@@ -363,24 +375,6 @@ public class ServiceRequestService : IServiceRequestService
             "Service Request Status Update",
             $"The status of your service request '{request.Service.Name}' has been updated to {dto.Status} by the seller {request.Service.Seller.FirstName} {request.Service.Seller.LastName}."
         );
-
-        // Check if the service is now free to apply deferred edit
-        // Exclude the current request being updated from the check
-        bool hasOtherActive = await _repo.ServiceRequestRepo.AnyAsync(sr =>
-            sr.ServiceId == request.ServiceId &&
-            sr.ServiceStatus != ServiceStatus.Delivered &&
-            sr.ServiceStatus != ServiceStatus.Cancelled
-        );
-
-        if (!hasOtherActive)
-        {
-            _logger.LogInfo($"No active requests found for service {request.ServiceId}, applying deferred edits.");
-            await _serviceEditRequestService.ApplyDeferredEditsAsync(request.ServiceId);
-        }
-        else
-        {
-            _logger.LogInfo($"Service {request.ServiceId} still has active requests, deferred edits will not be applied yet.");
-        }
 
         _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");
         return _mapper.Map<ServiceRequestDto>(request);

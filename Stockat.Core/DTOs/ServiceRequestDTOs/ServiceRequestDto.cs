@@ -38,4 +38,12 @@ public class ServiceRequestDto
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<ServiceRequestUpdateDto> RequestUpdates { get; set; } = new();
+
+    // SNAPSHOT FIELDS
+    public string ServiceNameSnapshot { get; set; }
+    public string? ServiceDescriptionSnapshot { get; set; }
+    public int ServiceMinQuantitySnapshot { get; set; }
+    public decimal ServicePricePerProductSnapshot { get; set; }
+    public string? ServiceEstimatedTimeSnapshot { get; set; }
+    public string? ServiceImageUrlSnapshot { get; set; }
 }

@@ -159,38 +159,6 @@ public class ServiceEditRequestController : ControllerBase
         }
     }
 
-    // Admin manually triggers deferred edit application (for testing)
-    [HttpPost("apply-deferred/{serviceId:int}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> ApplyDeferredEdits(int serviceId)
-    {
-        try
-        {
-            await _serviceManager.ServiceEditRequestService.ApplyDeferredEditsAsync(serviceId);
-            return Ok(new { message = "Deferred edits applied successfully." });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"An error occurred: {ex.Message}");
-        }
-    }
-
-    // Admin checks deferred edit status
-    [HttpGet("deferred-status/{serviceId:int}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetDeferredEditStatus(int serviceId)
-    {
-        try
-        {
-            var status = await _serviceManager.ServiceEditRequestService.GetDeferredEditStatusAsync(serviceId);
-            return Ok(status);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"An error occurred: {ex.Message}");
-        }
-    }
-
     // Seller reactivates a rejected service
     [HttpPost("reactivate/{serviceId:int}")]
     [Authorize(Roles = "Seller")]

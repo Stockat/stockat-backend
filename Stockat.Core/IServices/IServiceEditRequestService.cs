@@ -19,7 +19,5 @@ public interface IServiceEditRequestService
     Task<GenericResponseDto<object>> GetRequestStatisticsAsync();
     Task ApproveEditRequestAsync(int requestId);
     Task RejectEditRequestAsync(int requestId, string note);
-    Task ApplyDeferredEditsAsync(int serviceId);
-    Task<GenericResponseDto<object>> GetDeferredEditStatusAsync(int serviceId);
     Task ReactivateRejectedServiceAsync(int serviceId, string sellerId, CreateServiceEditRequestDto dto);
 }

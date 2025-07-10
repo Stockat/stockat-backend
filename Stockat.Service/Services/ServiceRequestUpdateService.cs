@@ -239,24 +239,24 @@ public class ServiceRequestUpdateService : IServiceRequestUpdateService
     private TimeSpan ParseTime(string timeText)
     {
         timeText = timeText.ToLower().Trim();
+        var match = System.Text.RegularExpressions.Regex.Match(timeText, @"(\d+)\s*(day|week|month)");
+        if (!match.Success)
+            throw new ArgumentException("Unsupported time format.");
 
-        if (timeText.Contains("day"))
-        {
-            var days = int.Parse(new string(timeText.Where(char.IsDigit).ToArray()));
-            return TimeSpan.FromDays(days);
-        }
-        else if (timeText.Contains("week"))
-        {
-            var weeks = int.Parse(new string(timeText.Where(char.IsDigit).ToArray()));
-            return TimeSpan.FromDays(weeks * 7);
-        }
-        else if (timeText.Contains("month"))
-        {
-            var months = int.Parse(new string(timeText.Where(char.IsDigit).ToArray()));
-            return TimeSpan.FromDays(months * 30); // or 28/31 as you prefer
-        }
+        int value = int.Parse(match.Groups[1].Value);
+        string unit = match.Groups[2].Value;
 
-        throw new ArgumentException("Unsupported time format.");
+        switch (unit)
+        {
+            case "day":
+                return TimeSpan.FromDays(value);
+            case "week":
+                return TimeSpan.FromDays(value * 7);
+            case "month":
+                return TimeSpan.FromDays(value * 30); // or 28/31 as you prefer
+            default:
+                throw new ArgumentException("Unsupported time unit.");
+        }
     }
 
     private string FormatTimeSpan(TimeSpan span)
