@@ -45,6 +45,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IChatHistoryService> _chatHistoryService;
     private readonly Lazy<IAIService> _aiService;
     private readonly Lazy<IAnalyticsService> _analyticsService;
+    private readonly Lazy<IServiceEditRequestService> _serviceEditRequestService;
 
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
@@ -67,7 +68,7 @@ public sealed class ServiceManager : IServiceManager
 
 
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
-        _serviceRequestService = new Lazy<IServiceRequestService>(() => new ServiceRequestService(logger, mapper, repositoryManager, _emailService.Value, _userService.Value));
+        _serviceRequestService = new Lazy<IServiceRequestService>(() => new ServiceRequestService(logger, mapper, repositoryManager, _emailService.Value, _userService.Value, _serviceEditRequestService.Value));
         _serviceRequestUpdateService = new Lazy<IServiceRequestUpdateService>(() => new ServiceRequestUpdateService(logger, mapper, repositoryManager, _emailService.Value));
 
         // UserVerificationService with email and user service dependencies
@@ -92,6 +93,7 @@ public sealed class ServiceManager : IServiceManager
         _aiService = new Lazy<IAIService>(() => new AIService(this, logger));
         _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger));
 
+        _serviceEditRequestService = new Lazy<IServiceEditRequestService>(() => new ServiceEditRequestService(logger, mapper, repositoryManager, _imageService.Value, _emailService.Value));
     }
 
     public IAuthenticationService AuthenticationService
@@ -135,4 +137,5 @@ public sealed class ServiceManager : IServiceManager
     public IChatHistoryService ChatHistoryService => _chatHistoryService.Value;
     public IAnalyticsService AnalyticsService => _analyticsService.Value;
     public IAIService AIService => _aiService.Value;
+    public IServiceEditRequestService ServiceEditRequestService => _serviceEditRequestService.Value;
 }

@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Stockat.Core.Entities;
+using Stockat.Core.Enums;
 using Stockat.Core.IRepositories;
 
 namespace Stockat.EF.Repositories;
@@ -13,11 +14,20 @@ public class ServiceRepository : BaseRepository<Stockat.Core.Entities.Service>, 
         _context = context;
     }
 
-    public async Task<IEnumerable<Service>> GetAllAvailableServicesWithSeller(int skip, int take)
+    public async Task<IEnumerable<Service>> GetAllAvailableServicesWithSeller(int skip, int take, bool pendingOnly = false)
     {
         return await _context.Set<Service>()
-            .Skip(skip).Take(take)
             .Include(s => s.Seller)
+            .Where(s => (pendingOnly ? s.IsApproved == ApprovalStatus.Pending : s.IsApproved == ApprovalStatus.Approved)
+                && s.IsDeleted == false
+                && !s.Seller.IsDeleted
+                && s.Seller.UserVerification.Status == VerificationStatus.Approved
+                && !s.Seller.Punishments.Any(p =>
+                    (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan)
+                    && (p.EndDate == null || p.EndDate > DateTime.UtcNow)
+                )
+            )
+            .Skip(skip).Take(take)
             .ToListAsync();
     }
 

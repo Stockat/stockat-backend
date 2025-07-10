@@ -18,13 +18,17 @@ public class ServiceRequestService : IServiceRequestService
     private readonly IRepositoryManager _repo;
     private readonly IEmailService _emailService;
     private readonly IUserService _userService;
+    private readonly IServiceEditRequestService _serviceEditRequestService;
+
 
     public ServiceRequestService(
         ILoggerManager logger,
         IMapper mapper,
         IRepositoryManager repo,
         IEmailService emailService,
-        IUserService userService
+        IUserService userService,
+        IServiceEditRequestService serviceEditRequestService
+
         )
     {
         _logger = logger;
@@ -32,24 +36,47 @@ public class ServiceRequestService : IServiceRequestService
         _repo = repo;
         _emailService = emailService;
         _userService = userService;
+        _serviceEditRequestService = serviceEditRequestService;
     }
 
     public async Task<ServiceRequestDto> CreateAsync(CreateServiceRequestDto dto, string buyerId)
     {
-        // Prevent duplicate pending request for the same service by the same buyer
-        var existingPendingRequest = await _repo.ServiceRequestRepo.FindAsync(
-            r => r.ServiceId == dto.ServiceId
-              && r.BuyerId == buyerId
-              && r.ServiceStatus == ServiceStatus.Pending
+
+        var buyer = await _repo.UserRepo.FindAsync(
+            u => u.Id == buyerId,
+            includes: ["UserVerification", "Punishments"]
         );
 
-        if (existingPendingRequest != null)
+        if (buyer == null || buyer.IsDeleted || buyer.IsBlocked)
+        {
+            _logger.LogError($"Unauthorized buyer {buyerId} tried to create a service request.");
+            throw new UnauthorizedAccessException("You are not authorized to create a service request.");
+        }
+
+        if (!buyer.IsApproved)
+        {
+            throw new BadRequestException("Your account is not approved yet.");
+        }
+
+
+        // Check for existing pending request
+        var hasPending = await _repo.ServiceRequestRepo.AnyAsync(
+            r => r.ServiceId == dto.ServiceId &&
+                 r.BuyerId == buyerId &&
+                 r.ServiceStatus == ServiceStatus.Pending
+        );
+
+        if (hasPending)
         {
             throw new BadRequestException("You already have a pending request for this service.");
         }
 
+
         // Fetch the service
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == dto.ServiceId, ["Seller"]);
+        var service = await _repo.ServiceRepo.FindAsync(
+            s => s.Id == dto.ServiceId && !s.IsDeleted && s.IsApproved == ApprovalStatus.Approved,
+            includes: ["Seller"]);
+
         if (service == null)
         {
             _logger.LogError($"Service with ID {dto.ServiceId} not found.");
@@ -89,8 +116,6 @@ public class ServiceRequestService : IServiceRequestService
 
         _logger.LogInfo($"Service request created successfully for service {dto.ServiceId} by buyer {buyerId}.");
 
-        var buyer = await _userService.GetUserAsync(buyerId);
-
         await _emailService.SendEmailAsync(
             service.Seller.Email,
             "New Service Request",
@@ -99,7 +124,7 @@ public class ServiceRequestService : IServiceRequestService
         );
 
         await _emailService.SendEmailAsync(
-            buyer.Data.Email,
+            buyer.Email,
             "Service Request Created",
             $"Your service request for '{service.Name}' has been created successfully. " +
             $"You will be notified once the seller responds."
@@ -338,6 +363,24 @@ public class ServiceRequestService : IServiceRequestService
             "Service Request Status Update",
             $"The status of your service request '{request.Service.Name}' has been updated to {dto.Status} by the seller {request.Service.Seller.FirstName} {request.Service.Seller.LastName}."
         );
+
+        // Check if the service is now free to apply deferred edit
+        // Exclude the current request being updated from the check
+        bool hasOtherActive = await _repo.ServiceRequestRepo.AnyAsync(sr =>
+            sr.ServiceId == request.ServiceId &&
+            sr.ServiceStatus != ServiceStatus.Delivered &&
+            sr.ServiceStatus != ServiceStatus.Cancelled
+        );
+
+        if (!hasOtherActive)
+        {
+            _logger.LogInfo($"No active requests found for service {request.ServiceId}, applying deferred edits.");
+            await _serviceEditRequestService.ApplyDeferredEditsAsync(request.ServiceId);
+        }
+        else
+        {
+            _logger.LogInfo($"Service {request.ServiceId} still has active requests, deferred edits will not be applied yet.");
+        }
 
         _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");
         return _mapper.Map<ServiceRequestDto>(request);

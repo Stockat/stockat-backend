@@ -38,4 +38,5 @@ public interface IServiceManager
     IChatHistoryService ChatHistoryService { get; }
     IAIService AIService { get; }
     IAnalyticsService AnalyticsService { get; }
+    IServiceEditRequestService ServiceEditRequestService { get; }
 }

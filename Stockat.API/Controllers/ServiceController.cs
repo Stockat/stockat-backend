@@ -37,17 +37,21 @@ public class ServiceController : ControllerBase
     }
 
     [HttpGet("{serviceId:int}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> GetServiceById(int serviceId)
     {
         try
         {
-            var service = await _service.ServiceService.GetServiceByIdAsync(serviceId);
+            var userId = User.Identity?.IsAuthenticated == true
+            ? User.FindFirstValue(ClaimTypes.NameIdentifier)
+            : null;
+
+            var service = await _service.ServiceService.GetServiceByIdAsync(serviceId, userId);
             return Ok(service);
         } 
         catch (NotFoundException ex)
         {
-            return NotFound($"Service with ID {serviceId} not found: {ex.Message}");
+            return NotFound($"{ex.Message}");
         }
         catch (Exception ex)
         {
@@ -55,23 +59,30 @@ public class ServiceController : ControllerBase
         }
     }
 
-    [HttpDelete("{serviceId:int}")]
+    // soft delete
+    [HttpPatch("{serviceId:int}/delete")]
     [Authorize(Roles = "Seller, Admin")]
     public async Task<IActionResult> DeleteService(int serviceId)
     {
         try
         {
-            var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(sellerId))
+            var userID = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userID))
                 return Unauthorized("Seller ID is required.");
 
+            // Check if user is admin
+            bool isAdmin = User.IsInRole("Admin");
 
-            await _service.ServiceService.DeleteAsync(serviceId, sellerId);
+            await _service.ServiceService.DeleteAsync(serviceId, userID, isAdmin);
             return NoContent();
         }
-        catch (UnauthorizedAccessException ex)
+        catch (BadRequestException ex)
         {
-            return Forbid($"You do not have permission to delete this service: {ex.Message}");
+            return BadRequest($"Cannot delete service: {ex.Message}");
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound($"Service with ID {serviceId} not found: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -80,7 +91,7 @@ public class ServiceController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAllAvailableServices([FromQuery] int page = 0, [FromQuery] int size = 10)
     {
         var services = await _service.ServiceService.GetAllAvailableServicesAsync(page,size);
@@ -88,14 +99,14 @@ public class ServiceController : ControllerBase
     }
 
     [HttpGet("seller/{sellerId}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> GetSellerServices(string sellerId, [FromQuery] int page = 0, [FromQuery] int size = 10)
     {
         if (string.IsNullOrEmpty(sellerId))
             return BadRequest("Seller ID is required.");
 
 
-        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId, page, size);
+        var services = await _service.ServiceService.GetSellerServicesAsync(sellerId, page, size, isPublicView: true);
         if (services == null)
             return NotFound($"No services found for seller with ID {sellerId}.");
 
@@ -124,12 +135,8 @@ public class ServiceController : ControllerBase
     [ServiceFilter(typeof(ValidationFilterAttribute))]
     public async Task<IActionResult> UpdateService(int serviceId, [FromBody] UpdateServiceDto dto)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(sellerId))
-            return Unauthorized("Seller ID is required.");
-
-        var updatedService = await _service.ServiceService.UpdateAsync(serviceId, dto, sellerId);
-        return Ok(updatedService);
+        // Sellers must use the edit request flow. Only Admin can update directly (if needed).
+        return Forbid("Sellers must submit an edit request instead of direct update.");
     }
 
 
@@ -192,7 +199,7 @@ public class ServiceController : ControllerBase
         }
     }
 
-       [HttpPatch("{serviceId:int}/approve")]
+   [HttpPatch("approve/{serviceId:int}")]
    [Authorize(Roles = "Admin")]
    public async Task<IActionResult> ApproveService(int serviceId, [FromBody] bool isApproved)
    {
@@ -213,4 +220,25 @@ public class ServiceController : ControllerBase
            return StatusCode(500, $"An error occurred while updating service approval status: {ex.Message}");
        }
    }
+
+    [HttpGet("admin/pending")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetPendingServicesForApproval([FromQuery] int page = 1, [FromQuery] int size = 10)
+    {
+        var result = await _service.ServiceService.GetAllAvailableServicesAsync(page, size, pendingOnly: true);
+        return Ok(result);
+    }
+
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllServicesForAdmin(
+        [FromQuery] int page = 1, 
+        [FromQuery] int size = 10,
+        [FromQuery] bool? includeBlockedSellers = null,
+        [FromQuery] bool? includeDeletedSellers = null,
+        [FromQuery] bool? includeDeletedServices = null)
+    {
+        var result = await _service.ServiceService.GetAllServicesForAdminAsync(page, size, includeBlockedSellers, includeDeletedSellers, includeDeletedServices);
+        return Ok(result);
+    }
 }
