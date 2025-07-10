@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Stockat.Core;
@@ -50,6 +51,7 @@ public class ProductController : ControllerBase
     // Seller Region [Authorized] ----------------------------------WatchOut--------------------------------------------------------
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> Addproduct([FromForm] string productJson, [FromForm] IFormFile[] images)
     {
 
@@ -75,6 +77,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize]
     public async Task<IActionResult> Updateproduct([FromRoute] int id, [FromForm] string productJson, [FromForm] IFormFile[] images, [FromForm] string removedimages)
     {
         var imgUrls = await _serviceManager.ProductService.UploadProductImages(images);
@@ -103,29 +106,36 @@ public class ProductController : ControllerBase
             productDto.Images.Add(new UpdateProductImageDto() { ImageUrl = img.Url, FileId = img.FileId });
         }
 
-        var res = await _serviceManager.ProductService.UpdateProduct(id, productDto);
+        var sellerId = await _serviceManager.UserService.GetCurrentUserIdAsyncService();
+
+        var res = await _serviceManager.ProductService.UpdateProduct(id, productDto, sellerId);
         return Ok(res);
     }
 
 
     [HttpGet("seller/{id:int}")]
+    [Authorize]
+
     public async Task<IActionResult> getproductForUpdatesAsync(int id)
     {
-
-        var res = await _serviceManager.ProductService.GetProductForUpdateAsync(id);
+        var sellerId = await _serviceManager.UserService.GetCurrentUserIdAsyncService();
+        var res = await _serviceManager.ProductService.GetProductForUpdateAsync(id, sellerId);
         return Ok(res);
     }
 
     [HttpGet("seller")]
+    [Authorize]
+
     public async Task<IActionResult> getAllproductForSellerAsync
     ([FromQuery] int[] tags, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, int size = 8, int page = 0)
     {
-
-        var res = await _serviceManager.ProductService.GetAllProductForSellerAsync(size, page, location, category, minQuantity, minPrice, tags);
+        var sellerId = await _serviceManager.UserService.GetCurrentUserIdAsyncService();
+        var res = await _serviceManager.ProductService.GetAllProductForSellerAsync(size, page, location, category, minQuantity, minPrice, tags, sellerId);
         return Ok(res);
     }
 
     [HttpPost("{id:int}")]
+    [Authorize]
     public async Task<IActionResult> ChangeProductStatus(int id, [FromBody] ChangeProductStatusDto dto)
 
     {
@@ -134,7 +144,9 @@ public class ProductController : ControllerBase
         return Ok(res);
     }
 
+    // Admin
     [HttpPost("reason/{id:int}")]
+    [Authorize]
     public async Task<IActionResult> ChangeProductStatusWithReason(int id, [FromBody] ChangeProductStatusWithReasonDto dto)
 
     {
@@ -147,6 +159,7 @@ public class ProductController : ControllerBase
 
 
     [HttpPost("seller/delete")]
+    [Authorize]
     public async Task<IActionResult> removeSellerProduct([FromBody] int id)
 
     {
@@ -154,10 +167,12 @@ public class ProductController : ControllerBase
         return Ok(res);
     }
     [HttpPost("seller/edit-canBeRequested")]
+    [Authorize]
     public async Task<IActionResult> changeCanBeRequsted([FromBody] int id)
 
     {
-        var res = await _serviceManager.ProductService.ChangeCanBeRequested(id);
+        var sellerId = await _serviceManager.UserService.GetCurrentUserIdAsyncService();
+        var res = await _serviceManager.ProductService.ChangeCanBeRequested(id, sellerId);
         return Ok(res);
     }
 
@@ -171,6 +186,7 @@ public class ProductController : ControllerBase
 
     // Admin Region [Authorized] ----------------------------------WatchOut--------------------------------------------------------
     [HttpGet("admin")]
+    [Authorize]
     public async Task<IActionResult> getAllProductsPaginatedForAdminAsync
      ([FromQuery] int size, [FromQuery] int[] tags, [FromQuery] int page = 0, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0)
     {
