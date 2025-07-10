@@ -365,6 +365,7 @@ public class ServiceRequestService : IServiceRequestService
         );
 
         // Check if the service is now free to apply deferred edit
+        // Exclude the current request being updated from the check
         bool hasOtherActive = await _repo.ServiceRequestRepo.AnyAsync(sr =>
             sr.ServiceId == request.ServiceId &&
             sr.ServiceStatus != ServiceStatus.Delivered &&
@@ -373,7 +374,12 @@ public class ServiceRequestService : IServiceRequestService
 
         if (!hasOtherActive)
         {
+            _logger.LogInfo($"No active requests found for service {request.ServiceId}, applying deferred edits.");
             await _serviceEditRequestService.ApplyDeferredEditsAsync(request.ServiceId);
+        }
+        else
+        {
+            _logger.LogInfo($"Service {request.ServiceId} still has active requests, deferred edits will not be applied yet.");
         }
 
         _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");

@@ -357,18 +357,6 @@ public class ServiceService : IServiceService
         int totalCount = await _repo.ServiceRepo.CountAsync(filter);
 
         var mappedServices = _mapper.Map<IEnumerable<ServiceDto>>(services);
-        
-        _logger.LogInfo($"Returning {services.Count()} services");
-        if (services.Any())
-        {
-            var sampleService = services.First();
-            var sampleMappedService = mappedServices.First();
-            _logger.LogInfo($"Sample service - ID: {sampleService.Id}, Seller: {sampleService.Seller?.FirstName} {sampleService.Seller?.LastName}");
-            _logger.LogInfo($"Sample service seller status - IsDeleted: {sampleService.Seller?.IsDeleted}, HasPunishments: {sampleService.Seller?.Punishments?.Any()}");
-            _logger.LogInfo($"Sample service seller punishments count: {sampleService.Seller?.Punishments?.Count() ?? 0}");
-            _logger.LogInfo($"Sample service seller verification status: {sampleService.Seller?.UserVerification?.Status}");
-            _logger.LogInfo($"Sample mapped service - ID: {sampleMappedService.Id}, SellerIsDeleted: {sampleMappedService.SellerIsDeleted}, SellerIsBlocked: {sampleMappedService.SellerIsBlocked}");
-        }
 
         return new GenericResponseDto<PaginatedDto<IEnumerable<ServiceDto>>>
         {
