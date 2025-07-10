@@ -10,4 +10,6 @@ public class CategoryDto
 {
     public int Id { get; set; }
     public string CategoryName { get; set; } = string.Empty;
+    public bool isDeleted { get; set; }
+
 }
