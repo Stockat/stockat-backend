@@ -8,12 +8,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Stockat.Core.IServices;
+using Stockat.Core;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace Stockat.EF;
 
 public class StockatDBContext : IdentityDbContext<User>
 {
+    private readonly IHttpContextAccessor _httpContextAccessor;
     public DbSet<Service> Services { get; set; }
     public DbSet<ServiceRequest> ServiceRequests { get; set; }
     public DbSet<ServiceRequestUpdate> ServiceRequestUpdates { get; set; }
@@ -41,9 +48,19 @@ public class StockatDBContext : IdentityDbContext<User>
     public DbSet<MessageReaction> MessageReactions { get; set; }
     public DbSet<MessageReadStatus> MessageReadStatuses { get; set; }
     public DbSet<ChatBotMessage> ChatBotMessages { get; set; }
+
+    //Logs Table
+    public DbSet<OrderProductAudit> OrderProductAudits { get; set; }
+
+    public StockatDBContext(DbContextOptions options, IHttpContextAccessor httpContextAccessor) : base(options)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
     public StockatDBContext(DbContextOptions options) : base(options)
     {
+
     }
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -65,4 +82,52 @@ public class StockatDBContext : IdentityDbContext<User>
         //modelBuilder.ApplyConfiguration(new TagConfiguration());
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly()); // better performance
     }
+
+    //
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        var audits = new List<OrderProductAudit>();
+
+        foreach (var entry in ChangeTracker.Entries<OrderProduct>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                var oldRecord = new OrderProduct();
+                foreach (var prop in entry.Properties)
+                {
+                    var propInfo = typeof(OrderProduct).GetProperty(prop.Metadata.Name);
+                    if (propInfo != null)
+                        propInfo.SetValue(oldRecord, prop.OriginalValue);
+                }
+
+                var oldJson = JsonSerializer.Serialize(oldRecord, new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles });
+                var newJson = JsonSerializer.Serialize(entry.Entity, new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles });
+
+                audits.Add(new OrderProductAudit
+                {
+                    OrderProductId = entry.Entity.Id,
+                    UserId = userId,
+                    ChangedAt = now,
+                    OldRecordJson = oldJson,
+                    NewRecordJson = newJson
+                });
+            }
+        }
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        if (audits.Any())
+        {
+            await OrderProductAudits.AddRangeAsync(audits, cancellationToken);
+            await base.SaveChangesAsync(cancellationToken);
+        }
+
+        return result;
+    }
+
+
+
 }

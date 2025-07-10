@@ -111,6 +111,9 @@ public class RepositoryManager : IRepositoryManager
 
     public async Task<int> CompleteAsync()
     {
+
+
+
         return await _context.SaveChangesAsync();
     }
 
@@ -121,7 +124,7 @@ public class RepositoryManager : IRepositoryManager
 
     public async Task DisposeAsync()
     {
-        _context.DisposeAsync();
+        await _context.DisposeAsync();
     }
 
     public async Task BeginTransactionAsync() =>
