@@ -54,5 +54,11 @@ namespace Stockat.Core.IServices
         public Task<OrderProduct> getOrderByIdAsync(int id);
 
         public Task InvoiceGeneratorAsync(int orderid);
+
+        public Task PaymentCancellation();
+
+
+
+        public Task<GenericResponseDto<Dictionary<string, int>>> OrderSummaryCalc();
     }
 }

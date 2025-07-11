@@ -28,6 +28,8 @@ namespace Stockat.Service.Services.AuctionServices
 
                 await Task.Delay(TimeSpan.FromMinutes(15), stoppingToken);
             }
+
+
         }
     }
 
