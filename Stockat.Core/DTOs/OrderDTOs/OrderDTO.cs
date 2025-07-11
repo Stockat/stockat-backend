@@ -12,6 +12,7 @@ namespace Stockat.Core.DTOs.OrderDTOs
         public OrderStatus Status { get; set; }
         public DateTime CraetedAt { get; set; }
         public string? Description { get; set; } = string.Empty;
+        public string? ProductName { get; set; } = string.Empty;
 
         // Payment Info
         public string PaymentId { get; set; }

@@ -14,6 +14,7 @@ using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 
 namespace Stockat.Service.Services;
 internal sealed class AuthenticationService : IAuthenticationService
@@ -28,8 +29,9 @@ internal sealed class AuthenticationService : IAuthenticationService
     private readonly IEmailService _emailService;
     private readonly IChatService _chatService;
     private readonly IRepositoryManager _repo;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private User? _user;
-    public AuthenticationService(ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IEmailService emailService, IChatService chatService, IRepositoryManager repo)
+    public AuthenticationService(ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IEmailService emailService, IChatService chatService, IRepositoryManager repo, IHttpContextAccessor httpContextAccessor)
     {
         _logger = logger;
         _mapper = mapper;
@@ -39,6 +41,7 @@ internal sealed class AuthenticationService : IAuthenticationService
         _emailService = emailService;
         _chatService = chatService;
         _repo = repo;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleToken(ExternalAuthDto externalAuth)
@@ -114,18 +117,27 @@ internal sealed class AuthenticationService : IAuthenticationService
             }
         }
 
-        if (await _userManager.IsLockedOutAsync(user))
+        // Always reload user with punishments and verification
+        _user = await _repo.UserRepo.FindAsync(
+            u => u.Id == user.Id,
+            new[] { "Punishments", "UserVerification" }
+        );
+
+        if (await _userManager.IsLockedOutAsync(_user))
             return AuthenticationStatus.InvalidCredentials;
 
-
-        if (user.IsDeleted)
+        if (_user.IsDeleted)
         {
             _logger.LogWarn("ExternalLoginAsync: Account is soft-deleted.");
-            _user = user;
             return AuthenticationStatus.AccountDeleted;
         }
 
-        _user = user;
+        if (_user.IsBlocked)
+        {
+            _logger.LogWarn("ExternalLoginAsync: Account is blocked.");
+            return AuthenticationStatus.Blocked;
+        }
+
         return AuthenticationStatus.Success;
     }
 
@@ -153,7 +165,10 @@ internal sealed class AuthenticationService : IAuthenticationService
     // login
     public async Task<AuthenticationStatus> ValidateUser(UserForAuthenticationDto userForAuth)
     {
-        _user = await _userManager.FindByEmailAsync(userForAuth.Email);
+        _user = await _repo.UserRepo.FindAsync(
+            u => u.Email == userForAuth.Email,
+            new[] { "Punishments", "UserVerification" }
+        );
 
         var isValidUser = _user != null && await _userManager.CheckPasswordAsync(_user, userForAuth.Password);
 
@@ -174,6 +189,12 @@ internal sealed class AuthenticationService : IAuthenticationService
         {
             _logger.LogWarn($"{nameof(ValidateUser)}: Account is soft-deleted.");
             return AuthenticationStatus.AccountDeleted;
+        }
+
+        if (_user.IsBlocked)
+        {
+            _logger.LogWarn($"{nameof(ValidateUser)}: Account is blocked.");
+            return AuthenticationStatus.Blocked;
         }
 
         return AuthenticationStatus.Success;
@@ -244,10 +265,10 @@ internal sealed class AuthenticationService : IAuthenticationService
             throw new BadRequestException("Password reset failed");
     }
 
-    public async Task<TokenDto> CreateToken(bool populateExp)
+    public async Task<TokenDto> CreateToken(bool populateExp, string? userId = null)
     {
         var signingCredentials = GetSigningCredentials();
-        var claims = await GetClaims();
+        var claims = await GetClaims(userId);
         var tokenOptions = GenerateTokenOptions(signingCredentials, claims);
 
         var refreshToken = GenerateRefreshToken();
@@ -278,12 +299,19 @@ internal sealed class AuthenticationService : IAuthenticationService
         return new SigningCredentials(secret, SecurityAlgorithms.HmacSha256);
     }
 
-    private async Task<List<Claim>> GetClaims()
+    private async Task<List<Claim>> GetClaims(string? userId = null)
     {
+        
+
+        if(userId is not null)
+        {
+            _user = await _userManager.FindByIdAsync(userId);
+        }
+
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, _user.UserName),
-            new Claim(ClaimTypes.NameIdentifier, _user.Id) // Add UserId as NameIdentifier
+            new Claim(ClaimTypes.NameIdentifier, _user.Id)
         };
 
         var roles = await _userManager.GetRolesAsync(_user);
@@ -355,5 +383,21 @@ internal sealed class AuthenticationService : IAuthenticationService
 
         var emailMessage = $"<p>Click <a href='{confirmationLink}'>here</a> to confirm your email.</p>";
         await _emailService.SendEmailAsync(user.Email, "Confirm your email", emailMessage);
+    }
+
+    public async Task<User> GetCurrentUser()
+    {
+        if (_user == null)
+            throw new InvalidOperationException("No user is currently authenticated.");
+        
+        return _user;
+    }
+
+    public async Task<bool> GetCurrentUserApprovalStatus()
+    {
+        if (_user == null)
+            throw new InvalidOperationException("No user is currently authenticated.");
+        
+        return _user.IsApproved;
     }
 }

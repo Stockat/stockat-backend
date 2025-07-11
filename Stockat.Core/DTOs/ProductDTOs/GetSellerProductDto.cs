@@ -20,5 +20,6 @@ public class GetSellerProductDto
     public string SellerId { get; set; }
     public bool canBeRequested { get; set; }
     public List<string> Image { get; set; } = new();
+    public string Reason { get; set; } = string.Empty;
 
 }

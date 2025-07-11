@@ -20,4 +20,8 @@ public class ChatMessageDto
     public DateTime SentAt { get; set; }
     public DateTime? ReadAt { get; set; }
     public List<MessageReactionDto> Reactions { get; set; } = new();
+    
+    // For chatbot messages
+    public string? Role { get; set; } // "user" or "assistant"
+    public string? SenderId { get; set; } // For chatbot messages that don't have a full User object
 }

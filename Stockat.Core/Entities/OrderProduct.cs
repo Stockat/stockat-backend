@@ -25,10 +25,14 @@ public class OrderProduct
 
     public OrderStatus Status { get; set; }
     public DateTime CraetedAt { get; set; } = DateTime.Now;
+    public DateTime? EstimatedDeliveryTime { get; set; } =null;
+
+    public string? SessionId { get; set; }
 
     // Payment Info
     public string PaymentId { get; set; }
-    public string PaymentStatus { get; set; }
+    public PaymentStatus PaymentStatus { get; set; }
+    public DateTime? PaymentDate { get; set; }
 
     // ForeinKey
     public int ProductId { get; set; }
@@ -49,4 +53,7 @@ public class OrderProduct
     [MaxLength(250, ErrorMessage = "Request Product Description Length Must Be less than or equal 250 char")]
     public string? Description { get; set; } = string.Empty;
 
+    public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+
 }
+

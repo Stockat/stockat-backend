@@ -6,6 +6,7 @@ using Stockat.Core;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using System;
 
 namespace Stockat.API.Hubs;
 
@@ -214,9 +215,30 @@ public class ChatHub : Hub
     public async Task CreateConversation(string user2Id)
     {
         var user1Id = GetUserId();
-        var conversation = await _serviceManager.ChatService.CreateConversationAsync(user1Id, user2Id);
-        await Clients.User(user2Id).SendAsync("ConversationCreated", conversation);
-        await Clients.Caller.SendAsync("ConversationCreated", conversation);
+        try
+        {
+            var conversation = await _serviceManager.ChatService.CreateConversationAsync(user1Id, user2Id);
+            await Clients.User(user2Id).SendAsync("ConversationCreated", conversation);
+            await Clients.Caller.SendAsync("ConversationCreated", conversation);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Conversation already exists"))
+        {
+            // If conversation already exists, get the existing conversation and return it
+            var existingConversation = await _serviceManager.ChatService.GetConversationByTwoUsersIdsAsync(user1Id, user2Id);
+            if (existingConversation != null)
+            {
+                await Clients.User(user2Id).SendAsync("ConversationCreated", existingConversation);
+                await Clients.Caller.SendAsync("ConversationCreated", existingConversation);
+            }
+            else
+            {
+                await Clients.Caller.SendAsync("Error", "Failed to retrieve existing conversation.");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            await Clients.Caller.SendAsync("Error", ex.Message);
+        }
     }
 
     public async Task DeleteConversation(int conversationId)

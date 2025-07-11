@@ -42,6 +42,10 @@ public class ServiceRequestController : ControllerBase
         {
             return NotFound(ex.Message);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
         catch (Exception ex)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
@@ -174,7 +178,9 @@ public class ServiceRequestController : ControllerBase
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized("User is not authenticated.");
-            var result = await _serviceManager.ServiceRequestService.UpdateServiceStatusAsync(requestId, userId, dto);
+
+            bool isAdmin = User.IsInRole("Admin");
+            var result = await _serviceManager.ServiceRequestService.UpdateServiceStatusAsync(requestId, userId, isAdmin, dto);
             return Ok(result);
         }
         catch (NotFoundException ex)
@@ -228,6 +234,34 @@ public class ServiceRequestController : ControllerBase
         catch (BadRequestException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllRequestsForAdmin([FromQuery] int page = 1, [FromQuery] int size = 10, [FromQuery] int? status = null)
+    {
+        var statusEnum = status.HasValue ? (Stockat.Core.Enums.ServiceStatus?)status.Value : null;
+        var result = await _serviceManager.ServiceRequestService.GetAllRequestsForAdminAsync(page, size, statusEnum);
+        return Ok(result);
+    }
+
+    [HttpPost("{requestId:int}/checkout")]
+    [Authorize]
+    public async Task<IActionResult> CreateCheckoutSession(int requestId)
+    {
+        try
+        {
+            var buyerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(buyerId))
+                return Unauthorized("User is not authenticated.");
+
+            var result = await _serviceManager.ServiceRequestService.CreateStripeCheckoutSessionAsync(requestId, buyerId);
+            return StatusCode(result.Status, result);
         }
         catch (Exception ex)
         {

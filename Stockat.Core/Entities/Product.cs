@@ -38,6 +38,7 @@ public class Product
     public bool isDeleted { get; set; } = false;
     public bool canBeRequested { get; set; } = true;
     public string Location { get; set; } = string.Empty;
+    public string RejectionReason { get; set; } = string.Empty;
 
     //ForeignKey
     [Required(ErrorMessage = "Seller Id is Required")]
@@ -55,6 +56,7 @@ public class Product
     public ICollection<Auction> Auctions { get; set; } = new List<Auction>(); //partial 1-M with Auction 
     public virtual ICollection<ProductTag> ProductTags { get; set; }
     public virtual ICollection<Feature> Features { get; set; }
+    public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
 
 
 }

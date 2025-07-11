@@ -1,13 +1,17 @@
 ﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using Stockat.Core;
 using Stockat.Core.DTOs;
 using Stockat.Core.DTOs.ServiceRequestDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
+using Stockat.Core.Helpers;
 using Stockat.Core.IServices;
+using Stripe;
+using Stripe.Checkout;
 
 namespace Stockat.Service.Services;
 
@@ -17,39 +21,66 @@ public class ServiceRequestService : IServiceRequestService
     private readonly IMapper _mapper;
     private readonly IRepositoryManager _repo;
     private readonly IEmailService _emailService;
-    private readonly IUserService _userService;
+    private readonly UserManager<User> _userManager;
+    private readonly IServiceEditRequestService _serviceEditRequestService;
+
 
     public ServiceRequestService(
         ILoggerManager logger,
         IMapper mapper,
         IRepositoryManager repo,
         IEmailService emailService,
-        IUserService userService
+        UserManager<User> userManager,
+        IServiceEditRequestService serviceEditRequestService
+
         )
     {
         _logger = logger;
         _mapper = mapper;
         _repo = repo;
         _emailService = emailService;
-        _userService = userService;
+        _userManager = userManager;
+        _serviceEditRequestService = serviceEditRequestService;
     }
 
     public async Task<ServiceRequestDto> CreateAsync(CreateServiceRequestDto dto, string buyerId)
     {
-        // Prevent duplicate pending request for the same service by the same buyer
-        var existingPendingRequest = await _repo.ServiceRequestRepo.FindAsync(
-            r => r.ServiceId == dto.ServiceId
-              && r.BuyerId == buyerId
-              && r.ServiceStatus == ServiceStatus.Pending
+
+        var buyer = await _repo.UserRepo.FindAsync(
+            u => u.Id == buyerId,
+            includes: ["UserVerification", "Punishments"]
         );
 
-        if (existingPendingRequest != null)
+        if (buyer == null || buyer.IsDeleted || buyer.IsBlocked)
+        {
+            _logger.LogError($"Unauthorized buyer {buyerId} tried to create a service request.");
+            throw new UnauthorizedAccessException("You are not authorized to create a service request.");
+        }
+
+        if (!buyer.IsApproved)
+        {
+            throw new BadRequestException("Your account is not approved yet.");
+        }
+
+
+        // Check for existing pending request
+        var hasPending = await _repo.ServiceRequestRepo.AnyAsync(
+            r => r.ServiceId == dto.ServiceId &&
+                 r.BuyerId == buyerId &&
+                 r.ServiceStatus == ServiceStatus.Pending
+        );
+
+        if (hasPending)
         {
             throw new BadRequestException("You already have a pending request for this service.");
         }
 
+
         // Fetch the service
-        var service = await _repo.ServiceRepo.FindAsync(s => s.Id == dto.ServiceId, ["Seller"]);
+        var service = await _repo.ServiceRepo.FindAsync(
+            s => s.Id == dto.ServiceId && !s.IsDeleted && s.IsApproved == ApprovalStatus.Approved,
+            includes: ["Seller"]);
+
         if (service == null)
         {
             _logger.LogError($"Service with ID {dto.ServiceId} not found.");
@@ -78,18 +109,24 @@ public class ServiceRequestService : IServiceRequestService
             SellerApprovalStatus = ApprovalStatus.Pending,
             BuyerApprovalStatus = ApprovalStatus.Pending,
             ServiceStatus = ServiceStatus.Pending,
-            PricePerProduct = 0, // Include the price from service
-            TotalPrice = 0, // Total to be set after seller/buyer approval logic
+            PricePerProduct = 0, // Seller sets later
+            TotalPrice = 0, // Set after offer
             ImageId = service.ImageId,
-            ImageUrl = service.ImageUrl
+            ImageUrl = service.ImageUrl,
+
+            // SNAPSHOT FIELDS
+            ServiceNameSnapshot = service.Name,
+            ServiceDescriptionSnapshot = service.Description,
+            ServiceMinQuantitySnapshot = service.MinQuantity,
+            ServicePricePerProductSnapshot = 0, // Not set until seller offers
+            ServiceEstimatedTimeSnapshot = null, // Not set until seller offers
+            ServiceImageUrlSnapshot = service.ImageUrl
         };
 
         await _repo.ServiceRequestRepo.AddAsync(request);
         await _repo.CompleteAsync();
 
         _logger.LogInfo($"Service request created successfully for service {dto.ServiceId} by buyer {buyerId}.");
-
-        var buyer = await _userService.GetUserAsync(buyerId);
 
         await _emailService.SendEmailAsync(
             service.Seller.Email,
@@ -99,7 +136,7 @@ public class ServiceRequestService : IServiceRequestService
         );
 
         await _emailService.SendEmailAsync(
-            buyer.Data.Email,
+            buyer.Email,
             "Service Request Created",
             $"Your service request for '{service.Name}' has been created successfully. " +
             $"You will be notified once the seller responds."
@@ -237,6 +274,10 @@ public class ServiceRequestService : IServiceRequestService
         request.TotalPrice = request.RequestedQuantity * dto.PricePerProduct;
         request.SellerApprovalStatus = ApprovalStatus.Approved;
 
+        // Set the snapshot fields for offer
+        request.ServicePricePerProductSnapshot = dto.PricePerProduct;
+        request.ServiceEstimatedTimeSnapshot = dto.EstimatedTime;
+
         request.SellerOfferAttempts += 1;
 
         _repo.ServiceRequestRepo.Update(request);
@@ -308,38 +349,53 @@ public class ServiceRequestService : IServiceRequestService
         throw new NotImplementedException();
     }
 
-    public async Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string sellerId, ServiceStatusDto dto)
+    public async Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string userId, bool isAdmin, ServiceStatusDto dto)
     {
-        var request = await _repo.ServiceRequestRepo.FindAsync(
-            r => r.Id == requestId && r.Service.SellerId == sellerId,
-            ["Service", "Buyer", "Service.Seller"]
-        );
-
-        if (request == null)
+        ServiceRequest? request = null;
+        if (isAdmin)
         {
-            _logger.LogError($"Service request with ID {requestId} not found for seller {sellerId}.");
-            throw new NotFoundException($"Service request with ID {requestId} not found for seller {sellerId}.");
+            request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.Id == requestId,
+                ["Service", "Buyer", "Service.Seller"]
+            );
+            if (request == null)
+            {
+                _logger.LogError($"Service request with ID {requestId} not found for admin {userId}.");
+                throw new NotFoundException($"Service request with ID {requestId} not found for admin {userId}.");
+            }
+            // Only allow admin to set status to Delivered if current status is InProgress
+            if (request.ServiceStatus != ServiceStatus.InProgress || dto.Status != ServiceStatus.Delivered)
+            {
+                throw new BadRequestException("Admin can only set status to Delivered for requests that are In Progress.");
+            }
         }
-
-        if (request.SellerApprovalStatus != ApprovalStatus.Approved || request.BuyerApprovalStatus != ApprovalStatus.Approved)
+        else
         {
-            _logger.LogError($"Service request with ID {requestId} has not been approved by the seller or the buyer.");
-            throw new BadRequestException("You cannot update the service status as the request has not been approved by both parties.");
+            request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.Id == requestId && r.Service.SellerId == userId,
+                ["Service", "Buyer", "Service.Seller"]
+            );
+            if (request == null)
+            {
+                _logger.LogError($"Service request with ID {requestId} not found for seller {userId}.");
+                throw new NotFoundException($"Service request with ID {requestId} not found for seller {userId}.");
+            }
+            if (request.SellerApprovalStatus != ApprovalStatus.Approved || request.BuyerApprovalStatus != ApprovalStatus.Approved)
+            {
+                _logger.LogError($"Service request with ID {requestId} has not been approved by the seller or the buyer.");
+                throw new BadRequestException("You cannot update the service status as the request has not been approved by both parties.");
+            }
         }
-
-
         request.ServiceStatus = dto.Status;
         _repo.ServiceRequestRepo.Update(request);
         await _repo.CompleteAsync();
-
         // Notify the buyer about the service status update
         await _emailService.SendEmailAsync(
             request.Buyer.Email,
             "Service Request Status Update",
-            $"The status of your service request '{request.Service.Name}' has been updated to {dto.Status} by the seller {request.Service.Seller.FirstName} {request.Service.Seller.LastName}."
+            $"The status of your service request '{request.Service.Name}' has been updated to {dto.Status}."
         );
-
-        _logger.LogInfo($"Service status for service request {requestId} updated to {dto} by seller {sellerId}.");
+        _logger.LogInfo($"Service status for service request {requestId} updated to {dto.Status} by user {userId}.");
         return _mapper.Map<ServiceRequestDto>(request);
     }
 
@@ -368,5 +424,282 @@ public class ServiceRequestService : IServiceRequestService
         await _repo.CompleteAsync();
         _logger.LogInfo($"Service request with ID {requestId} cancelled by buyer {buyerId}.");
         return _mapper.Map<ServiceRequestDto>(request);
+    }
+
+    public async Task<GenericResponseDto<AdminServiceRequestListDto>> GetAllRequestsForAdminAsync(int page, int size, ServiceStatus? status = null)
+    {
+        int skip = (page - 1) * size;
+        Expression<Func<ServiceRequest, bool>> filter = status.HasValue
+            ? r => r.ServiceStatus == status.Value
+            : r => true;
+
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            filter,
+            skip,
+            size,
+            includes: ["Buyer", "Service", "Service.Seller"]
+        );
+
+        int totalCount = await _repo.ServiceRequestRepo.CountAsync(r => true);
+        int inProgressCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.InProgress);
+        int deliveredCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.Delivered);
+
+        var paginated = new PaginatedDto<IEnumerable<ServiceRequestDto>>
+        {
+            Page = page,
+            Size = size,
+            Count = status.HasValue
+                ? await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == status.Value)
+                : totalCount,
+            PaginatedData = _mapper.Map<IEnumerable<ServiceRequestDto>>(requests)
+        };
+
+        var stats = new ServiceRequestStatsDto
+        {
+            Total = totalCount,
+            InProgress = inProgressCount,
+            Delivered = deliveredCount
+        };
+
+        var result = new AdminServiceRequestListDto
+        {
+            Paginated = paginated,
+            Stats = stats
+        };
+
+        return new GenericResponseDto<AdminServiceRequestListDto>
+        {
+            Status = 200,
+            Message = "All service requests retrieved successfully for admin.",
+            Data = result
+        };
+    }
+
+    public async Task<GenericResponseDto<ServiceRequestDto>> CreateStripeCheckoutSessionAsync(int requestId, string buyerId)
+    {
+        try
+        {
+            var request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.Id == requestId && r.BuyerId == buyerId,
+                ["Buyer", "Service", "Service.Seller"]
+            );
+
+            if (request == null)
+            {
+                _logger.LogError($"Service request {requestId} not found for buyer {buyerId}.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 404,
+                    Message = "Service request not found."
+                };
+            }
+
+            // Check if buyer can proceed to checkout
+            if (request.SellerApprovalStatus != ApprovalStatus.Approved || 
+                request.BuyerApprovalStatus != ApprovalStatus.Approved)
+            {
+                _logger.LogError($"Service request {requestId} is not ready for checkout.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "Service request is not ready for checkout. Both seller and buyer must approve."
+                };
+            }
+
+            // Check for pending updates
+            var hasPendingUpdates = await _repo.ServiceRequestUpdateRepo.AnyAsync(
+                u => u.ServiceRequestId == requestId && u.Status == ApprovalStatus.Pending
+            );
+
+            if (hasPendingUpdates)
+            {
+                _logger.LogError($"Service request {requestId} has pending updates.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "Cannot proceed to checkout while there are pending request updates. Please wait for seller approval or cancel the updates."
+                };
+            }
+
+            // Allow retry for failed payments, but not for completed payments
+            if (request.PaymentStatus == PaymentStatus.Paid)
+            {
+                _logger.LogError($"Service request {requestId} has already been paid.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "This service request has already been paid."
+                };
+            }
+
+            // Create Stripe session
+            var sessionItems = new SessionLineItemOptions
+            {
+                PriceData = new SessionLineItemPriceDataOptions
+                {
+                    UnitAmount = (long)(request.TotalPrice * 100), // Convert to cents
+                    Currency = "usd",
+                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                    {
+                        Name = request.ServiceNameSnapshot,
+                        Description = request.ServiceDescriptionSnapshot
+                    }
+                },
+                Quantity = 1, // Service request is a single item
+            };
+
+            var options = new SessionCreateOptions
+            {
+                SuccessUrl = "http://localhost:4200/profile",
+                CancelUrl = "http://localhost:4200/profile",
+                LineItems = new List<SessionLineItemOptions>(),
+                Mode = "payment",
+                Metadata = new Dictionary<string, string>
+                {
+                    { "orderId", request.Id.ToString() },
+                    { "type", "service_request" }
+                }
+            };
+            options.LineItems.Add(sessionItems);
+
+            var service = new SessionService();
+            Session session = service.Create(options);
+
+            // Update request with session ID
+            await UpdateStripePaymentID(request.Id, session.Id, session.PaymentIntentId);
+
+            var responseDto = _mapper.Map<ServiceRequestDto>(request);
+
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 201,
+                Data = responseDto,
+                Message = "Stripe checkout session created successfully.",
+                RedirectUrl = session.Url
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error creating Stripe checkout session: {ex.Message}");
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 500,
+                Message = "An error occurred while creating the checkout session."
+            };
+        }
+    }
+
+    public async Task UpdateStripePaymentID(int id, string sessionId, string paymentIntentId)
+    {
+        var request = await _repo.ServiceRequestRepo.GetByIdAsync(id);
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            request.SessionId = sessionId;
+        }
+        if (!string.IsNullOrEmpty(paymentIntentId))
+        {
+            request.PaymentId = paymentIntentId;
+            request.PaymentStatus = PaymentStatus.Paid;
+            request.PaymentDate = DateTime.Now;
+        }
+
+        _repo.ServiceRequestRepo.Update(request);
+        await _repo.CompleteAsync();
+    }
+
+    public async Task<GenericResponseDto<ServiceRequestDto>> CancelServiceRequestOnPaymentFailureAsync(string sessionId)
+    {
+        try
+        {
+            var request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.SessionId == sessionId,
+                ["Buyer", "Service", "Service.Seller"]
+            );
+
+            if (request == null)
+            {
+                _logger.LogError($"Service request with Session ID {sessionId} not found.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 404,
+                    Message = "Service request not found."
+                };
+            }
+
+            request.PaymentStatus = PaymentStatus.Failed;
+            request.SessionId = null; // Clear session to allow new payment attempt
+            _repo.ServiceRequestRepo.Update(request);
+
+            await _repo.CompleteAsync();
+
+            // Send email notification to buyer about payment failure
+            await _emailService.SendEmailAsync(
+                request.Buyer.Email,
+                "Service Request Payment Failed",
+                $"Your payment for service request '{request.ServiceNameSnapshot}' has failed. " +
+                $"You can retry the payment from your dashboard. The request remains active."
+            );
+
+            // Notify seller about payment failure
+            await _emailService.SendEmailAsync(
+                request.Service.Seller.Email,
+                "Service Request Payment Failed",
+                $"Payment failed for service request '{request.ServiceNameSnapshot}' from {request.Buyer.FirstName} {request.Buyer.LastName}. " +
+                $"The buyer will be notified to retry payment."
+            );
+
+            var requestDto = _mapper.Map<ServiceRequestDto>(request);
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 200,
+                Data = requestDto,
+                Message = "Payment failed. Service request remains active and can be retried."
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error handling service request payment failure: {ex.Message}");
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 500,
+                Message = "An error occurred while handling the payment failure."
+            };
+        }
+    }
+
+    // Invoice Generator for Service Requests
+    public async Task InvoiceGeneratorAsync(int requestId)
+    {
+        var request = await _repo.ServiceRequestRepo.FindAsync(
+            r => r.Id == requestId, 
+            ["Service", "Buyer"]
+        );
+        
+        if (request == null)
+        {
+            _logger.LogError($"Service request with ID {requestId} not found for invoice generation.");
+            return;
+        }
+
+        var user = await _repo.UserRepo.GetByIdAsync(request.BuyerId);
+        if (user == null)
+        {
+            _logger.LogError($"User with ID {request.BuyerId} not found for invoice generation.");
+            return;
+        }
+
+        var invoice = InvoiceGenerator.CreateInvoice(
+            request.PaymentId, 
+            request.PaymentDate?.ToString() ?? DateTime.Now.ToString(), 
+            "Credit Card", 
+            request.ServiceNameSnapshot,
+            request.RequestedQuantity, 
+            request.PricePerProduct, 
+            "stockatgroup@gmail.com"
+        );
+
+        await _emailService.SendEmailAsync(user.Email, "Service Request Payment Receipt", invoice);
+        
+        _logger.LogInfo($"Invoice generated and sent for service request {requestId} to {user.Email}");
     }
 }

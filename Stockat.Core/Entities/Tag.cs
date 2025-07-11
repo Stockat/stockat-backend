@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stockat.Core.DTOs.TagsDtos;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,9 @@ public class Tag
     public int Id { get; set; }
 
     public string Name { get; set; }
+
+    public TagStatus Status { get; set; }
+
 
     // Navigation Properties 
     public virtual ICollection<ProductTag> ProductTags { get; set; }

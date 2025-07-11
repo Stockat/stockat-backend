@@ -32,6 +32,12 @@ namespace Stockat.Service.MappingProfiles.AuctionMappingProfiles
             CreateMap<Auction, AuctionUpdateDto>();
             CreateMap<AuctionUpdateDto, Auction>();
 
+            // AuctionDetailsForChatbot -> Auction
+            CreateMap<Auction, AuctionDetailsForChatbot>()
+                .ForMember(dest => dest.SellerName, opt => opt.MapFrom(src => src.SellerUser.FirstName + " " + src.SellerUser.LastName))
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product.Name))
+                .ForMember(dest => dest.BuyerName, opt => opt.MapFrom(src => src.BuyerUser.FirstName + " " + src.BuyerUser.LastName));
+
         }
     }
 }

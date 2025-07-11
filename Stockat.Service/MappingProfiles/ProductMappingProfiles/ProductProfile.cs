@@ -20,6 +20,7 @@ public class ProductProfile : Profile
     {
         CreateMap<Product, ProductHomeDto>()
             .ForMember(dest => dest.Images, src => src.MapFrom(src => src.Images.Select(s => s.ImageUrl)))
+            .ForMember(dest => dest.CategoryName, src => src.MapFrom(src => src.Category.CategoryName))
             .ReverseMap();
 
         CreateMap<Product, ProductDetailsDto>()
@@ -51,10 +52,11 @@ public class ProductProfile : Profile
 
         // View Seller Product
         CreateMap<Product, GetSellerProductDto>()
-                 .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.Images.Select(img => img.ImageUrl)));
+                 .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.Images.Select(img => img.ImageUrl)))
+                 .ForMember(dest => dest.Reason, opt => opt.MapFrom(src => src.RejectionReason));
 
         CreateMap<Product, ProductWithFeaturesDTO>()
-            .ForMember(dest => dest.Images, 
+            .ForMember(dest => dest.Images,
                 opt => opt.MapFrom(src => src.Images.Select(i => i.ImageUrl)))
             .ForMember(dest => dest.SellerName,
                 opt => opt.MapFrom(src => src.User.UserName))
@@ -81,5 +83,16 @@ public class ProductProfile : Profile
             .ForMember(dest => dest.Values,
                 opt => opt.MapFrom(src => src.FeatureValues));
 
+        CreateMap<Product, ProductWithStocksDTO>()
+            .ForMember(dest => dest.Images,
+                opt => opt.MapFrom(src => src.Images.Select(i => i.ImageUrl)))
+            .ForMember(dest => dest.SellerName,
+                opt => opt.MapFrom(src => src.User.UserName))
+            .ForMember(dest => dest.CategoryName,
+                opt => opt.MapFrom(src => src.Category.CategoryName))
+            .ForMember(dest => dest.IsDeleted,
+                opt => opt.MapFrom(src => src.isDeleted))
+            .ForMember(dest => dest.CanBeRequested,
+                opt => opt.MapFrom(src => src.canBeRequested));
     }
 }

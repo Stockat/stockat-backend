@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Stockat.Core.Enums;
 
 namespace Stockat.Core.Entities
 {
@@ -37,10 +38,22 @@ namespace Stockat.Core.Entities
         [Required(ErrorMessage = "Image URL is required.")]
         public string ImageUrl { get; set; }
 
+        [Required]
+        public ApprovalStatus IsApproved { get; set; } = ApprovalStatus.Pending;
+
+        [Required]
+        public bool IsDeleted {  get; set; } = false;
+
         [Required(ErrorMessage = "Seller ID is required.")]
         public string SellerId { get; set; }
 
         [ForeignKey("SellerId")]
         public User Seller { get; set; }
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
     }
 }

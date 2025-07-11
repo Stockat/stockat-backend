@@ -38,3 +38,8 @@ public class ChangeProductStatusDto
 {
     public ProductStatus ChosenStatus { get; set; }
 }
+public class ChangeProductStatusWithReasonDto
+{
+    public ProductStatus ChosenStatus { get; set; }
+    public string Reason { get; set; }
+}
