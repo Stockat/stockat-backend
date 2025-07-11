@@ -83,5 +83,16 @@ public class ProductProfile : Profile
             .ForMember(dest => dest.Values,
                 opt => opt.MapFrom(src => src.FeatureValues));
 
+        CreateMap<Product, ProductWithStocksDTO>()
+            .ForMember(dest => dest.Images,
+                opt => opt.MapFrom(src => src.Images.Select(i => i.ImageUrl)))
+            .ForMember(dest => dest.SellerName,
+                opt => opt.MapFrom(src => src.User.UserName))
+            .ForMember(dest => dest.CategoryName,
+                opt => opt.MapFrom(src => src.Category.CategoryName))
+            .ForMember(dest => dest.IsDeleted,
+                opt => opt.MapFrom(src => src.isDeleted))
+            .ForMember(dest => dest.CanBeRequested,
+                opt => opt.MapFrom(src => src.canBeRequested));
     }
 }

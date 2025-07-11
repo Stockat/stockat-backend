@@ -35,12 +35,12 @@ public class UserService : IUserService
         _httpContextAccessor = httpContextAccessor;
         _imageService = imageService;
         _userManager = userManager;
-         _emailService = emailService;
+        _emailService = emailService;
     }
 
     public async Task<GenericResponseDto<UserReadDto>> GetUserAsync(string userId = null)
     {
-        if(userId is null)
+        if (userId is null)
             userId = GetCurrentUserId();
 
         var includes = new[] { nameof(User.UserVerification) };
@@ -226,7 +226,7 @@ public class UserService : IUserService
 
         // Build filter expression
         Expression<Func<User, bool>> filter = u => true;
-        
+
         if (!string.IsNullOrEmpty(searchTerm))
         {
             var lowerTerm = searchTerm.ToLower();
@@ -288,7 +288,7 @@ public class UserService : IUserService
             var dto = _mapper.Map<UserReadDto>(user);
             dto.IsApproved = user.IsApproved;
             dto.IsDeleted = user.IsDeleted;
-            
+
             var roles = await _userManager.GetRolesAsync(user);
             dto.Roles = roles.ToList();
 
@@ -464,7 +464,8 @@ public class UserService : IUserService
         // Blocked users (active ban)
         var blocked = await _repo.UserRepo.CountAsync(u => u.Punishments.Any(p => (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) && (p.EndDate == null || p.EndDate > DateTime.UtcNow)));
 
-        var stats = new {
+        var stats = new
+        {
             total,
             active,
             inactive,
@@ -519,4 +520,15 @@ public class UserService : IUserService
         };
     }
 
+
+    // GetCurrentUserID
+    public async Task<string> GetCurrentUserIdAsyncService()
+    {
+
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            throw new UnauthorizedAccessException("User ID not found in token.");
+        return userId;
+
+    }
 }
