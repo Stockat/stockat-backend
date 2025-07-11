@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Stockat.EF;
 
@@ -11,9 +12,11 @@ using Stockat.EF;
 namespace Stockat.EF.Migrations
 {
     [DbContext(typeof(StockatDBContext))]
-    partial class StockatDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250703220053_AuctionTestmigration")]
+    partial class AuctionTestmigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -202,9 +205,6 @@ namespace Stockat.EF.Migrations
                     b.Property<bool>("IsClosed")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -283,9 +283,6 @@ namespace Stockat.EF.Migrations
                     b.Property<int>("AuctionRequestId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
@@ -293,15 +290,6 @@ namespace Stockat.EF.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("PaymentTransactionId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RecipientName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ShippingAddress")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Status")
@@ -330,175 +318,9 @@ namespace Stockat.EF.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
                     b.HasKey("Id");
 
                     b.ToTable("Categories");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.ChatConversation", b =>
-                {
-                    b.Property<int>("ConversationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ConversationId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastMessageAt")
-                        .HasColumnType("datetime");
-
-                    b.Property<string>("User1Id")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("User2Id")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("ConversationId");
-
-                    b.HasIndex("User1Id");
-
-                    b.HasIndex("User2Id");
-
-                    b.ToTable("ChatConversations");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.ChatMessage", b =>
-                {
-                    b.Property<int>("MessageId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MessageId"));
-
-                    b.Property<int>("ConversationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ImageId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsEdited")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("MessageText")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SenderId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("datetime");
-
-                    b.Property<string>("VoiceId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("VoiceUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("MessageId");
-
-                    b.HasIndex("ConversationId");
-
-                    b.HasIndex("SenderId");
-
-                    b.ToTable("ChatMessages");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.MessageReaction", b =>
-                {
-                    b.Property<int>("ReactionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReactionId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime");
-
-                    b.Property<int>("MessageId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ReactionType")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("ReactionId");
-
-                    b.HasIndex("MessageId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("MessageReactions");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.MessageReadStatus", b =>
-                {
-                    b.Property<int>("MessageId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ReadAt")
-                        .HasColumnType("datetime");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("MessageId");
-
-                    b.HasIndex("UserId", "MessageId");
-
-                    b.ToTable("MessageReadStatuses");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.ChatBotMessage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ChatBotMessages");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
@@ -562,26 +384,13 @@ namespace Stockat.EF.Migrations
                     b.Property<DateTime>("CraetedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<DateTime?>("EstimatedDeliveryTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("OrderType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("PaymentDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("PaymentId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PaymentStatus")
-                        .HasColumnType("int");
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -595,9 +404,6 @@ namespace Stockat.EF.Migrations
                     b.Property<string>("SellerId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("SessionId")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -618,37 +424,6 @@ namespace Stockat.EF.Migrations
                     b.HasIndex("StockId");
 
                     b.ToTable("OrderProduct");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.OrderProductAudit", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("ChangedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("NewRecordJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OldRecordJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("OrderProductId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("OrderProductAudits");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
@@ -688,10 +463,6 @@ namespace Stockat.EF.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("RejectionReason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("SellerId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -718,10 +489,6 @@ namespace Stockat.EF.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("FileId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
@@ -760,66 +527,6 @@ namespace Stockat.EF.Migrations
                     b.ToTable("ProductTag");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.Review", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("OrderProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Rating")
-                        .HasMaxLength(1)
-                        .HasColumnType("int");
-
-                    b.Property<string>("ReviewerId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int?>("ServiceId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ServiceRequestId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("OrderProductId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("ReviewerId");
-
-                    b.HasIndex("ServiceId");
-
-                    b.HasIndex("ServiceRequestId");
-
-                    b.ToTable("Reviews", t =>
-                        {
-                            t.HasCheckConstraint("CK_Review_ProductOrService", "(ProductId IS NOT NULL AND ServiceId IS NULL) OR (ProductId IS NULL AND ServiceId IS NOT NULL)");
-                        });
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Service", b =>
                 {
                     b.Property<int>("Id")
@@ -827,9 +534,6 @@ namespace Stockat.EF.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -850,12 +554,6 @@ namespace Stockat.EF.Migrations
                         .IsRequired()
                         .HasMaxLength(2083)
                         .HasColumnType("nvarchar(2083)");
-
-                    b.Property<int>("IsApproved")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
 
                     b.Property<int>("MinQuantity")
                         .HasColumnType("int");
@@ -879,72 +577,6 @@ namespace Stockat.EF.Migrations
                     b.ToTable("Services");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.ServiceEditRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AdminNote")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ApprovalStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("EditedDescription")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("EditedEstimatedTime")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("EditedImageId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("EditedImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(2083)
-                        .HasColumnType("nvarchar(2083)");
-
-                    b.Property<int>("EditedMinQuantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EditedName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("EditedPricePerProduct")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("IsReactivationRequest")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("ServiceId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ServiceId");
-
-                    b.ToTable("ServiceEditRequest");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -962,9 +594,6 @@ namespace Stockat.EF.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("EstimatedTime")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -976,9 +605,6 @@ namespace Stockat.EF.Migrations
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(2083)
                         .HasColumnType("nvarchar(2083)");
-
-                    b.Property<DateTime?>("PaymentDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("PaymentId")
                         .HasMaxLength(255)
@@ -1005,43 +631,13 @@ namespace Stockat.EF.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<int>("SellerOfferAttempts")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ServiceDescriptionSnapshot")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ServiceEstimatedTimeSnapshot")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<int>("ServiceId")
                         .HasColumnType("int");
-
-                    b.Property<string>("ServiceImageUrlSnapshot")
-                        .HasMaxLength(2083)
-                        .HasColumnType("nvarchar(2083)");
-
-                    b.Property<int>("ServiceMinQuantitySnapshot")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ServiceNameSnapshot")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<decimal>("ServicePricePerProductSnapshot")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ServiceStatus")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("SessionId")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("decimal(18,2)");
@@ -1112,9 +708,6 @@ namespace Stockat.EF.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<int>("StockStatus")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
@@ -1161,9 +754,6 @@ namespace Stockat.EF.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1271,48 +861,6 @@ namespace Stockat.EF.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.UserPunishment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("Type", "EndDate");
-
-                    b.ToTable("UserPunishments");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.UserVerification", b =>
@@ -1469,82 +1017,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("AuctionRequest");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.ChatConversation", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.User", "User1")
-                        .WithMany("ConversationsAsUser1")
-                        .HasForeignKey("User1Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.User", "User2")
-                        .WithMany("ConversationsAsUser2")
-                        .HasForeignKey("User2Id")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User1");
-
-                    b.Navigation("User2");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.ChatMessage", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.Chat.ChatConversation", "Conversation")
-                        .WithMany("Messages")
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.User", "Sender")
-                        .WithMany("SentMessages")
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("Sender");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.MessageReaction", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.Chat.ChatMessage", "Message")
-                        .WithMany("Reactions")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.User", "User")
-                        .WithMany("MessageReactions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Message");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.MessageReadStatus", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.Chat.ChatMessage", "Message")
-                        .WithOne("ReadStatus")
-                        .HasForeignKey("Stockat.Core.Entities.Chat.MessageReadStatus", "MessageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.User", "User")
-                        .WithMany("MessageReadStatuses")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Message");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
                 {
                     b.HasOne("Stockat.Core.Entities.Product", "Product")
@@ -1651,45 +1123,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("Tag");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.Review", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.OrderProduct", "OrderProduct")
-                        .WithMany("Reviews")
-                        .HasForeignKey("OrderProductId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("Stockat.Core.Entities.Product", "Product")
-                        .WithMany("Reviews")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("Stockat.Core.Entities.User", "Reviewer")
-                        .WithMany()
-                        .HasForeignKey("ReviewerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Stockat.Core.Entities.Service", "Service")
-                        .WithMany("Reviews")
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Stockat.Core.Entities.ServiceRequest", "ServiceRequest")
-                        .WithMany("Reviews")
-                        .HasForeignKey("ServiceRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("OrderProduct");
-
-                    b.Navigation("Product");
-
-                    b.Navigation("Reviewer");
-
-                    b.Navigation("Service");
-
-                    b.Navigation("ServiceRequest");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Service", b =>
                 {
                     b.HasOne("Stockat.Core.Entities.User", "Seller")
@@ -1701,17 +1134,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("Seller");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.ServiceEditRequest", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.Service", "Service")
-                        .WithMany()
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Service");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>
                 {
                     b.HasOne("Stockat.Core.Entities.User", "Buyer")
@@ -1721,7 +1143,7 @@ namespace Stockat.EF.Migrations
                         .IsRequired();
 
                     b.HasOne("Stockat.Core.Entities.Service", "Service")
-                        .WithMany("ServiceRequests")
+                        .WithMany()
                         .HasForeignKey("ServiceId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
@@ -1780,17 +1202,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("Stock");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.UserPunishment", b =>
-                {
-                    b.HasOne("Stockat.Core.Entities.User", "User")
-                        .WithMany("Punishments")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.UserVerification", b =>
                 {
                     b.HasOne("Stockat.Core.Entities.User", "User")
@@ -1819,19 +1230,6 @@ namespace Stockat.EF.Migrations
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.ChatConversation", b =>
-                {
-                    b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Chat.ChatMessage", b =>
-                {
-                    b.Navigation("Reactions");
-
-                    b.Navigation("ReadStatus")
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Stockat.Core.Entities.Feature", b =>
                 {
                     b.Navigation("FeatureValues");
@@ -1842,11 +1240,6 @@ namespace Stockat.EF.Migrations
             modelBuilder.Entity("Stockat.Core.Entities.FeatureValue", b =>
                 {
                     b.Navigation("StockDetails");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.OrderProduct", b =>
-                {
-                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Product", b =>
@@ -1861,23 +1254,12 @@ namespace Stockat.EF.Migrations
 
                     b.Navigation("ProductTags");
 
-                    b.Navigation("Reviews");
-
                     b.Navigation("Stocks");
-                });
-
-            modelBuilder.Entity("Stockat.Core.Entities.Service", b =>
-                {
-                    b.Navigation("Reviews");
-
-                    b.Navigation("ServiceRequests");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.ServiceRequest", b =>
                 {
                     b.Navigation("RequestUpdates");
-
-                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Stockat.Core.Entities.Stock", b =>
@@ -1900,23 +1282,11 @@ namespace Stockat.EF.Migrations
 
                     b.Navigation("BuyerOrderProducts");
 
-                    b.Navigation("ConversationsAsUser1");
-
-                    b.Navigation("ConversationsAsUser2");
-
                     b.Navigation("CreatedAuctions");
-
-                    b.Navigation("MessageReactions");
-
-                    b.Navigation("MessageReadStatuses");
 
                     b.Navigation("Products");
 
-                    b.Navigation("Punishments");
-
                     b.Navigation("SellerOrderProducts");
-
-                    b.Navigation("SentMessages");
 
                     b.Navigation("Services");
 

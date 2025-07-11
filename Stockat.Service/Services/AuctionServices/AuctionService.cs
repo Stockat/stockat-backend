@@ -9,6 +9,7 @@ using Stockat.Core.Exceptions;
 using Stockat.Core.IRepositories;
 using Stockat.Core.IServices;
 using Stockat.Core.IServices.IAuctionServices;
+using Stockat.Core.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,15 +24,18 @@ namespace Stockat.Service.Services.AuctionServices
         private readonly IRepositoryManager _repositoryManager;
         private readonly IMapper _mapper;
         private readonly ILoggerManager _logger;
+        private readonly IServiceManager _serviceManager;
 
 
         public AuctionService(IMapper mapper,
             ILoggerManager logger,
-            IRepositoryManager repositoryManager)
+            IRepositoryManager repositoryManager,
+            IServiceManager serviceManager)
         {
             _repositoryManager = repositoryManager;
             _mapper = mapper;
             _logger = logger;
+            _serviceManager = serviceManager;
         }
 
         public async Task<AuctionDetailsDto> AddAuctionAsync(Auction auction)
@@ -45,16 +49,15 @@ namespace Stockat.Service.Services.AuctionServices
 
                 ValidateAuction(auction);
 
-                var stock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId); //Edit: or find all, with includes, what are includes??
+                var stock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId);
                 if (stock == null) throw new NotFoundException("Stock not found");
 
-                //check if quantity suffecient
-                if (stock.Quantity < auction.Quantity)
-                    throw new BusinessException("Insufficient stock");
+                // Check if stock is available for auction (ForSale status)
+                if (stock.StockStatus != StockStatus.ForSale)
+                    throw new BusinessException("Stock is not available for auction");
 
-                //Edit:check if stock belongs to that sellerid
-                stock.Quantity -= auction.Quantity;
-
+                // Change stock status to SoldOut when auction is created
+                stock.StockStatus = StockStatus.SoldOut;
                 _repositoryManager.StockRepo.Update(stock);
 
                 auction.CurrentBid = auction.StartingPrice;
@@ -92,52 +95,79 @@ namespace Stockat.Service.Services.AuctionServices
                 //if auction is running -> limited
                 if (existingAuction.StartTime <= currentTime)
                 {
-                    if (auction.StartTime != existingAuction.StartTime)
+                    // Only validate start time if it's actually being changed
+                    if (auction.StartTime.HasValue && auction.StartTime != existingAuction.StartTime)
                         throw new BusinessException("Cannot change start date after auction begins");
 
-                    if (auction.StockId != existingAuction.StockId)
+                    // Only validate stock if it's actually being changed
+                    if (auction.StockId.HasValue && auction.StockId != existingAuction.StockId)
                         throw new BusinessException("Cannot change stock after auction begins");
 
-                    if (auction.Quantity != existingAuction.Quantity)
-                        throw new BusinessException("Cannot change quantity after auction begins");
+                    // Only validate end time if it's actually being changed
+                    if (auction.EndTime.HasValue)
+                    {
+                        if (auction.EndTime <= currentTime)
+                            throw new BusinessException("End date must be in future");
+                        existingAuction.EndTime = auction.EndTime.Value;
+                    }
 
-                    if (auction.EndTime <= currentTime)
-                        throw new BusinessException("End date must be in future");
-
-                    existingAuction.EndTime = auction.EndTime ?? existingAuction.EndTime;
-
-                    _mapper.Map(auction, existingAuction);
+                    // Update only the fields that are provided and allowed
+                    if (!string.IsNullOrEmpty(auction.Name))
+                        existingAuction.Name = auction.Name;
+                    if (!string.IsNullOrEmpty(auction.Description))
+                        existingAuction.Description = auction.Description;
                 }
                 //if auction not started -> ok, can edit
                 else
                 {
-                    if (auction.StartTime <= currentTime)
-                        throw new BusinessException("Start date must be in future");
-
-                    if (auction.EndTime <= auction.StartTime)
-                        throw new BusinessException("End date must be after start date");
-
-                    if (existingAuction.StockId != auction.StockId ||
-                        existingAuction.Quantity != auction.Quantity)
+                    // Only validate start time if it's actually being changed
+                    if (auction.StartTime.HasValue)
                     {
-                        //Edit: includes?
-                        var oldStock = await _repositoryManager.StockRepo.GetByIdAsync(existingAuction.StockId); 
-                        oldStock.Quantity += existingAuction.Quantity;
+                        if (auction.StartTime <= currentTime)
+                            throw new BusinessException("Start date must be in future");
+                        existingAuction.StartTime = auction.StartTime.Value;
+                    }
 
+                    // Only validate end time if it's actually being changed
+                    if (auction.EndTime.HasValue)
+                    {
+                        if (auction.EndTime <= (auction.StartTime ?? existingAuction.StartTime))
+                            throw new BusinessException("End date must be after start date");
+                        existingAuction.EndTime = auction.EndTime.Value;
+                    }
+
+                    // Only validate stock if it's actually being changed
+                    if (auction.StockId.HasValue && auction.StockId != existingAuction.StockId)
+                    {
+                        // Restore old stock status to ForSale
+                        var oldStock = await _repositoryManager.StockRepo.GetByIdAsync(existingAuction.StockId); 
+                        oldStock.StockStatus = StockStatus.ForSale;
                         _repositoryManager.StockRepo.Update(oldStock);
 
-                        var newStock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId ?? existingAuction.StockId);
+                        // Check if new stock is available for auction
+                        var newStock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId.Value);
                         if (newStock == null) throw new NotFoundException("New stock not found");
 
-                        if (newStock.Quantity < auction.Quantity)
-                            throw new BusinessException("Insufficient stock for auction");
+                        if (newStock.StockStatus != StockStatus.ForSale)
+                            throw new BusinessException("New stock is not available for auction");
 
-                        newStock.Quantity -= auction.Quantity ?? existingAuction.Quantity;
-
+                        // Change new stock status to SoldOut
+                        newStock.StockStatus = StockStatus.SoldOut;
                         _repositoryManager.StockRepo.Update(newStock);
-
+                        existingAuction.StockId = auction.StockId.Value;
                     }
-                    _mapper.Map(auction, existingAuction);
+
+                    // Update other fields if provided
+                    if (!string.IsNullOrEmpty(auction.Name))
+                        existingAuction.Name = auction.Name;
+                    if (!string.IsNullOrEmpty(auction.Description))
+                        existingAuction.Description = auction.Description;
+                    if (auction.StartingPrice.HasValue)
+                        existingAuction.StartingPrice = auction.StartingPrice.Value;
+                    if (auction.Quantity.HasValue)
+                        existingAuction.Quantity = auction.Quantity.Value;
+                    //if (auction.IncrementUnit.HasValue)
+                    //    existingAuction.IncrementUnit = auction.IncrementUnit.Value;
                 }
 
                 _repositoryManager.AuctionRepo.Update(existingAuction);
@@ -209,42 +239,51 @@ namespace Stockat.Service.Services.AuctionServices
                 if (id <= 0)
                     throw new IdParametersBadRequestException();
 
-                var auction = await _repositoryManager.AuctionRepo.FindAsync(a => a.Id == id, includes: new[] { "Product", "SellerUser", "BuyerUser" ,"Stock" });
-                if (auction == null) throw new NotFoundException("Auction not found");
+                var auction = await _repositoryManager.AuctionRepo.FindAsync(
+                    a => a.Id == id,
+                    includes: new[] { "Product", "SellerUser", "BuyerUser", "Stock" }
+                );
 
-                //if auction is active -> return el stock
+                if (auction == null)
+                    throw new NotFoundException("Auction not found");
+
+                //if auction is active, restore stock status to ForSale
                 if (DateTime.UtcNow < auction.EndTime)
                 {
                     var stock = await _repositoryManager.StockRepo.GetByIdAsync(auction.StockId);
-                    stock.Quantity += auction.Quantity;
-
-                    _repositoryManager.StockRepo.Update(stock);
+                    stock.StockStatus = StockStatus.ForSale;
+                    _repositoryManager.StockRepo.Update(stock); // Ensure update is saved
                 }
 
-                _repositoryManager.AuctionRepo.Delete(auction);
+                auction.IsDeleted = true;
+                _repositoryManager.AuctionRepo.Update(auction);
 
                 await _repositoryManager.CompleteAsync();
-
                 await _repositoryManager.CommitTransactionAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await _repositoryManager.RollbackTransactionAsync();
                 throw;
             }
         }
 
+
         public async Task CloseEndedAuctionsAsync()
         {
             await _repositoryManager.BeginTransactionAsync();
             try
             {
-
-                var allAuctions = await _repositoryManager.AuctionRepo.GetAllAsync();
+                var allAuctions = await _repositoryManager.AuctionRepo.FindAllAsync(
+                    criteria: a => true,
+                    includes: new[] { "Product", "Stock", "AuctionBidRequest", "AuctionOrder", "SellerUser" }
+                );
+                //a.EndTime.ToUniversalTime() <= DateTime.UtcNow
 
                 var now = DateTime.UtcNow;
 
-                var endedAuctions = allAuctions.Where(a => !a.IsClosed && a.EndTime <= now && a.BuyerId != null).ToList();
+                var endedAuctions = allAuctions.Where(a => !a.IsClosed && a.EndTime.ToUniversalTime() <= now).ToList();
+
 
                 var allBids = await _repositoryManager.AuctionBidRequestRepo.GetAllAsync();
 
@@ -257,7 +296,14 @@ namespace Stockat.Service.Services.AuctionServices
                         .FirstOrDefault();
 
                     if (winningBid == null)
+                    {
+                        // No winner: restore stock status to ForSale
+                        auction.Stock.StockStatus = StockStatus.ForSale;
+                        _repositoryManager.StockRepo.Update(auction.Stock); // Ensure update is saved
+                        auction.IsClosed = true; // Mark auction as closed
+                        _repositoryManager.AuctionRepo.Update(auction); // Save auction state
                         continue;
+                    }
 
 
                     var existingOrders = await _repositoryManager.AuctionOrderRepo.GetAllAsync();
@@ -279,6 +325,25 @@ namespace Stockat.Service.Services.AuctionServices
 
 
                     auction.IsClosed = true;
+                    _repositoryManager.AuctionRepo.Update(auction);//i thinl you must call updatefrom auctio repo 
+
+                    // Link back to auction and bid
+                    auction.BuyerId = winningBid.BidderId;
+                    auction.AuctionOrder = order;
+                    winningBid.AuctionOrder = order;
+
+                    //send email
+                    var buyer = (await _repositoryManager.UserRepo.FindAllAsync(u => u.Id == winningBid.BidderId)).FirstOrDefault();
+                    var seller = (await _repositoryManager.UserRepo.FindAllAsync(u => u.Id == auction.SellerId)).FirstOrDefault();
+
+                    string subject = $"Auction Result: {auction.Name}";
+                    string sellerMsg = $"<p>The auction <strong>{auction.Name}</strong> has been finalized. The winning bid was <strong>{winningBid.BidAmount:C}</strong>. You can now process the order.</p>";
+                    string buyerMsg = $"<p>Congratulations! You have won the auction <strong>{auction.Name}</strong> with a bid of <strong>{winningBid.BidAmount:C}</strong>. Please proceed to payment and shipping.</p>";
+
+                    if (buyer != null)
+                        await _serviceManager.EmailService.SendEmailAsync(buyer.Email, subject, buyerMsg);
+                    if (seller != null)
+                        await _serviceManager.EmailService.SendEmailAsync(seller.Email, subject, sellerMsg);
                 }
 
                 await _repositoryManager.CompleteAsync();
@@ -318,9 +383,6 @@ namespace Stockat.Service.Services.AuctionServices
 
         private void ValidateAuction(Auction auction)
         {
-            if (auction.Quantity <= 0)
-                throw new BusinessException("Quantity must be positive");
-
             if (auction.StartingPrice <= 0)
                 throw new BusinessException("Starting price must be positive");
 

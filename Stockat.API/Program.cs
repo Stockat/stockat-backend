@@ -10,6 +10,7 @@ using Stockat.Core.Entities;
 using Stockat.API.Hubs;
 using Stockat.Service.Services.AuctionServices;
 using System.Text.Json.Serialization;
+using Stockat.API.Services;
 using Stockat.Core.Helpers;
 using Stripe;
 
@@ -54,6 +55,13 @@ public class Program
         builder.Services.AddHttpContextAccessor();
 
         builder.Services.AddSignalR();
+        // Register notification service in the service layer if needed, not here
+
+        // Register AuctionNotificationService from the API layer
+        builder.Services.AddScoped<Stockat.Core.IServices.IAuctionServices.IAuctionNotificationService, Stockat.API.Services.AuctionNotificationService>();
+
+        // Register AuctionMonitorService from the API layer
+        builder.Services.AddHostedService<Stockat.API.Services.AuctionMonitorService>();
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
@@ -64,11 +72,11 @@ public class Program
 
 
         //BackGround service injection
-        builder.Services.AddHostedService<AuctionMonitorService>();
+        //builder.Services.AddHostedService<Stockat.Service.Services.AuctionServices.AuctionMonitorService>();
 
         var app = builder.Build();
 
-        var logger = app.Services.GetRequiredService<ILoggerManager>(); ///
+        var logger = app.Services.GetRequiredService<ILoggerManager>();
         app.ConfigureExceptionHandler(logger);
 
         // Configure the HTTP request pipeline.
@@ -98,6 +106,7 @@ public class Program
         app.UseAuthorization();
 
         app.MapHub<ChatHub>("/chathub");
+        app.MapHub<AuctionHub>("/auctionhub");
         app.MapControllers();
 
         app.Run();
