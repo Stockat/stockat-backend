@@ -134,8 +134,8 @@ namespace Stockat.Service.Services.AuctionServices
 
                 // Enforce allowed forward transitions only
                 var currentStatus = order.Status;
-                if (!IsValidStatusTransition(currentStatus, newStatus))
-                    throw new InvalidOperationException($"Invalid status transition from {currentStatus} to {newStatus}.");
+               // if (!IsValidStatusTransition(currentStatus, newStatus))
+                //    throw new InvalidOperationException($"Invalid status transition from {currentStatus} to {newStatus}.");
 
                 order.Status = newStatus;
                 _repositoryManager.AuctionOrderRepo.Update(order);
@@ -193,6 +193,12 @@ namespace Stockat.Service.Services.AuctionServices
             if (next == OrderStatus.Cancelled || next == OrderStatus.PaymentFailed || next == OrderStatus.Completed)
                 return true;
             return false;
+        }
+
+        public async Task<IEnumerable<AuctionOrderDto>> GetAllOrdersAsync()
+        {
+            var orders = await _repositoryManager.AuctionOrderRepo.GetAllAsync();
+            return _mapper.Map<IEnumerable<AuctionOrderDto>>(orders);
         }
 
 

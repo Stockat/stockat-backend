@@ -278,10 +278,11 @@ namespace Stockat.Service.Services.AuctionServices
                     criteria: a => true,
                     includes: new[] { "Product", "Stock", "AuctionBidRequest", "AuctionOrder", "SellerUser" }
                 );
+                //a.EndTime.ToUniversalTime() <= DateTime.UtcNow
 
                 var now = DateTime.UtcNow;
 
-                var endedAuctions = allAuctions.Where(a => !a.IsClosed && a.EndTime <= now).ToList();
+                var endedAuctions = allAuctions.Where(a => !a.IsClosed && a.EndTime.ToUniversalTime() <= now).ToList();
 
 
                 var allBids = await _repositoryManager.AuctionBidRequestRepo.GetAllAsync();

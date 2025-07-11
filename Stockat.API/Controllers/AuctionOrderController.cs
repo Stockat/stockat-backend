@@ -120,5 +120,12 @@ namespace Stockat.API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<AuctionOrderDto>>> GetAll()
+        {
+            var orders = await _serviceManager.AuctionOrderService.GetAllOrdersAsync();
+            return Ok(orders);
+        }
     }
 }
