@@ -83,7 +83,7 @@ public sealed class ServiceManager : IServiceManager
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
         // Auction Services
-        _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager));
+        _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager,this));
         _auctionBidRequestService = new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper));
         _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper));
 
@@ -134,7 +134,7 @@ public sealed class ServiceManager : IServiceManager
 
     public ITagService TagService => _tagService.Value;
 
-    public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+   // public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 
 
 
