@@ -14,7 +14,7 @@ public interface IServiceRequestUpdateService
     Task<ServiceRequestUpdateDto> CreateUpdateAsync(int requestId, string buyerId, CreateServiceRequestUpdateDto createDto);
     Task<GenericResponseDto<PaginatedDto<IEnumerable<ServiceRequestUpdateDto>>>> GetUpdatesByRequestIdAsync(int requestId, string userId, int page, int size);
     Task<ServiceRequestUpdateDto> GetUpdateByIdAsync(int updateId, string userId);
-    Task<bool> CancelUpdateAsync(int updateId, string sellerId);
+    Task<bool> CancelUpdateAsync(int updateId, string buyerId);
     Task<ServiceRequestDto> HandleSellerApprovalAsync(int updateId, string sellerId, bool approved);
 
 }

@@ -29,6 +29,15 @@ public interface IServiceRequestService
     Task<ServiceRequestDto> UpdateServiceStatusAsync(int requestId, string userId, bool isAdmin, ServiceStatusDto dto);
     Task<IEnumerable<int>> GetBuyerServiceIDsWithPendingRequests(string buyerId);
     Task<ServiceRequestDto> CancelBuyerRequest(int requestId, string buyerId);
+    
+    // Stripe Integration
+    Task<GenericResponseDto<ServiceRequestDto>> CreateStripeCheckoutSessionAsync(int requestId, string buyerId);
+    Task UpdateStripePaymentID(int id, string sessionId, string paymentIntentId);
+    Task<GenericResponseDto<ServiceRequestDto>> CancelServiceRequestOnPaymentFailureAsync(string sessionId);
+    
     // Admin: Get all service requests (with optional status filter)
     Task<GenericResponseDto<AdminServiceRequestListDto>> GetAllRequestsForAdminAsync(int page, int size, ServiceStatus? status = null);
+    
+    // Invoice Generation
+    Task InvoiceGeneratorAsync(int requestId);
 }
