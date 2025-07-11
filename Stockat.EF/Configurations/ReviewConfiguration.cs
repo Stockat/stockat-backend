@@ -40,7 +40,7 @@ namespace Stockat.EF.Configurations
             builder.HasOne(r => r.Service)
                 .WithMany(s => s.Reviews)
                 .HasForeignKey(r => r.ServiceId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
 
             builder.HasOne(r => r.OrderProduct)
@@ -52,7 +52,7 @@ namespace Stockat.EF.Configurations
             builder.HasOne(r => r.ServiceRequest)
                 .WithMany(sr => sr.Reviews)
                 .HasForeignKey(r => r.ServiceRequestId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
 
             // Indexes
