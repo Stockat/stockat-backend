@@ -441,7 +441,7 @@ public class ServiceRequestService : IServiceRequestService
         );
 
         int totalCount = await _repo.ServiceRequestRepo.CountAsync(r => true);
-        int inProgressCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.InProgress);
+        int readyCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.Ready);
         int deliveredCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.Delivered);
 
         var paginated = new PaginatedDto<IEnumerable<ServiceRequestDto>>
@@ -457,7 +457,7 @@ public class ServiceRequestService : IServiceRequestService
         var stats = new ServiceRequestStatsDto
         {
             Total = totalCount,
-            InProgress = inProgressCount,
+            Ready = readyCount,
             Delivered = deliveredCount
         };
 
