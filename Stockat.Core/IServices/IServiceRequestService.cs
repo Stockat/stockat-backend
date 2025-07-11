@@ -40,4 +40,13 @@ public interface IServiceRequestService
     
     // Invoice Generation
     Task InvoiceGeneratorAsync(int requestId);
+    Task<object> GetSellerTopServicesByRequestsAsync(string sellerId);
+    Task<object> GetSellerServiceRevenueAsync(string sellerId);
+    Task<object> GetSellerServiceRequestMonthlyTrendAsync(string sellerId);
+    Task<object> GetSellerServiceRequestStatusBreakdownAsync(string sellerId);
+    Task<object> GetSellerCustomerFeedbackAsync(string sellerId);
+    Task<object> GetSellerConversionFunnelAsync(string sellerId);
+    Task<object> GetSellerServiceReviewsAsync(string sellerId);
+    Task<object> GetSellerTopCustomersAsync(string sellerId);
+    Task<object> GetSellerCustomerDemographicsAsync(string sellerId);
 }
