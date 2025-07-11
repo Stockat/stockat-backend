@@ -37,6 +37,8 @@ namespace Stockat.Core.Entities
         [Column(TypeName = "decimal(18,2)")]
         public decimal IncrementUnit { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
         public int ProductId { get; set; }
         public Product Product { get; set; }
 
@@ -97,5 +99,11 @@ namespace Stockat.Core.Entities
 
         public int AuctionRequestId { get; set; }
         public AuctionBidRequest AuctionRequest { get; set; }
+
+        // New fields for shipping/order info
+        public string? ShippingAddress { get; set; }
+        public string? RecipientName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Notes { get; set; }
     }
 }

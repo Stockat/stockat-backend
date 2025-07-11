@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+//using Microsoft.AspNetCore.SignalR;
 
 namespace Stockat.Service;
 
@@ -46,6 +47,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IAIService> _aiService;
     private readonly Lazy<IAnalyticsService> _analyticsService;
     private readonly Lazy<IServiceEditRequestService> _serviceEditRequestService;
+    private readonly Lazy<IReviewService> _reviewService;
 
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
@@ -81,7 +83,7 @@ public sealed class ServiceManager : IServiceManager
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
         // Auction Services
-        _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager));
+        _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager,this));
         _auctionBidRequestService = new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper));
         _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper));
 
@@ -94,6 +96,7 @@ public sealed class ServiceManager : IServiceManager
         _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger));
 
         _serviceEditRequestService = new Lazy<IServiceEditRequestService>(() => new ServiceEditRequestService(logger, mapper, repositoryManager, _imageService.Value, _emailService.Value));
+        _reviewService = new Lazy<IReviewService>(() => new ReviewService(repositoryManager, mapper, logger, httpContextAccessor));
     }
 
     public IAuthenticationService AuthenticationService
@@ -125,10 +128,13 @@ public sealed class ServiceManager : IServiceManager
 
     public IAuctionOrderService AuctionOrderService => _auctionOrderService.Value;
 
+    public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+
     public ICategoryService CategoryService => _categoryService.Value;
+
     public ITagService TagService => _tagService.Value;
 
-    public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+   // public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 
 
 
@@ -138,4 +144,5 @@ public sealed class ServiceManager : IServiceManager
     public IAnalyticsService AnalyticsService => _analyticsService.Value;
     public IAIService AIService => _aiService.Value;
     public IServiceEditRequestService ServiceEditRequestService => _serviceEditRequestService.Value;
+    public IReviewService ReviewService => _reviewService.Value;
 }

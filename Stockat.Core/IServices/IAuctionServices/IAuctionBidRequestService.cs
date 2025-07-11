@@ -11,6 +11,7 @@ namespace Stockat.Core.IServices.IAuctionServices
     {
         Task<AuctionBidRequestDto> CreateBidAsync(AuctionBidRequestCreateDto dto);
         Task<AuctionBidRequestDto> GetBidByIdAsync(int id);
+        public Task<IEnumerable<AuctionBidRequestDto>> GetBidsByUserIdAsync(string userId);
         Task<IEnumerable<AuctionBidRequestDto>> GetBidsByAuctionAsync(int auctionId);
         Task DeleteBidAsync(int id);
     }

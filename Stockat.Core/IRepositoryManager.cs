@@ -41,6 +41,7 @@ public interface IRepositoryManager
     IChatBotMessageRepository ChatBotMessageRepository { get; }
 
     IBaseRepository<ServiceEditRequest> ServiceEditRequestRepo { get; }
+    IReviewRepository ReviewRepo { get; }
 
     int Complete();
     void Dispose();

@@ -46,8 +46,19 @@ namespace Stockat.API.Controllers
         {
             try
             {
-                var auction = _mapper.Map<Auction>(updateDto);
-                auction.Id = id;
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState
+                        .Where(x => x.Value?.Errors.Count > 0)
+                        .Select(x => new {
+                            Field = x.Key,
+                            Errors = x.Value?.Errors.Select(e => e.ErrorMessage).ToList()
+                        });
+
+                    return BadRequest(errors);
+                }
+                _logger.LogInformation("Received update DTO: {@dto}", updateDto);
+
                 var result = await _serviceManager.AuctionService.EditAuctionAsync(id, updateDto);
 
                 return Ok(result);
@@ -111,10 +122,13 @@ namespace Stockat.API.Controllers
             {
                 Expression<Func<Auction, bool>> filter = auction => true;
 
+                // Map 'closed' to 'ended' for frontend compatibility
                 if (!string.IsNullOrEmpty(status))
                 {
                     var now = DateTime.UtcNow;
-                    filter = status.ToLower() switch
+                    var statusValue = status.ToLower();
+                    if (statusValue == "closed") statusValue = "ended";
+                    filter = statusValue switch
                     {
                         "upcoming" => auction => auction.StartTime > now,
                         "active" => auction => auction.StartTime <= now && auction.EndTime > now,
@@ -128,6 +142,8 @@ namespace Stockat.API.Controllers
                     Expression<Func<Auction, bool>> sellerFilter = a => a.SellerId == sellerId;
                     filter = filter.And(sellerFilter);
                 }
+
+                // Note: This endpoint does not support search. Search must be handled on the frontend.
 
                 var totalCount = await _serviceManager.AuctionService.GetAuctionCountAsync(filter);
 

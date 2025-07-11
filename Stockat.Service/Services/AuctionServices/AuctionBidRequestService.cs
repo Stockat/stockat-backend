@@ -24,6 +24,27 @@ namespace Stockat.Service.Services.AuctionServices
             _mapper = mapper;
         }
 
+        public async Task<IEnumerable<AuctionBidRequestDto>> GetBidsByUserIdAsync(string userId)
+        {
+            await _repositoryManager.BeginTransactionAsync();
+
+            try
+            {
+                var bids = await _repositoryManager.AuctionBidRequestRepo
+                    .FindAllAsync(b => b.BidderId == userId, new[] { "Auction" });
+
+                await _repositoryManager.CommitTransactionAsync();
+
+                return _mapper.Map<IEnumerable<AuctionBidRequestDto>>(bids);
+            }
+            catch (Exception ex)
+            {
+                await _repositoryManager.RollbackTransactionAsync();
+                throw; // or return empty/fallback result
+            }
+        }
+
+
         public async Task<AuctionBidRequestDto> CreateBidAsync(AuctionBidRequestCreateDto dto)
         {
             await _repositoryManager.BeginTransactionAsync();
