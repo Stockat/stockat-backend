@@ -16,6 +16,7 @@ using Stockat.Core.IServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -204,12 +205,10 @@ public class ProductService : IProductService
 
     }
 
-    public async Task<GenericResponseDto<UpdateProductDto>> GetProductForUpdateAsync(int id)
+    public async Task<GenericResponseDto<UpdateProductDto>> GetProductForUpdateAsync(int id, string sellerId)
     {
 
-        //Get the user ID from the HTTP context
-        var userId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
+        if (string.IsNullOrEmpty(sellerId))
         {
             _logger.LogError("Seller ID not found in the HTTP context.");
             return new GenericResponseDto<UpdateProductDto>
@@ -226,7 +225,7 @@ public class ProductService : IProductService
             p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category"]
 
             );
-        if (res.SellerId != userId)
+        if (res.SellerId != sellerId)
         {
             return new GenericResponseDto<UpdateProductDto>()
             {
@@ -246,10 +245,9 @@ public class ProductService : IProductService
 
     }
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<GetSellerProductDto>>>> GetAllProductForSellerAsync
-        (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
+        (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags, string sellerId)
     {
         //Get the user ID from the HTTP context
-        var sellerId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(sellerId))
         {
             _logger.LogError("User ID not found in the HTTP context.");
@@ -336,11 +334,12 @@ public class ProductService : IProductService
         return await _repo.CompleteAsync();
 
     }
-    public async Task<int> UpdateProduct(int id, UpdateProductDto productDto)
+    public async Task<int> UpdateProduct(int id, UpdateProductDto productDto, string sellerId)
     {
-        //var isProductFound = await _repo.ProductRepository.IsProductFoundAsync(p => p.Id == id);
 
-        var oldProduct = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category", "Features", "ProductTags"]);
+
+
+        var oldProduct = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false && p.SellerId == sellerId, ["Images", "Stocks", "Category", "Features", "ProductTags"]);
 
         if (oldProduct == null)
             throw new NotFoundException($"Product With Id:{id} Not Found, please Contact with Admin for further information");
@@ -409,9 +408,10 @@ public class ProductService : IProductService
             Status = 200
         };
     }
-    public async Task<GenericResponseDto<string>> ChangeCanBeRequested(int id)
+    public async Task<GenericResponseDto<string>> ChangeCanBeRequested(int id, string sellerId)
     {
-        var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false);
+
+        var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false && p.SellerId == sellerId);
 
         if (product == null)
             throw new NotFoundException($"Product With Id:{id} Not Found, please Contact with Admin for further information");
@@ -467,6 +467,51 @@ public class ProductService : IProductService
             Message = "Product retrieved successfully",
             Status = 200,
             RedirectUrl = null
+        };
+    }
+
+
+    // Get a product with its stocks for admin by ID
+    public async Task<GenericResponseDto<ProductWithStocksDTO>> GetProductWithStocksForAdminAsync(int id)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            throw new UnauthorizedAccessException("User not authenticated");
+        }
+
+        // Check if user is admin (assuming admin ID)
+        if (userId != "1a44c91f-138e-4cf2-a5ef-915e5c882673")
+        {
+            throw new UnauthorizedAccessException("Only administrators can access this resource");
+        }
+
+        var product = await _repo.ProductRepository.FindAsync(
+            p => p.Id == id,
+            new[] { 
+                "Images", 
+                "Category", 
+                "User", 
+                "Stocks",
+                "Stocks.StockDetails",
+                "Stocks.StockDetails.Feature",
+                "Stocks.StockDetails.FeatureValue"
+            }
+        );
+
+        if (product == null)
+        {
+            _logger.LogError($"Product with ID {id} not found.");
+            throw new NotFoundException($"Product with ID {id} not found.");
+        }
+
+        var productDto = _mapper.Map<ProductWithStocksDTO>(product);
+
+        return new GenericResponseDto<ProductWithStocksDTO>
+        {
+            Data = productDto,
+            Message = "Product details retrieved successfully",
+            Status = 200
         };
     }
 

@@ -124,13 +124,13 @@ public class ServiceRequestUpdateController : ControllerBase
     [Authorize(Roles = "Buyer")]
     public async Task<IActionResult> CancelUpdateAsync(int updateId)
     {
-        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(sellerId))
+        var buyerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(buyerId))
             return Unauthorized("You must be logged in to cancel updates.");
 
         try
         {
-            var result = await _serviceManager.ServiceRequestUpdateService.CancelUpdateAsync(updateId, sellerId);
+            var result = await _serviceManager.ServiceRequestUpdateService.CancelUpdateAsync(updateId, buyerId);
             return Ok(result);
         }
         catch (NotFoundException ex)

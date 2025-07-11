@@ -8,7 +8,10 @@ using Stockat.Core.DTOs.ServiceRequestDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
+using Stockat.Core.Helpers;
 using Stockat.Core.IServices;
+using Stripe;
+using Stripe.Checkout;
 
 namespace Stockat.Service.Services;
 
@@ -470,5 +473,233 @@ public class ServiceRequestService : IServiceRequestService
             Message = "All service requests retrieved successfully for admin.",
             Data = result
         };
+    }
+
+    public async Task<GenericResponseDto<ServiceRequestDto>> CreateStripeCheckoutSessionAsync(int requestId, string buyerId)
+    {
+        try
+        {
+            var request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.Id == requestId && r.BuyerId == buyerId,
+                ["Buyer", "Service", "Service.Seller"]
+            );
+
+            if (request == null)
+            {
+                _logger.LogError($"Service request {requestId} not found for buyer {buyerId}.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 404,
+                    Message = "Service request not found."
+                };
+            }
+
+            // Check if buyer can proceed to checkout
+            if (request.SellerApprovalStatus != ApprovalStatus.Approved || 
+                request.BuyerApprovalStatus != ApprovalStatus.Approved)
+            {
+                _logger.LogError($"Service request {requestId} is not ready for checkout.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "Service request is not ready for checkout. Both seller and buyer must approve."
+                };
+            }
+
+            // Check for pending updates
+            var hasPendingUpdates = await _repo.ServiceRequestUpdateRepo.AnyAsync(
+                u => u.ServiceRequestId == requestId && u.Status == ApprovalStatus.Pending
+            );
+
+            if (hasPendingUpdates)
+            {
+                _logger.LogError($"Service request {requestId} has pending updates.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "Cannot proceed to checkout while there are pending request updates. Please wait for seller approval or cancel the updates."
+                };
+            }
+
+            // Allow retry for failed payments, but not for completed payments
+            if (request.PaymentStatus == PaymentStatus.Paid)
+            {
+                _logger.LogError($"Service request {requestId} has already been paid.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "This service request has already been paid."
+                };
+            }
+
+            // Create Stripe session
+            var sessionItems = new SessionLineItemOptions
+            {
+                PriceData = new SessionLineItemPriceDataOptions
+                {
+                    UnitAmount = (long)(request.TotalPrice * 100), // Convert to cents
+                    Currency = "usd",
+                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                    {
+                        Name = request.ServiceNameSnapshot,
+                        Description = request.ServiceDescriptionSnapshot
+                    }
+                },
+                Quantity = 1, // Service request is a single item
+            };
+
+            var options = new SessionCreateOptions
+            {
+                SuccessUrl = "http://localhost:4200/profile",
+                CancelUrl = "http://localhost:4200/profile",
+                LineItems = new List<SessionLineItemOptions>(),
+                Mode = "payment",
+                Metadata = new Dictionary<string, string>
+                {
+                    { "orderId", request.Id.ToString() },
+                    { "type", "service_request" }
+                }
+            };
+            options.LineItems.Add(sessionItems);
+
+            var service = new SessionService();
+            Session session = service.Create(options);
+
+            // Update request with session ID
+            await UpdateStripePaymentID(request.Id, session.Id, session.PaymentIntentId);
+
+            var responseDto = _mapper.Map<ServiceRequestDto>(request);
+
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 201,
+                Data = responseDto,
+                Message = "Stripe checkout session created successfully.",
+                RedirectUrl = session.Url
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error creating Stripe checkout session: {ex.Message}");
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 500,
+                Message = "An error occurred while creating the checkout session."
+            };
+        }
+    }
+
+    public async Task UpdateStripePaymentID(int id, string sessionId, string paymentIntentId)
+    {
+        var request = await _repo.ServiceRequestRepo.GetByIdAsync(id);
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            request.SessionId = sessionId;
+        }
+        if (!string.IsNullOrEmpty(paymentIntentId))
+        {
+            request.PaymentId = paymentIntentId;
+            request.PaymentStatus = PaymentStatus.Paid;
+            request.PaymentDate = DateTime.Now;
+        }
+
+        _repo.ServiceRequestRepo.Update(request);
+        await _repo.CompleteAsync();
+    }
+
+    public async Task<GenericResponseDto<ServiceRequestDto>> CancelServiceRequestOnPaymentFailureAsync(string sessionId)
+    {
+        try
+        {
+            var request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.SessionId == sessionId,
+                ["Buyer", "Service", "Service.Seller"]
+            );
+
+            if (request == null)
+            {
+                _logger.LogError($"Service request with Session ID {sessionId} not found.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 404,
+                    Message = "Service request not found."
+                };
+            }
+
+            request.PaymentStatus = PaymentStatus.Failed;
+            request.SessionId = null; // Clear session to allow new payment attempt
+            _repo.ServiceRequestRepo.Update(request);
+
+            await _repo.CompleteAsync();
+
+            // Send email notification to buyer about payment failure
+            await _emailService.SendEmailAsync(
+                request.Buyer.Email,
+                "Service Request Payment Failed",
+                $"Your payment for service request '{request.ServiceNameSnapshot}' has failed. " +
+                $"You can retry the payment from your dashboard. The request remains active."
+            );
+
+            // Notify seller about payment failure
+            await _emailService.SendEmailAsync(
+                request.Service.Seller.Email,
+                "Service Request Payment Failed",
+                $"Payment failed for service request '{request.ServiceNameSnapshot}' from {request.Buyer.FirstName} {request.Buyer.LastName}. " +
+                $"The buyer will be notified to retry payment."
+            );
+
+            var requestDto = _mapper.Map<ServiceRequestDto>(request);
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 200,
+                Data = requestDto,
+                Message = "Payment failed. Service request remains active and can be retried."
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error handling service request payment failure: {ex.Message}");
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 500,
+                Message = "An error occurred while handling the payment failure."
+            };
+        }
+    }
+
+    // Invoice Generator for Service Requests
+    public async Task InvoiceGeneratorAsync(int requestId)
+    {
+        var request = await _repo.ServiceRequestRepo.FindAsync(
+            r => r.Id == requestId, 
+            ["Service", "Buyer"]
+        );
+        
+        if (request == null)
+        {
+            _logger.LogError($"Service request with ID {requestId} not found for invoice generation.");
+            return;
+        }
+
+        var user = await _repo.UserRepo.GetByIdAsync(request.BuyerId);
+        if (user == null)
+        {
+            _logger.LogError($"User with ID {request.BuyerId} not found for invoice generation.");
+            return;
+        }
+
+        var invoice = InvoiceGenerator.CreateInvoice(
+            request.PaymentId, 
+            request.PaymentDate?.ToString() ?? DateTime.Now.ToString(), 
+            "Credit Card", 
+            request.ServiceNameSnapshot,
+            request.RequestedQuantity, 
+            request.PricePerProduct, 
+            "stockatgroup@gmail.com"
+        );
+
+        await _emailService.SendEmailAsync(user.Email, "Service Request Payment Receipt", invoice);
+        
+        _logger.LogInfo($"Invoice generated and sent for service request {requestId} to {user.Email}");
     }
 }
