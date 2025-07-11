@@ -347,18 +347,17 @@ public class OrderController : ControllerBase
 
         return Ok(res);
     }
-
-
-
-
     [AllowAnonymous]
-    [HttpGet("test/email")]
-    public async Task<IActionResult> TestInvoice(int orderid)
+    [HttpGet("analysis/OrderSummary")]
+    public async Task<IActionResult> CalculateOrderSummary()
     {
 
-        await _serviceManager.OrderService.InvoiceGeneratorAsync(orderid);
-        return Ok();
+        var res = await _serviceManager.OrderService.OrderSummaryCalc();
+        return Ok(res);
     }
+
+
+
 
 
 }

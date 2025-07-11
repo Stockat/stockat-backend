@@ -1009,4 +1009,42 @@ public class OrderService : IOrderService
         await _emailService.SendEmailAsync(user.Email, "Payment Receipt", invoice);
 
     }
+
+    public async Task PaymentCancellation()
+    {
+
+        var orders = await _repo.OrderRepo.FindAllAsync(o => o.OrderType == OrderType.Order && o.PaymentStatus == PaymentStatus.Pending && o.SessionId != null, ["Stock"]);
+        if (orders.Any())
+        {
+            foreach (var order in orders)
+            {
+                order.Status = OrderStatus.Cancelled;
+                order.PaymentStatus = PaymentStatus.Failed;
+                if (order.Stock != null)
+                {
+                    order.Stock.StockStatus = StockStatus.ForSale;
+                }
+            }
+        }
+        _logger.LogWarn("Cancel Payment Works ");
+        await _repo.CompleteAsync();
+    }
+
+
+    public async Task<GenericResponseDto<Dictionary<string, int>>> OrderSummaryCalc()
+    {
+
+        var res = await _repo.OrderRepo.GetOrderStatusCountsAsync();
+
+        return new GenericResponseDto<Dictionary<string, int>>()
+        {
+
+            Data = res,
+            Message = "Order Summary Fetched ",
+            Status = 200
+        };
+
+    }
+
+
 }
