@@ -202,4 +202,12 @@ public class ProductController : ControllerBase
         return Ok(res);
     }
 
+    [HttpGet("{sellerId}")]
+    public async Task<IActionResult> GetSpecificSellerProducts
+    (string sellerId, [FromQuery] int[] tags, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, int size = 9, int page = 0)
+    {
+        var res = await _serviceManager.ProductService.GetAllProductForSellerAsync(size, page, location, category, minQuantity, minPrice, tags, sellerId);
+        return Ok(res);
+    }
+
 }
