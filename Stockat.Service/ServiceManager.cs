@@ -46,6 +46,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IAIService> _aiService;
     private readonly Lazy<IAnalyticsService> _analyticsService;
     private readonly Lazy<IServiceEditRequestService> _serviceEditRequestService;
+    private readonly Lazy<IReviewService> _reviewService;
 
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
@@ -94,6 +95,7 @@ public sealed class ServiceManager : IServiceManager
         _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger));
 
         _serviceEditRequestService = new Lazy<IServiceEditRequestService>(() => new ServiceEditRequestService(logger, mapper, repositoryManager, _imageService.Value, _emailService.Value));
+        _reviewService = new Lazy<IReviewService>(() => new ReviewService(repositoryManager, mapper, logger, httpContextAccessor));
     }
 
     public IAuthenticationService AuthenticationService
@@ -138,4 +140,5 @@ public sealed class ServiceManager : IServiceManager
     public IAnalyticsService AnalyticsService => _analyticsService.Value;
     public IAIService AIService => _aiService.Value;
     public IServiceEditRequestService ServiceEditRequestService => _serviceEditRequestService.Value;
+    public IReviewService ReviewService => _reviewService.Value;
 }

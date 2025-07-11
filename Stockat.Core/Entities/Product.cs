@@ -56,6 +56,7 @@ public class Product
     public ICollection<Auction> Auctions { get; set; } = new List<Auction>(); //partial 1-M with Auction 
     public virtual ICollection<ProductTag> ProductTags { get; set; }
     public virtual ICollection<Feature> Features { get; set; }
+    public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
 
 
 }
