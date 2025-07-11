@@ -9,6 +9,7 @@ using Stripe.Checkout;
 using Stockat.Core.Entities;
 using System.Net.Mail;
 using Stockat.Core.Helpers;
+using Stockat.Core.DTOs.ServiceRequestDTOs;
 
 namespace Stockat.API.Controllers;
 
@@ -67,7 +68,10 @@ public class PaymentController : ControllerBase
                             await _serviceManager.OrderService.UpdateStatus(id, OrderStatus.Processing, PaymentStatus.Paid);
                             await _serviceManager.OrderService.InvoiceGeneratorAsync(id);
                             break;
-
+                        case "service_request":                            
+                            await _serviceManager.ServiceRequestService.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
+                            await _serviceManager.ServiceRequestService.InvoiceGeneratorAsync(id);
+                            break;
                     }
 
                     break;
@@ -80,15 +84,23 @@ public class PaymentController : ControllerBase
 
                     var session2 = stripeEvent.Data.Object as Session;
                     var orderId2 = session2.Metadata["orderId"];
-
+                    var type2 = session2.Metadata["type"];
                     int id2 = int.Parse(orderId2);
 
-                    await _serviceManager.OrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
-                    await _serviceManager.OrderService.UpdateStatus(id2, OrderStatus.Cancelled, PaymentStatus.Failed);
+                    switch (type2)
+                    {
+                        case "order":
+                        case "req":
+                            await _serviceManager.OrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
+                            await _serviceManager.OrderService.UpdateStatus(id2, OrderStatus.Cancelled, PaymentStatus.Failed);
+                            break;
+                        case "service_request":
+                            await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(session2.Id);
+                            break;
+                    }
 
                     _logger.LogWarn($"❌ Checkout failed/expired: {failedId}");
                     _logger.LogError("*************************************************************" + failedId);
-                    // Mark order as Cancelled or Failed (same logic)
                     break;
 
                 default:
