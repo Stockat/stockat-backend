@@ -41,6 +41,9 @@ namespace Stockat.EF.Configurations
             .HasForeignKey(a => a.StockId)
             .OnDelete(DeleteBehavior.NoAction);
 
+            //filter -> always returns not deleted auctions 
+            builder.HasQueryFilter(a => !a.IsDeleted);
+
 
         }
     }

@@ -249,4 +249,123 @@ public class ServiceRequestController : ControllerBase
         var result = await _serviceManager.ServiceRequestService.GetAllRequestsForAdminAsync(page, size, statusEnum);
         return Ok(result);
     }
+
+    [HttpPost("{requestId:int}/checkout")]
+    [Authorize]
+    public async Task<IActionResult> CreateCheckoutSession(int requestId)
+    {
+        try
+        {
+            var buyerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(buyerId))
+                return Unauthorized("User is not authenticated.");
+
+            var result = await _serviceManager.ServiceRequestService.CreateStripeCheckoutSessionAsync(requestId, buyerId);
+            return StatusCode(result.Status, result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    // --- SELLER ANALYTICS ENDPOINTS ---
+    [HttpGet("seller/analytics/status-breakdown")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerServiceRequestStatusBreakdown()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerServiceRequestStatusBreakdownAsync(sellerId);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/analytics/monthly-trend")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerServiceRequestMonthlyTrend()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerServiceRequestMonthlyTrendAsync(sellerId);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/analytics/revenue")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerServiceRevenue()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerServiceRevenueAsync(sellerId);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/analytics/top-services")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerTopServicesByRequests()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerTopServicesByRequestsAsync(sellerId);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/analytics/customer-feedback")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerCustomerFeedback()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerCustomerFeedbackAsync(sellerId);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/analytics/conversion-funnel")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerConversionFunnel()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerConversionFunnelAsync(sellerId);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/analytics/service-reviews")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerServiceReviews()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerServiceReviewsAsync(sellerId);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/analytics/top-customers")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerTopCustomers()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerTopCustomersAsync(sellerId);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/analytics/customer-demographics")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerCustomerDemographics()
+    {
+        var sellerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(sellerId))
+            return Unauthorized("User is not authenticated.");
+        var result = await _serviceManager.ServiceRequestService.GetSellerCustomerDemographicsAsync(sellerId);
+        return Ok(result);
+    }
 }

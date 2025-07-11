@@ -8,15 +8,16 @@ namespace Stockat.Core.Enums;
 
 public enum OrderStatus
 {
-    PendingSeller,
-    PendingBuyer,
-    Processing,
-    Ready,
-    Pending,
-    Shipped,
-    Completed,
-    Cancelled,
-    PaymentFailed,
-    Delivered
+        PendingSeller,
+        PendingBuyer,
+        Processing,
+        Ready,
+        Pending,
+        Shipped,
+        Completed,
+        Cancelled,
+        PaymentFailed,
+        Delivered,
+        Payed 
+    
 }
-
