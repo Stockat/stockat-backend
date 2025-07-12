@@ -57,5 +57,7 @@ public class OrderProduct
     [MaxLength(250, ErrorMessage = "Request Product Description Length Must Be less than or equal 250 char")]
     public string? Description { get; set; } = string.Empty;
 
+    public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+
 }
 

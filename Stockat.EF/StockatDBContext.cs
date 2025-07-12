@@ -40,6 +40,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<OrderProduct> OrderProduct { get; set; }
+    public virtual DbSet<Review> Reviews { get; set; }
 
 
 
@@ -88,7 +89,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "BackGround Service";
 
         var audits = new List<OrderProductAudit>();
 

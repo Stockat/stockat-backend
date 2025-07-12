@@ -50,22 +50,26 @@ public class ProductService : IProductService
         int skip = (_page) * _size;
         int take = _size;
 
-        var counting = await _repo.ProductRepository.CountAsync(p => p.isDeleted == false &&
-            p.MinQuantity >= minQuantity &&
-            p.Price >= minPrice &&
-              (
-            tags.Length == 0 ||
-             p.ProductTags.Any(pt => tags.Contains(pt.TagId))
-              ) &&
-             (
-             string.IsNullOrEmpty(location) ||
-             p.Location.ToString().ToUpper() == location.ToUpper()
-             ) &&
-            (
-                category == 0 ||
-                p.CategoryId == category
-             ) &&
-             (p.ProductStatus == ProductStatus.Approved || p.ProductStatus == ProductStatus.Activated));
+        //var counting = await _repo.ProductRepository.CountAsync(p => p.isDeleted == false &&
+        //    p.MinQuantity >= minQuantity &&
+        //    p.Price >= minPrice &&
+        //      (
+        //    tags.Length == 0 ||
+        //     p.ProductTags.Any(pt => tags.Contains(pt.TagId))
+        //      ) &&
+        //     (
+        //     string.IsNullOrEmpty(location) ||
+        //     p.Location.ToString().ToUpper() == location.ToUpper()
+        //     ) &&
+        //    (
+        //        category == 0 ||
+        //        p.CategoryId == category
+        //     ) &&
+        //     (p.ProductStatus == ProductStatus.Approved || p.ProductStatus == ProductStatus.Activated) 
+
+        //     );
+
+
 
         var res = await _repo.ProductRepository.FindAllAsync
             (
@@ -86,12 +90,18 @@ public class ProductService : IProductService
              ) &&
              (p.ProductStatus == ProductStatus.Approved || p.ProductStatus == ProductStatus.Activated)
 
-            , skip: skip, take: take, includes: ["Images", "ProductTags.Tag", "Category"], o => o.Id, OrderBy.Descending
+
+            , skip: null, take: null, includes: ["Images", "ProductTags.Tag", "Category", "User", "User.UserVerification"], o => o.Id, OrderBy.Descending
             );
+
+        var filteredRes = res.Where(p => p.User.IsApproved == true && p.User.IsBlocked == false && p.User.IsDeleted == false).ToList().AsEnumerable();
+        filteredRes.TryGetNonEnumeratedCount(out var counting);
+
+        filteredRes = filteredRes.Skip(skip).Take(_size);
 
         //res.TryGetNonEnumeratedCount(out var count);
 
-        var productDtos = _mapper.Map<IEnumerable<ProductHomeDto>>(res);
+        var productDtos = _mapper.Map<IEnumerable<ProductHomeDto>>(filteredRes);
 
         var paginatedres = new PaginatedDto<IEnumerable<ProductHomeDto>>()
         {
@@ -114,13 +124,15 @@ public class ProductService : IProductService
     }
 
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginatedForAdmin
-     (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
+    (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags, bool? isDeleted, string productStatus = "")
 
     {
         int skip = (_page) * _size;
         int take = _size;
 
         var counting = await _repo.ProductRepository.CountAsync(p =>
+            (string.IsNullOrEmpty(productStatus) || p.ProductStatus.ToString() == productStatus) &&
+            (isDeleted == null || p.isDeleted == isDeleted) &&
             p.MinQuantity >= minQuantity &&
             p.Price >= minPrice &&
               (
@@ -139,6 +151,8 @@ public class ProductService : IProductService
         var res = await _repo.ProductRepository.FindAllAsync
             (
             p =>
+              (string.IsNullOrEmpty(productStatus) || p.ProductStatus.ToString() == productStatus) &&
+            (isDeleted == null || p.isDeleted == isDeleted) &&
             p.MinQuantity >= minQuantity &&
             p.Price >= minPrice &&
               (
@@ -191,26 +205,43 @@ public class ProductService : IProductService
     {
         var res = await _repo.ProductRepository.FindProductDetailsAsync
             (
-            p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category"]
+            p => p.Id == id && p.isDeleted == false
+            , ["Images", "Stocks", "Category"]
 
             );
 
-        return new GenericResponseDto<ProductDetailsDto>()
+        var seller = await _repo.UserRepo.FindAsync(u => u.Id == res.SellerId, ["UserVerification"]);
+
+        if (seller.IsApproved == true && seller.IsBlocked == false && seller.IsDeleted == false)
         {
-            Data = res,
-            Message = "Success",
-            Status = 200,
-            RedirectUrl = null,
-        };
+            return new GenericResponseDto<ProductDetailsDto>()
+            {
+                Data = res,
+                Message = "Success",
+                Status = 200,
+                RedirectUrl = null,
+            };
+
+        }
+        else
+        {
+            return new GenericResponseDto<ProductDetailsDto>()
+            {
+                Message = "Product Not Found",
+                Status = 404,
+                RedirectUrl = null,
+            };
+        }
+
+
+
 
     }
 
-    public async Task<GenericResponseDto<UpdateProductDto>> GetProductForUpdateAsync(int id)
+    public async Task<GenericResponseDto<UpdateProductDto>> GetProductForUpdateAsync(int id, string sellerId)
     {
 
-        //Get the user ID from the HTTP context
-        var userId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
+        if (string.IsNullOrEmpty(sellerId))
         {
             _logger.LogError("Seller ID not found in the HTTP context.");
             return new GenericResponseDto<UpdateProductDto>
@@ -227,7 +258,7 @@ public class ProductService : IProductService
             p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category"]
 
             );
-        if (res.SellerId != userId)
+        if (res.SellerId != sellerId)
         {
             return new GenericResponseDto<UpdateProductDto>()
             {
@@ -247,10 +278,9 @@ public class ProductService : IProductService
 
     }
     public async Task<GenericResponseDto<PaginatedDto<IEnumerable<GetSellerProductDto>>>> GetAllProductForSellerAsync
-        (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags)
+        (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags, string sellerId)
     {
         //Get the user ID from the HTTP context
-        var sellerId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(sellerId))
         {
             _logger.LogError("User ID not found in the HTTP context.");
@@ -337,11 +367,12 @@ public class ProductService : IProductService
         return await _repo.CompleteAsync();
 
     }
-    public async Task<int> UpdateProduct(int id, UpdateProductDto productDto)
+    public async Task<int> UpdateProduct(int id, UpdateProductDto productDto, string sellerId)
     {
-        //var isProductFound = await _repo.ProductRepository.IsProductFoundAsync(p => p.Id == id);
 
-        var oldProduct = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false, ["Images", "Stocks", "Category", "Features", "ProductTags"]);
+
+
+        var oldProduct = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false && p.SellerId == sellerId, ["Images", "Stocks", "Category", "Features", "ProductTags"]);
 
         if (oldProduct == null)
             throw new NotFoundException($"Product With Id:{id} Not Found, please Contact with Admin for further information");
@@ -410,9 +441,10 @@ public class ProductService : IProductService
             Status = 200
         };
     }
-    public async Task<GenericResponseDto<string>> ChangeCanBeRequested(int id)
+    public async Task<GenericResponseDto<string>> ChangeCanBeRequested(int id, string sellerId)
     {
-        var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false);
+
+        var product = await _repo.ProductRepository.FindAsync(p => p.Id == id && p.isDeleted == false && p.SellerId == sellerId);
 
         if (product == null)
             throw new NotFoundException($"Product With Id:{id} Not Found, please Contact with Admin for further information");
@@ -489,10 +521,10 @@ public class ProductService : IProductService
 
         var product = await _repo.ProductRepository.FindAsync(
             p => p.Id == id,
-            new[] { 
-                "Images", 
-                "Category", 
-                "User", 
+            new[] {
+                "Images",
+                "Category",
+                "User",
                 "Stocks",
                 "Stocks.StockDetails",
                 "Stocks.StockDetails.Feature",

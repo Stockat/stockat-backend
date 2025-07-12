@@ -50,6 +50,7 @@ public class RepositoryManager : IRepositoryManager
     private readonly Lazy<IChatBotMessageRepository> _chatBotMessageRepository;
 
     private readonly Lazy<IBaseRepository<ServiceEditRequest>> _serviceEditRequestRepo;
+    private readonly Lazy<IReviewRepository> _reviewRepo;
     public RepositoryManager(StockatDBContext context, IMapper mapper)
     {
         _context = context;
@@ -84,6 +85,7 @@ public class RepositoryManager : IRepositoryManager
         _chatBotMessageRepository = new Lazy<IChatBotMessageRepository>(() => new ChatBotMessageRepository(_context));
 
         _serviceEditRequestRepo = new Lazy<IBaseRepository<ServiceEditRequest>>(() => new BaseRepository<ServiceEditRequest>(_context));
+        _reviewRepo = new Lazy<IReviewRepository>(() => new ReviewRepository(_context));
     }
 
     public IBaseRepository<UserVerification> UserVerificationRepo => _userVerificationRepo.Value;
@@ -115,6 +117,7 @@ public class RepositoryManager : IRepositoryManager
     public IChatBotMessageRepository ChatBotMessageRepository => _chatBotMessageRepository.Value;
 
     public IBaseRepository<ServiceEditRequest> ServiceEditRequestRepo => _serviceEditRequestRepo.Value;
+    public IReviewRepository ReviewRepo => _reviewRepo.Value;
 
     public int Complete()
     {

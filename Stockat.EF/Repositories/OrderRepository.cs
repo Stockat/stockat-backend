@@ -303,7 +303,19 @@ public class OrderRepository : BaseRepository<OrderProduct>, IOrderRepository
         };
     }
 
+    public async Task<Dictionary<string, int>> GetOrderStatusCountsAsync()
+    {
+        var result = await _context.OrderProduct.ToListAsync();
 
+        var list = result
+         .GroupBy(o => o.Status)
+         .Select(g => new { Status = g.Key.ToString(), Count = g.Count() })
+         .ToList();
+
+        var dict = list.ToDictionary(x => x.Status, x => x.Count);
+
+        return dict;
+    }
 
 
 

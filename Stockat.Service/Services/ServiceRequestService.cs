@@ -8,7 +8,10 @@ using Stockat.Core.DTOs.ServiceRequestDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
+using Stockat.Core.Helpers;
 using Stockat.Core.IServices;
+using Stripe;
+using Stripe.Checkout;
 
 namespace Stockat.Service.Services;
 
@@ -438,7 +441,7 @@ public class ServiceRequestService : IServiceRequestService
         );
 
         int totalCount = await _repo.ServiceRequestRepo.CountAsync(r => true);
-        int inProgressCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.InProgress);
+        int readyCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.Ready);
         int deliveredCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.Delivered);
 
         var paginated = new PaginatedDto<IEnumerable<ServiceRequestDto>>
@@ -454,7 +457,7 @@ public class ServiceRequestService : IServiceRequestService
         var stats = new ServiceRequestStatsDto
         {
             Total = totalCount,
-            InProgress = inProgressCount,
+            Ready = readyCount,
             Delivered = deliveredCount
         };
 
@@ -471,4 +474,407 @@ public class ServiceRequestService : IServiceRequestService
             Data = result
         };
     }
+
+    public async Task<GenericResponseDto<ServiceRequestDto>> CreateStripeCheckoutSessionAsync(int requestId, string buyerId)
+    {
+        try
+        {
+            var request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.Id == requestId && r.BuyerId == buyerId,
+                ["Buyer", "Service", "Service.Seller"]
+            );
+
+            if (request == null)
+            {
+                _logger.LogError($"Service request {requestId} not found for buyer {buyerId}.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 404,
+                    Message = "Service request not found."
+                };
+            }
+
+            // Check if buyer can proceed to checkout
+            if (request.SellerApprovalStatus != ApprovalStatus.Approved || 
+                request.BuyerApprovalStatus != ApprovalStatus.Approved)
+            {
+                _logger.LogError($"Service request {requestId} is not ready for checkout.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "Service request is not ready for checkout. Both seller and buyer must approve."
+                };
+            }
+
+            // Check for pending updates
+            var hasPendingUpdates = await _repo.ServiceRequestUpdateRepo.AnyAsync(
+                u => u.ServiceRequestId == requestId && u.Status == ApprovalStatus.Pending
+            );
+
+            if (hasPendingUpdates)
+            {
+                _logger.LogError($"Service request {requestId} has pending updates.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "Cannot proceed to checkout while there are pending request updates. Please wait for seller approval or cancel the updates."
+                };
+            }
+
+            // Allow retry for failed payments, but not for completed payments
+            if (request.PaymentStatus == PaymentStatus.Paid)
+            {
+                _logger.LogError($"Service request {requestId} has already been paid.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 400,
+                    Message = "This service request has already been paid."
+                };
+            }
+
+            // Create Stripe session
+            var sessionItems = new SessionLineItemOptions
+            {
+                PriceData = new SessionLineItemPriceDataOptions
+                {
+                    UnitAmount = (long)(request.TotalPrice * 100), // Convert to cents
+                    Currency = "usd",
+                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                    {
+                        Name = request.ServiceNameSnapshot,
+                        Description = request.ServiceDescriptionSnapshot
+                    }
+                },
+                Quantity = 1, // Service request is a single item
+            };
+
+            var options = new SessionCreateOptions
+            {
+                SuccessUrl = "http://localhost:4200/profile",
+                CancelUrl = "http://localhost:4200/profile",
+                LineItems = new List<SessionLineItemOptions>(),
+                Mode = "payment",
+                Metadata = new Dictionary<string, string>
+                {
+                    { "orderId", request.Id.ToString() },
+                    { "type", "service_request" }
+                }
+            };
+            options.LineItems.Add(sessionItems);
+
+            var service = new SessionService();
+            Session session = service.Create(options);
+
+            // Update request with session ID
+            await UpdateStripePaymentID(request.Id, session.Id, session.PaymentIntentId);
+
+            var responseDto = _mapper.Map<ServiceRequestDto>(request);
+
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 201,
+                Data = responseDto,
+                Message = "Stripe checkout session created successfully.",
+                RedirectUrl = session.Url
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error creating Stripe checkout session: {ex.Message}");
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 500,
+                Message = "An error occurred while creating the checkout session."
+            };
+        }
+    }
+
+    public async Task UpdateStripePaymentID(int id, string sessionId, string paymentIntentId)
+    {
+        var request = await _repo.ServiceRequestRepo.GetByIdAsync(id);
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            request.SessionId = sessionId;
+        }
+        if (!string.IsNullOrEmpty(paymentIntentId))
+        {
+            request.PaymentId = paymentIntentId;
+            request.PaymentStatus = PaymentStatus.Paid;
+            request.PaymentDate = DateTime.Now;
+        }
+
+        _repo.ServiceRequestRepo.Update(request);
+        await _repo.CompleteAsync();
+    }
+
+    public async Task<GenericResponseDto<ServiceRequestDto>> CancelServiceRequestOnPaymentFailureAsync(string sessionId)
+    {
+        try
+        {
+            var request = await _repo.ServiceRequestRepo.FindAsync(
+                r => r.SessionId == sessionId,
+                ["Buyer", "Service", "Service.Seller"]
+            );
+
+            if (request == null)
+            {
+                _logger.LogError($"Service request with Session ID {sessionId} not found.");
+                return new GenericResponseDto<ServiceRequestDto>
+                {
+                    Status = 404,
+                    Message = "Service request not found."
+                };
+            }
+
+            request.PaymentStatus = PaymentStatus.Failed;
+            request.SessionId = null; // Clear session to allow new payment attempt
+            _repo.ServiceRequestRepo.Update(request);
+
+            await _repo.CompleteAsync();
+
+            // Send email notification to buyer about payment failure
+            await _emailService.SendEmailAsync(
+                request.Buyer.Email,
+                "Service Request Payment Failed",
+                $"Your payment for service request '{request.ServiceNameSnapshot}' has failed. " +
+                $"You can retry the payment from your dashboard. The request remains active."
+            );
+
+            // Notify seller about payment failure
+            await _emailService.SendEmailAsync(
+                request.Service.Seller.Email,
+                "Service Request Payment Failed",
+                $"Payment failed for service request '{request.ServiceNameSnapshot}' from {request.Buyer.FirstName} {request.Buyer.LastName}. " +
+                $"The buyer will be notified to retry payment."
+            );
+
+            var requestDto = _mapper.Map<ServiceRequestDto>(request);
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 200,
+                Data = requestDto,
+                Message = "Payment failed. Service request remains active and can be retried."
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error handling service request payment failure: {ex.Message}");
+            return new GenericResponseDto<ServiceRequestDto>
+            {
+                Status = 500,
+                Message = "An error occurred while handling the payment failure."
+            };
+        }
+    }
+
+    // Invoice Generator for Service Requests
+    public async Task InvoiceGeneratorAsync(int requestId)
+    {
+        var request = await _repo.ServiceRequestRepo.FindAsync(
+            r => r.Id == requestId, 
+            ["Service", "Buyer"]
+        );
+        
+        if (request == null)
+        {
+            _logger.LogError($"Service request with ID {requestId} not found for invoice generation.");
+            return;
+        }
+
+        var user = await _repo.UserRepo.GetByIdAsync(request.BuyerId);
+        if (user == null)
+        {
+            _logger.LogError($"User with ID {request.BuyerId} not found for invoice generation.");
+            return;
+        }
+
+        var invoice = InvoiceGenerator.CreateInvoice(
+            request.PaymentId, 
+            request.PaymentDate?.ToString() ?? DateTime.Now.ToString(), 
+            "Credit Card", 
+            request.ServiceNameSnapshot,
+            request.RequestedQuantity, 
+            request.PricePerProduct, 
+            "stockatgroup@gmail.com"
+        );
+
+        await _emailService.SendEmailAsync(user.Email, "Service Request Payment Receipt", invoice);
+        
+        _logger.LogInfo($"Invoice generated and sent for service request {requestId} to {user.Email}");
+    }
+
+    // --- SELLER ANALYTICS METHODS ---
+    public async Task<object> GetSellerServiceRequestStatusBreakdownAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId,
+            includes: ["Service"]);
+
+        var breakdown = requests
+            .GroupBy(r => r.ServiceStatus)
+            .Select(g => new { Status = g.Key.ToString(), Count = g.Count() })
+            .ToList();
+        return breakdown;
+    }
+
+    public async Task<object> GetSellerServiceRequestMonthlyTrendAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId,
+            includes: ["Service"]
+            );
+        var trend = requests
+            .GroupBy(r => new { r.CreatedAt.Year, r.CreatedAt.Month })
+            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+            .Select(g => new { Year = g.Key.Year, Month = g.Key.Month, Count = g.Count() })
+            .ToList();
+        return trend;
+    }
+
+    public async Task<object> GetSellerServiceRevenueAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId && r.ServiceStatus == ServiceStatus.Delivered,
+            includes: ["Service"]);
+
+        var now = DateTime.UtcNow;
+        var thisMonth = requests.Where(r => r.CreatedAt.Year == now.Year && r.CreatedAt.Month == now.Month).Sum(r => r.TotalPrice);
+        var total = requests.Sum(r => r.TotalPrice);
+        return new { TotalRevenue = total, ThisMonthRevenue = thisMonth };
+    }
+
+    public async Task<object> GetSellerTopServicesByRequestsAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId, 
+            includes: ["Service"]);
+
+        var top = requests
+            .GroupBy(r => new { r.ServiceId, r.Service.Name })
+            .Select(g => new { ServiceId = g.Key.ServiceId, ServiceName = g.Key.Name, RequestCount = g.Count() })
+            .OrderByDescending(x => x.RequestCount)
+            .Take(5)
+            .ToList();
+        return top;
+    }
+
+    public async Task<object> GetSellerCustomerFeedbackAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId && r.ServiceStatus == ServiceStatus.Delivered,
+            includes: ["Reviews", "Reviews.Reviewer"]
+        );
+
+        var reviews = requests.SelectMany(r => r.Reviews).ToList();
+        
+        var averageRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0;
+        var totalReviews = reviews.Count;
+        var recentReviews = reviews.OrderByDescending(r => r.CreatedAt).Take(5).ToList();
+
+        return new
+        {
+            AverageRating = Math.Round(averageRating, 1),
+            TotalReviews = totalReviews,
+            RecentReviews = recentReviews.Select(r => new
+            {
+                Rating = r.Rating,
+                Comment = r.Comment,
+                CreatedAt = r.CreatedAt,
+                BuyerName = r.Reviewer.FirstName + " " + r.Reviewer.LastName
+            }).ToList()
+        };
+    }
+
+    public async Task<object> GetSellerConversionFunnelAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(r => r.Service.SellerId == sellerId);
+        
+        var funnel = new
+        {
+            Pending = requests.Count(r => r.ServiceStatus == ServiceStatus.Pending),
+            InProgress = requests.Count(r => r.ServiceStatus == ServiceStatus.InProgress),
+            Ready = requests.Count(r => r.ServiceStatus == ServiceStatus.Ready),
+            Delivered = requests.Count(r => r.ServiceStatus == ServiceStatus.Delivered),
+            Cancelled = requests.Count(r => r.ServiceStatus == ServiceStatus.Cancelled)
+        };
+
+        return funnel;
+    }
+
+    public async Task<object> GetSellerServiceReviewsAsync(string sellerId)
+    {
+        var services = await _repo.ServiceRepo.FindAllAsync(s => s.SellerId == sellerId, includes: ["Reviews", "Reviews.Reviewer"]);
+        var allReviews = services.SelectMany(s => s.Reviews).ToList();
+        var averageRating = allReviews.Any() ? allReviews.Average(r => r.Rating) : 0;
+        var totalReviews = allReviews.Count;
+        var recentReviews = allReviews.OrderByDescending(r => r.CreatedAt).Take(5).ToList();
+        return new
+        {
+            AverageRating = Math.Round(averageRating, 1),
+            TotalReviews = totalReviews,
+            RecentReviews = recentReviews.Select(r => new
+            {
+                Rating = r.Rating,
+                Comment = r.Comment,
+                CreatedAt = r.CreatedAt,
+                ReviewerName = r.Reviewer.FirstName + " " + r.Reviewer.LastName
+            }).ToList()
+        };
+    }
+
+    public async Task<object> GetSellerTopCustomersAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId && r.ServiceStatus == ServiceStatus.Delivered,
+            includes: ["Buyer", "Service"]
+        );
+
+        var topCustomers = requests
+            .GroupBy(r => new { r.BuyerId, r.Buyer.FirstName, r.Buyer.LastName, r.Buyer.Email })
+            .Select(g => new
+            {
+                CustomerId = g.Key.BuyerId,
+                CustomerName = g.Key.FirstName + " " + g.Key.LastName,
+                Email = g.Key.Email,
+                TotalSpent = g.Sum(r => r.TotalPrice),
+                OrderCount = g.Count(),
+                LastOrderDate = g.Max(r => r.CreatedAt),
+                AverageOrderValue = g.Average(r => r.TotalPrice)
+            })
+            .OrderByDescending(x => x.TotalSpent)
+            .Take(10)
+            .ToList();
+
+        return topCustomers;
+    }
+
+    public async Task<object> GetSellerCustomerDemographicsAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId && r.ServiceStatus == ServiceStatus.Delivered,
+            includes: ["Buyer"]
+        );
+
+        var customers = requests
+            .GroupBy(r => r.BuyerId)
+            .Select(g => g.First().Buyer)
+            .ToList();
+
+        // Location distribution (by city)
+        var locationDistribution = customers
+            .Where(c => !string.IsNullOrEmpty(c.City))
+            .GroupBy(c => c.City)
+            .Select(g => new { City = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(10)
+            .ToList();
+
+                return new
+        {
+            LocationDistribution = locationDistribution,
+            TotalCustomers = customers.Count
+        };
+    }
+
+  
 }

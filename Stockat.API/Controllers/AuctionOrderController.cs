@@ -30,6 +30,27 @@ namespace Stockat.API.Controllers
             }
         }
 
+        [HttpPut("{orderId}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] UpdateOrderStatusDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                await _serviceManager.AuctionOrderService.UpdateOrderStatusAsync(orderId, dto.Status);
+                return Ok(new { message = "Order status updated successfully." });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = $"Order with ID {orderId} not found." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating the order status.", details = ex.Message });
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<AuctionOrderDto>> GetOrder(int id)
         {
@@ -70,6 +91,41 @@ namespace Stockat.API.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpPost("payment-failed/{orderId}")]
+        public async Task<IActionResult> MarkPaymentFailed(int orderId, [FromBody] string reason = null)
+        {
+            try
+            {
+                await _serviceManager.AuctionOrderService.MarkPaymentFailedAsync(orderId, reason);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("{orderId}/address-info")]
+        public async Task<IActionResult> UpdateOrderAddressInfo(int orderId, [FromBody] AuctionOrderDto dto)
+        {
+            try
+            {
+                await _serviceManager.AuctionOrderService.UpdateOrderAddressInfoAsync(orderId, dto.ShippingAddress, dto.RecipientName, dto.PhoneNumber, dto.Notes);
+                return Ok(new { message = "Order address info updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<AuctionOrderDto>>> GetAll()
+        {
+            var orders = await _serviceManager.AuctionOrderService.GetAllOrdersAsync();
+            return Ok(orders);
         }
     }
 }

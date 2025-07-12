@@ -60,15 +60,22 @@ namespace Stockat.Core.Entities
         [MaxLength(255)]
         public string? PaymentId { get; set; }
 
+        [MaxLength(255)]
+        public string? SessionId { get; set; }
+
         [Required]
         [MaxLength(20)]
         public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
-        public int SellerOfferAttempts { get; set; } = 0;
         
+        public DateTime? PaymentDate { get; set; }
+        
+        public int SellerOfferAttempts { get; set; } = 0;
+
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<ServiceRequestUpdate> RequestUpdates { get; set; } = new List<ServiceRequestUpdate>();
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
 
         // SNAPSHOT FIELDS: store service data at request creation
         [Required]
