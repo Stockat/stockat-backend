@@ -39,6 +39,8 @@ public class Program
         builder.Services.ConfigureServiceManager(); // adding service layer dependencies
 
         builder.Services.Configure<StripeConfigs>(builder.Configuration.GetSection("Stripe"));
+        builder.Services.Configure<DomainConfigs>(builder.Configuration.GetSection("DomainUrl"));
+
 
         builder.Services.Configure<ApiBehaviorOptions>(options =>
         {
@@ -73,8 +75,8 @@ public class Program
 
 
         //BackGround service injection
-        // builder.Services.AddHostedService<AuctionMonitorService>();
-        // builder.Services.AddHostedService<PaymentCancellation>();
+        //builder.Services.AddHostedService<AuctionMonitorService>();
+        builder.Services.AddHostedService<PaymentCancellation>();
         //builder.Services.AddHostedService<Stockat.Service.Services.AuctionServices.AuctionMonitorService>();
 
         var app = builder.Build();
