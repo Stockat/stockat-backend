@@ -52,6 +52,7 @@ public class StockatDBContext : IdentityDbContext<User>
 
     //Logs Table
     public DbSet<OrderProductAudit> OrderProductAudits { get; set; }
+    public DbSet<Driver> Drivers { get; set; }
 
     public StockatDBContext(DbContextOptions options, IHttpContextAccessor httpContextAccessor) : base(options)
     {

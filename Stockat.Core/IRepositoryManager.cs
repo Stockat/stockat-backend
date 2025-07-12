@@ -28,7 +28,7 @@ public interface IRepositoryManager
 
     //IBaseRepository<OrderProduct> OrderRepo { get; }
 
-
+    IBaseRepository<Driver> DriverRepo { get; }
 
 
     IUserRepository UserRepo { get; }

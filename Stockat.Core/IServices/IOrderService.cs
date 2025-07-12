@@ -64,5 +64,6 @@ namespace Stockat.Core.IServices
         public Task<OrderProduct> getorderbySessionOrPaymentId(string id);
 
 
+        public Task<GenericResponseDto<OrderDTO>> UpdateOrderDriverAsync(int orderId, string driverId);
     }
 }

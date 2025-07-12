@@ -1086,4 +1086,35 @@ public class OrderService : IOrderService
 
 
 
+    public async Task<GenericResponseDto<OrderDTO>> UpdateOrderDriverAsync(int orderId, string driverId)
+    {
+        var order = await _repo.OrderRepo.GetByIdAsync(orderId);
+        if (order == null)
+        {
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 404,
+                Message = "Order not found."
+            };
+        }
+        var driver = await _repo.DriverRepo.FindAsync(d => d.Id == driverId);
+        if (driver == null)
+        {
+            return new GenericResponseDto<OrderDTO>
+            {
+                Status = 404,
+                Message = "Driver not found."
+            };
+        }
+        order.DriverId = driverId;
+        _repo.OrderRepo.Update(order);
+        await _repo.CompleteAsync();
+        var dto = _mapper.Map<OrderDTO>(order);
+        return new GenericResponseDto<OrderDTO>
+        {
+            Status = 200,
+            Data = dto,
+            Message = "Order driver updated successfully."
+        };
+    }
 }
