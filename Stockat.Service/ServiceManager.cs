@@ -44,6 +44,8 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IAuctionBidRequestService> _auctionBidRequestService;
     private readonly Lazy<IAuctionOrderService> _auctionOrderService;
 
+    private readonly Lazy<IOrderProductAuditService> _orderProductAuditService;
+
     private readonly Lazy<IUserService> _userService;
 
     private readonly Lazy<IChatHistoryService> _chatHistoryService;
@@ -76,6 +78,8 @@ public sealed class ServiceManager : IServiceManager
 
         // Driver Service
         _driverservice = new Lazy<IDriverService>(() => new DriverService(logger, mapper, repositoryManager));
+
+        _orderProductAuditService = new Lazy<IOrderProductAuditService>(() => new OrderProductAuditService(logger, mapper, repositoryManager));
 
 
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
@@ -156,4 +160,5 @@ public sealed class ServiceManager : IServiceManager
     public IAIService AIService => _aiService.Value;
     public IServiceEditRequestService ServiceEditRequestService => _serviceEditRequestService.Value;
     public IReviewService ReviewService => _reviewService.Value;
+    public IOrderProductAuditService orderProductAuditService => _orderProductAuditService.Value;
 }
