@@ -29,6 +29,9 @@ public class RepositoryManager : IRepositoryManager
     private readonly Lazy<IBaseRepository<Stock>> _stockRepository;
     private readonly Lazy<IBaseRepository<StockDetails>> _stockDetailsRepository;
     private readonly Lazy<OrderRepository> _OrderRepo;
+
+    private readonly Lazy<IBaseRepository<Driver>> _driverRepository;
+
     private readonly IMapper _mapper;
 
     private readonly Lazy<ServiceRepository> _serviceRepo;
@@ -72,6 +75,7 @@ public class RepositoryManager : IRepositoryManager
         _stockRepository = new Lazy<IBaseRepository<Stock>>(() => new BaseRepository<Stock>(_context));
         _stockDetailsRepository = new Lazy<IBaseRepository<StockDetails>>(() => new BaseRepository<StockDetails>(_context));
         _OrderRepo = new Lazy<OrderRepository>(() => new OrderRepository(_context, _mapper));
+        _driverRepository = new Lazy<IBaseRepository<Driver>>(() => new BaseRepository<Driver>(_context));
 
         _chatConversationRepo = new Lazy<IBaseRepository<ChatConversation>>(() => new BaseRepository<ChatConversation>(_context));
         _chatMessageRepo = new Lazy<IBaseRepository<ChatMessage>>(() => new BaseRepository<ChatMessage>(_context));
@@ -102,6 +106,8 @@ public class RepositoryManager : IRepositoryManager
     public IUserRepository UserRepo => _userRepo.Value;
     public IBaseRepository<StockDetails> StockDetailsRepo => _stockDetailsRepository.Value;
     public IOrderRepository OrderRepo => _OrderRepo.Value;
+
+    public IBaseRepository<Driver> DriverRepo => _driverRepository.Value;
 
     public IBaseRepository<ChatConversation> ChatConversationRepo => _chatConversationRepo.Value;
     public IBaseRepository<ChatMessage> ChatMessageRepo => _chatMessageRepo.Value;

@@ -30,5 +30,7 @@ namespace Stockat.Core.DTOs.OrderDTOs
         public string BuyerId { get; set; }
         public string BuyerFirstName { get; set; }
         public string BuyerLastName { get; set; }
+
+        public string DriverId { get; set; }
     }
 }

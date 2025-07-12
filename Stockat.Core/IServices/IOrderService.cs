@@ -60,5 +60,6 @@ namespace Stockat.Core.IServices
 
 
         public Task<GenericResponseDto<Dictionary<string, int>>> OrderSummaryCalc();
+        public Task<GenericResponseDto<OrderDTO>> UpdateOrderDriverAsync(int orderId, string driverId);
     }
 }
