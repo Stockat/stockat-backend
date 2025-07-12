@@ -42,7 +42,8 @@ public class PaymentController : ControllerBase
                 Request.Headers["Stripe-Signature"],
                 endpointSecret
             );
-
+            string sessionId = null;
+            string paymentIntentId = null;
 
             switch (stripeEvent.Type)
             {
@@ -68,7 +69,7 @@ public class PaymentController : ControllerBase
                             await _serviceManager.OrderService.UpdateStatus(id, OrderStatus.Processing, PaymentStatus.Paid);
                             await _serviceManager.OrderService.InvoiceGeneratorAsync(id);
                             break;
-                        case "service_request":                            
+                        case "service_request":
                             await _serviceManager.ServiceRequestService.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
                             await _serviceManager.ServiceRequestService.InvoiceGeneratorAsync(id);
                             break;
@@ -76,36 +77,44 @@ public class PaymentController : ControllerBase
 
                     break;
 
-                case "checkout.session.expired": // The user did not complete the checkout (timed out or closed tab) within 24 hours
-                case "payment_intent.payment_failed": // The payment was attempted but failed (e.g. card declined)
-                    string failedId = stripeEvent.Type == "checkout.session.expired"
-                        ? ((Session)stripeEvent.Data.Object).Id
-                        : ((PaymentIntent)stripeEvent.Data.Object).Id;
+                    //case "checkout.session.expired": // The user did not complete the checkout (timed out or closed tab) within 24 hours
+                    //    var session2 = (Session)stripeEvent.Data.Object;
+                    //    _logger.LogDebug("********************************************");
+                    //    _logger.LogDebug("Session ID:" + session2.Id);
+                    //    _logger.LogDebug("********************************************");
+                    //    sessionId = session2.Id;
+                    //    paymentIntentId = session2.PaymentIntentId;
 
-                    var session2 = stripeEvent.Data.Object as Session;
-                    var orderId2 = session2.Metadata["orderId"];
-                    var type2 = session2.Metadata["type"];
-                    int id2 = int.Parse(orderId2);
+                    //    // Continue using session logic
+                    //    var order = await _serviceManager.OrderService.getorderbySessionOrPaymentId(sessionId);
+                    //    if (order != null)
+                    //    {
+                    //        await _serviceManager.OrderService.UpdateStripePaymentID(order.Id, session2.Id, session2.PaymentIntentId);
+                    //        await _serviceManager.OrderService.UpdateOrderStatusAsync(order.Id, OrderStatus.Cancelled);
+                    //    }
+                    //    else
+                    //    {
+                    //        await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(sessionId);
+                    //    }
+                    //    break;
+                    //case "payment_intent.payment_failed": // The payment was attempted but failed (e.g. card declined)
+                    //    var paymentIntent = (PaymentIntent)stripeEvent.Data.Object;
+                    //    paymentIntentId = paymentIntent.Id;
 
-                    switch (type2)
-                    {
-                        case "order":
-                        case "req":
-                            await _serviceManager.OrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
-                            await _serviceManager.OrderService.UpdateStatus(id2, OrderStatus.Cancelled, PaymentStatus.Failed);
-                            break;
-                        case "service_request":
-                            await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(session2.Id);
-                            break;
-                    }
+                    //    // Look up order by PaymentIntent
+                    //    var order2 = await _serviceManager.OrderService.getorderbySessionOrPaymentId(paymentIntentId);
+                    //    if (order2 != null)
+                    //    {
+                    //        await _serviceManager.OrderService.UpdateOrderStatusAsync(order2.Id, OrderStatus.Cancelled);
+                    //    }
+                    //    else
+                    //    {
+                    //        await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(paymentIntentId);
+                    //    }
+                    //    break;
 
-                    _logger.LogWarn($"❌ Checkout failed/expired: {failedId}");
-                    _logger.LogError("*************************************************************" + failedId);
-                    break;
+                    //    break;
 
-                default:
-                    _logger.LogError($"Unhandled event type: {stripeEvent.Type}");
-                    break;
             }
 
             return Ok();

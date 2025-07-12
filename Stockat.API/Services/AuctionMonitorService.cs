@@ -7,42 +7,41 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stockat.API.Services
-{
-    public class AuctionMonitorService : BackgroundService
-    {
-        private readonly IServiceScopeFactory _scopeFactory;
-        private readonly ILogger<AuctionMonitorService> _logger;
+namespace Stockat.API.Services;
 
-        public AuctionMonitorService(IServiceScopeFactory scopeFactory, ILogger<AuctionMonitorService> logger)
-        {
-            _scopeFactory = scopeFactory;
-            _logger = logger;
-        }
+//public class AuctionMonitorService : BackgroundService
+//{
+//    private readonly IServiceScopeFactory _scopeFactory;
+//    private readonly ILogger<AuctionMonitorService> _logger;
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    var serviceManager = scope.ServiceProvider.GetRequiredService<IServiceManager>();
-                    var notificationService = scope.ServiceProvider.GetRequiredService<IAuctionNotificationService>();
+//    public AuctionMonitorService(IServiceScopeFactory scopeFactory, ILogger<AuctionMonitorService> logger)
+//    {
+//        _scopeFactory = scopeFactory;
+//        _logger = logger;
+//    }
 
-                    try
-                    {
-                        // Close ended auctions and send notifications as needed
-                        await serviceManager.AuctionService.CloseEndedAuctionsAsync();
-                        // You can add more logic here for starting auctions, sending 'ending soon' notifications, etc.
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error in AuctionMonitorService background task");
-                    }
-                }
+//    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+//    {
+//        while (!stoppingToken.IsCancellationRequested)
+//        {
+//            using (var scope = _scopeFactory.CreateScope())
+//            {
+//                var serviceManager = scope.ServiceProvider.GetRequiredService<IServiceManager>();
+//                var notificationService = scope.ServiceProvider.GetRequiredService<IAuctionNotificationService>();
 
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken); // Run every minute
-            }
-        }
-    }
-} 
+//                try
+//                {
+//                    // Close ended auctions and send notifications as needed
+//                    await serviceManager.AuctionService.CloseEndedAuctionsAsync();
+//                    // You can add more logic here for starting auctions, sending 'ending soon' notifications, etc.
+//                }
+//                catch (Exception ex)
+//                {
+//                    _logger.LogError(ex, "Error in AuctionMonitorService background task");
+//                }
+//            }
+
+//            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken); // Run every minute
+//        }
+//    }
+//}

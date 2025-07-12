@@ -371,4 +371,66 @@ public class ServiceService : IServiceService
             }
         };
     }
+
+    public async Task<GenericResponseDto<IEnumerable<object>>> GetTopServicesAsync()
+    {
+        try
+        {
+            // Get all services with their service requests and seller information
+            var services = await _repo.ServiceRepo.FindAllAsync(
+                s => !s.IsDeleted && s.IsApproved == ApprovalStatus.Approved,
+                includes: ["ServiceRequests", "Seller"]
+            );
+
+            // Calculate metrics for each service
+            var topServices = services
+                .Select(service => new
+                {
+                    ServiceId = service.Id,
+                    ServiceName = service.Name,
+                    ServiceDescription = service.Description,
+                    ServiceImageUrl = service.ImageUrl,
+                    ServicePricePerProduct = service.PricePerProduct,
+                    ServiceEstimatedTime = service.EstimatedTime,
+                    SellerId = service.SellerId,
+                    SellerName = $"{service.Seller.FirstName} {service.Seller.LastName}",
+                    SellerEmail = service.Seller.Email,
+                    TotalRequests = service.ServiceRequests.Count,
+                    PaidRequests = service.ServiceRequests.Count(r => r.PaymentStatus == PaymentStatus.Paid),
+                    TotalRevenue = service.ServiceRequests
+                        .Where(r => r.PaymentStatus == PaymentStatus.Paid)
+                        .Sum(r => r.TotalPrice),
+                    AverageRating = service.Reviews.Any() ? service.Reviews.Average(r => r.Rating) : 0,
+                    TotalReviews = service.Reviews.Count,
+                    SuccessRate = service.ServiceRequests.Any() 
+                        ? (double)service.ServiceRequests.Count(r => r.ServiceStatus == ServiceStatus.Delivered) / service.ServiceRequests.Count * 100 
+                        : 0
+                })
+                .Where(service => service.PaidRequests > 0) // Only include services with paid requests
+                .OrderByDescending(service => service.PaidRequests) // Order by number of paid requests
+                .ThenByDescending(service => service.TotalRevenue) // Then by total revenue
+                .ThenByDescending(service => service.AverageRating) // Then by average rating
+                .Take(5)
+                .ToList();
+
+            _logger.LogInfo($"Retrieved top 5 services based on paid requests. Found {topServices.Count} services.");
+
+            return new GenericResponseDto<IEnumerable<object>>
+            {
+                Status = 200,
+                Message = "Top 5 services retrieved successfully.",
+                Data = topServices
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error retrieving top services: {ex.Message}");
+            return new GenericResponseDto<IEnumerable<object>>
+            {
+                Status = 500,
+                Message = "An error occurred while retrieving top services.",
+                Data = new List<object>()
+            };
+        }
+    }
 }

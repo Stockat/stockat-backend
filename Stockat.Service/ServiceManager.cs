@@ -10,11 +10,14 @@ using Stockat.Infrastructure.Services;
 using Stockat.Core.IServices.IAuctionServices;
 using Stockat.Service.Services;
 using Stockat.Service.Services.AuctionServices;
+using Stockat.Core.DTOs.ChatBotDTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Stockat.Core.Helpers;
+using Microsoft.Extensions.Options;
 //using Microsoft.AspNetCore.SignalR;
 
 namespace Stockat.Service;
@@ -42,6 +45,8 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IAuctionBidRequestService> _auctionBidRequestService;
     private readonly Lazy<IAuctionOrderService> _auctionOrderService;
 
+    private readonly Lazy<IOrderProductAuditService> _orderProductAuditService;
+
     private readonly Lazy<IUserService> _userService;
 
     private readonly Lazy<IChatHistoryService> _chatHistoryService;
@@ -49,13 +54,17 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IAnalyticsService> _analyticsService;
     private readonly Lazy<IServiceEditRequestService> _serviceEditRequestService;
     private readonly Lazy<IReviewService> _reviewService;
+    private readonly Lazy<IOpenAIService> _openAIService;
 
+
+    private readonly Lazy<DomainConfigs> _domainConfigs;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
         _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager, _imageService.Value, httpContextAccessor));
         _fileService = new Lazy<IFileService>(() => new CloudinaryFileService(configuration));
+        _domainConfigs = new Lazy<DomainConfigs>(() => new DomainConfigs(configuration));
 
         _chatService = new Lazy<IChatService>(() => new ChatService(repositoryManager, mapper, _imageService.Value, _fileService.Value, configuration));
 
@@ -67,10 +76,12 @@ public sealed class ServiceManager : IServiceManager
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
         // Order Service
-        _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor, _emailService.Value));
+        _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor, _emailService.Value, _domainConfigs.Value));
 
         // Driver Service
         _driverservice = new Lazy<IDriverService>(() => new DriverService(logger, mapper, repositoryManager));
+
+        _orderProductAuditService = new Lazy<IOrderProductAuditService>(() => new OrderProductAuditService(logger, mapper, repositoryManager));
 
 
         _serviceService = new Lazy<IServiceService>(() => new ServiceService(logger, mapper, repositoryManager, _imageService.Value));
@@ -87,7 +98,7 @@ public sealed class ServiceManager : IServiceManager
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
         // Auction Services
-        _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager,this));
+        _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager, this));
         _auctionBidRequestService = new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper));
         _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper));
 
@@ -96,8 +107,10 @@ public sealed class ServiceManager : IServiceManager
 
         _chatHistoryService = new Lazy<IChatHistoryService>(() => new ChatHistoryService(repositoryManager, mapper));
 
-        _aiService = new Lazy<IAIService>(() => new AIService(this, logger));
-        _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger));
+        // OpenAI Service
+        _openAIService = new Lazy<IOpenAIService>(() => new OpenAIService(configuration, logger, new HttpClient()));
+        _aiService = new Lazy<IAIService>(() => new AIService(this, logger, _openAIService.Value));
+        _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger, this));
 
         _serviceEditRequestService = new Lazy<IServiceEditRequestService>(() => new ServiceEditRequestService(logger, mapper, repositoryManager, _imageService.Value, _emailService.Value));
         _reviewService = new Lazy<IReviewService>(() => new ReviewService(repositoryManager, mapper, logger, httpContextAccessor));
@@ -140,7 +153,7 @@ public sealed class ServiceManager : IServiceManager
 
     public ITagService TagService => _tagService.Value;
 
-   // public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+    // public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 
 
 
@@ -149,6 +162,8 @@ public sealed class ServiceManager : IServiceManager
     public IChatHistoryService ChatHistoryService => _chatHistoryService.Value;
     public IAnalyticsService AnalyticsService => _analyticsService.Value;
     public IAIService AIService => _aiService.Value;
+    public IOpenAIService OpenAIService => _openAIService.Value;
     public IServiceEditRequestService ServiceEditRequestService => _serviceEditRequestService.Value;
     public IReviewService ReviewService => _reviewService.Value;
+    public IOrderProductAuditService orderProductAuditService => _orderProductAuditService.Value;
 }

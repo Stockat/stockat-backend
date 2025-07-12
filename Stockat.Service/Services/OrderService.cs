@@ -28,6 +28,7 @@ using Stockat.Core.Consts;
 using Stripe;
 using CloudinaryDotNet.Actions;
 using Stockat.Core.Helpers;
+using Microsoft.Extensions.Options;
 
 namespace Stockat.Service.Services;
 
@@ -38,14 +39,17 @@ public class OrderService : IOrderService
     private readonly IRepositoryManager _repo;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IEmailService _emailService;
+    private readonly DomainConfigs _domainConfigs;
 
-    public OrderService(ILoggerManager logger, IMapper mapper, IRepositoryManager repo, IHttpContextAccessor httpContextAccessor, IEmailService emailService)
+    public OrderService(ILoggerManager logger, IMapper mapper, IRepositoryManager repo,
+        IHttpContextAccessor httpContextAccessor, IEmailService emailService, DomainConfigs domainConfigs)
     {
         _logger = logger;
         _mapper = mapper;
         _repo = repo;
         _httpContextAccessor = httpContextAccessor;
         _emailService = emailService;
+        _domainConfigs = domainConfigs;
     }
 
     // Add Order
@@ -94,11 +98,13 @@ public class OrderService : IOrderService
             };
             var options = new Stripe.Checkout.SessionCreateOptions
             {
-                SuccessUrl = "http://localhost:4200/",
-                CancelUrl = $"http://localhost:4200/product-stocks/{orderEntity.ProductId}?session_id={{CHECKOUT_SESSION_ID}}",
+                SuccessUrl = _domainConfigs.FrontURL,
+                CancelUrl = $"{_domainConfigs.FrontURL}product-stocks/{orderEntity.ProductId}?session_id={{CHECKOUT_SESSION_ID}}",
                 LineItems = new List<Stripe.Checkout.SessionLineItemOptions>(),
                 Mode = "payment",
+                ExpiresAt = DateTime.UtcNow.AddMinutes(30),
                 Metadata = new Dictionary<string, string>
+
     {
         { "orderId", orderEntity.Id.ToString() },
         { "type", "order" }
@@ -333,7 +339,6 @@ public class OrderService : IOrderService
     }
 
 
-
     // Update Order Status By its owner(Seller)
     public async Task<GenericResponseDto<OrderDTO>> UpdateOrderStatusAsync(int orderId, OrderStatus status)
     {
@@ -376,8 +381,35 @@ public class OrderService : IOrderService
                         Message = "Stock not found."
                     };
                 }
-                // Update the stock status to ForSale
-                stock.StockStatus = StockStatus.ForSale;
+                // Update the stock status to ForSale is the order tyoe is Order
+                if (order.OrderType == OrderType.Order)
+                {
+                    stock.StockStatus = StockStatus.ForSale;
+                    _repo.StockRepo.Update(stock);
+                }
+                // Update the stock status to ForRequest is the order type is Request
+                else if (order.OrderType == OrderType.Request)
+                {
+                    stock.StockStatus = StockStatus.ForRequest;
+                    _repo.StockRepo.Update(stock);
+                }
+                order.Status = status;
+                _repo.OrderRepo.Update(order);
+            }
+            // if the status is processing, we need to update the stock status to SoldOut
+            else if (status == OrderStatus.Processing)
+            {
+                var stock = await _repo.StockRepo.GetByIdAsync(order.StockId);
+                if (stock == null)
+                {
+                    _logger.LogError("Stock not found for the given StockId.");
+                    return new GenericResponseDto<OrderDTO>
+                    {
+                        Status = 404,
+                        Message = "Stock not found."
+                    };
+                }
+                stock.StockStatus = StockStatus.SoldOut;
                 _repo.StockRepo.Update(stock);
                 order.Status = status;
                 _repo.OrderRepo.Update(order);
@@ -639,7 +671,7 @@ public class OrderService : IOrderService
             // Fetch orders for the Buyers
             //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
 
-            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Order, ["Seller", "Buyer"]);
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Order, ["Seller", "Buyer", "Product"]);
             if (orders == null || !orders.Any())
             {
                 _logger.LogInfo("No orders found for the seller.");
@@ -1014,7 +1046,11 @@ public class OrderService : IOrderService
     public async Task PaymentCancellation()
     {
 
-        var orders = await _repo.OrderRepo.FindAllAsync(o => o.OrderType == OrderType.Order && o.PaymentStatus == PaymentStatus.Pending && o.SessionId != null, ["Stock"]);
+        var orders = await _repo.OrderRepo.FindAllAsync(o =>
+        o.OrderType == OrderType.Order && o.PaymentStatus == PaymentStatus.Pending &&
+        o.SessionId != null &&
+        o.CraetedAt < DateTime.UtcNow.AddMinutes(-30),
+        ["Stock"]);
         if (orders.Any())
         {
             foreach (var order in orders)
@@ -1045,6 +1081,25 @@ public class OrderService : IOrderService
             Status = 200
         };
 
+    }
+
+
+
+    public async Task<OrderProduct> getorderbySessionOrPaymentId(string id)
+    {
+        try
+        {
+            var res = await _repo.OrderRepo.FindAsync(o => o.SessionId == id || o.PaymentId == id);
+            return res;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("////////////////////////////////////");
+            _logger.LogError("Order Is Not Found");
+
+            return null;
+
+        }
     }
 
 
