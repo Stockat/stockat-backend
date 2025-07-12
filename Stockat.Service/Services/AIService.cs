@@ -1,4 +1,5 @@
 using Stockat.Core;
+using Stockat.Core.DTOs.ChatBotDTOs;
 using Stockat.Core.IServices;
 using System.Text.Json;
 
@@ -8,11 +9,13 @@ public class AIService : IAIService
 {
     private readonly IServiceManager _serviceManager;
     private readonly ILoggerManager _logger;
+    private readonly IOpenAIService _openAIService;
 
-    public AIService(IServiceManager serviceManager, ILoggerManager logger)
+    public AIService(IServiceManager serviceManager, ILoggerManager logger, IOpenAIService openAIService)
     {
         _serviceManager = serviceManager;
         _logger = logger;
+        _openAIService = openAIService;
     }
 
     public async Task<string> GenerateResponseAsync(string userMessage, object contextData)
@@ -24,6 +27,21 @@ public class AIService : IAIService
                 return "I didn't receive a message. Please try again.";
             }
 
+            // Try OpenAI first
+            try
+            {
+                var openAIResponse = await _openAIService.GenerateResponseAsync(userMessage, contextData);
+                if (!string.IsNullOrWhiteSpace(openAIResponse))
+                {
+                    return openAIResponse;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarn($"OpenAI service failed, falling back to platform data: {ex.Message}");
+            }
+
+            // Fallback to platform data-based responses
             var message = userMessage.ToLower().Trim();
             
             // Get real platform data to include in context
@@ -74,6 +92,7 @@ public class AIService : IAIService
         }
         catch (Exception ex)
         {
+            _logger.LogError($"Error in AIService: {ex.Message}");
             return "I'm having trouble accessing the platform data right now. Please try again later or contact support.";
         }
     }
@@ -106,7 +125,7 @@ public class AIService : IAIService
             }
             
             var response = "🏆 **Top Sellers on Stockat Platform**\n\n";
-            response += "Here are the leading sellers based on their activity, product listings, and customer satisfaction:\n\n";
+            response += "Here are the leading sellers based on comprehensive performance metrics including product orders, service requests, custom product requests, revenue generation, and customer satisfaction:\n\n";
             
             for (int i = 0; i < topSellers.Count(); i++)
             {
@@ -120,19 +139,23 @@ public class AIService : IAIService
                 var fullName = !string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName) 
                     ? $"{firstName} {lastName}".Trim() 
                     : "Unknown Seller";
-                var userName = !string.IsNullOrWhiteSpace(seller.UserName) ? seller.UserName : "Unknown";
                 var email = !string.IsNullOrWhiteSpace(seller.Email) ? seller.Email : "Email not available";
                 var aboutMe = !string.IsNullOrWhiteSpace(seller.AboutMe) ? seller.AboutMe : "No description available";
+                var city = !string.IsNullOrWhiteSpace(seller.City) ? seller.City : "Not specified";
+                var country = !string.IsNullOrWhiteSpace(seller.Country) ? seller.Country : "Not specified";
+                var phoneNumber = !string.IsNullOrWhiteSpace(seller.PhoneNumber) ? seller.PhoneNumber : "Not provided";
                 
-                response += $"{rankEmoji} **{fullName}** (Username: {userName})\n";
+                response += $"{rankEmoji} **{fullName}\n";
                 response += $"   📧 Email: {email}\n";
-                response += $"   📝 About: {aboutMe}\n\n";
+                response += $"   📝 About: {aboutMe}\n";
+                response += $"   📍 Location: {city}, {country}\n";
+                response += $"   📞 Phone: {phoneNumber}\n";
             }
 
             response += $"**Platform Statistics:**\n";
             response += $"• Total Top Sellers: {topSellers.Count()}\n";
             response += $"• Average Response Time: < 2 hours\n";
-            response += "💡 *These sellers are ranked based on product quality, customer feedback, and overall platform activity.*";
+            response += "💡 *These sellers are ranked based on comprehensive metrics including product orders, service requests, custom requests, revenue generation, and overall platform performance.*";
             
             return response;
         }
@@ -152,11 +175,11 @@ public class AIService : IAIService
             
             if (!topProducts.Any())
             {
-                return "Currently, there are no products listed on the platform. Products will appear here once sellers start listing them. You can be the first to list a product!";
+                return "Currently, there are no products with sales data on the platform. Products will appear here once they start generating sales. You can be the first to make a sale!";
             }
             
-            var response = "🔥 **Trending Products on Stockat Platform**\n\n";
-            response += "Here are the most popular and high-demand products based on views, inquiries, and sales:\n\n";
+            var response = "🔥 **Top-Selling Products on Stockat Platform**\n\n";
+            response += "Here are the best-selling products based on actual sales data and customer orders:\n\n";
             
             for (int i = 0; i < topProducts.Count(); i++)
             {
@@ -177,18 +200,19 @@ public class AIService : IAIService
                 response += $"   💰 Price: ${price:N2}\n";
                 response += $"   📝 Description: {description}\n";
                 response += $"   🏷️ Category: {category}\n";
-                response += $"   👤 Seller: {sellerName}\n\n";
+                response += $"   👤 Seller: {sellerName}\n";
+                response += $"   📈 **Best Seller** - High customer demand\n\n";
             }
             
-            response += $"• Total Trending Products: {topProducts.Count()}\n";
-          
+            response += $"• Total Top-Selling Products: {topProducts.Count()}\n";
+            response += "💡 *These products are ranked based on actual sales volume and customer orders.*";
             
             return response;
         }
         catch (Exception ex)
         {
             _logger.LogError("Error getting popular products info");
-            return "I can see the most popular products on our platform. These are determined by various factors including views, inquiries, sales performance, and customer satisfaction. Would you like me to provide details about specific products?";
+            return "I can see the best-selling products on our platform. These are determined by actual sales data, customer orders, and revenue generation. Would you like me to provide details about specific products?";
         }
     }
 
@@ -267,11 +291,11 @@ public class AIService : IAIService
             
             if (!topServices.Any())
             {
-                return "Currently, there are no services listed on the platform. Services will appear here once providers start listing them. You can be the first to offer a service!";
+                return "Currently, there are no services with performance data on the platform. Services will appear here once they start generating customer requests and revenue.";
             }
             
-            var response = "⚙️ **Premium Services on Stockat Platform**\n\n";
-            response += "Here are the most popular and highly-rated services based on customer satisfaction and completion rates:\n\n";
+            var response = "🔧 **Top-Performing Services on Stockat Platform**\n\n";
+            response += "Here are the best-performing services based on actual customer requests, revenue generation, and success rates:\n\n";
             
             for (int i = 0; i < topServices.Count(); i++)
             {
@@ -287,7 +311,6 @@ public class AIService : IAIService
                 var minQty = service.MinQuantity > 0 ? service.MinQuantity : 1;
                 var price = service.PricePerProduct > 0 ? service.PricePerProduct : 0;
                 var estimatedTime = !string.IsNullOrWhiteSpace(service.EstimatedTime) ? service.EstimatedTime : "Not specified";
-                var createdAt = service.CreatedAt.ToString("yyyy-MM-dd");
                 var sellerName = !string.IsNullOrWhiteSpace(service.SellerName) ? service.SellerName : "Unknown Provider";
                 
                 response += $"{rankEmoji} **{serviceName}**\n";
@@ -295,18 +318,19 @@ public class AIService : IAIService
                 response += $"   📝 Description: {description}\n";
                 response += $"   📦 Min Quantity: {minQty}\n";
                 response += $"   ⏱️ Estimated Time: {estimatedTime}\n";
-                response += $"   📅 Created At: {createdAt}\n";
-                response += $"   👤 Seller: {sellerName}\n\n";
+                response += $"   👤 Provider: {sellerName}\n";
+                response += $"   📈 **High Performance** - Strong customer demand\n\n";
             }
             
-         
+            response += $"• Total Top-Performing Services: {topServices.Count()}\n";
+            response += "💡 *These services are ranked based on paid requests, revenue generation, success rates, and customer satisfaction.*";
             
             return response;
         }
         catch (Exception ex)
         {
             _logger.LogError("Error getting popular services info");
-            return "Our platform offers various premium services from professional providers. I can provide information about the most popular services currently available, including pricing, quality ratings, and completion rates. What type of service are you looking for?";
+            return "I can see the best-performing services on our platform. These are determined by actual paid requests, revenue generation, success rates, and customer satisfaction. Would you like me to provide details about specific services?";
         }
     }
 
