@@ -54,11 +54,11 @@ public class StockatDBContext : IdentityDbContext<User>
     public DbSet<OrderProductAudit> OrderProductAudits { get; set; }
     public DbSet<Driver> Drivers { get; set; }
 
-    public StockatDBContext(DbContextOptions options, IHttpContextAccessor httpContextAccessor) : base(options)
+    public StockatDBContext(DbContextOptions<StockatDBContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
     {
         _httpContextAccessor = httpContextAccessor;
     }
-    public StockatDBContext(DbContextOptions options) : base(options)
+    public StockatDBContext(DbContextOptions<StockatDBContext> options) : base(options)
     {
 
     }
