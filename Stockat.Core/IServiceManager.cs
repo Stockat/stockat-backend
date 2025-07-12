@@ -25,6 +25,7 @@ public interface IServiceManager
     IProductService ProductService { get; }
     IStockService StockService { get; }
     IOrderService OrderService { get; }
+    IDriverService DriverService { get; }
 
     public IAuctionService AuctionService { get; }
     public IAuctionBidRequestService AuctionBidRequestService { get; }

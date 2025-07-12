@@ -26,6 +26,12 @@ public class OrderProductConfiguration : IEntityTypeConfiguration<OrderProduct>
            .HasForeignKey(p => p.BuyerId)
            .OnDelete(DeleteBehavior.NoAction);
 
+        builder
+            .HasOne(d => d.Driver)
+            .WithOne(o => o.AssignedOrder)
+            .HasForeignKey<OrderProduct>(d => d.DriverId)
+            .OnDelete(DeleteBehavior.NoAction);
+
 
         builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(30);
 

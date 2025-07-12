@@ -47,6 +47,10 @@ public class OrderProduct
     public virtual User Seller { get; set; }
     public virtual User Buyer { get; set; }
 
+    // Navigation for the driver one to one
+    public string? DriverId { get; set; }
+    public virtual Driver? Driver { get; set; }
+
 
     [Required(ErrorMessage = "Request Product Description is Required")]
     [MinLength(5, ErrorMessage = "Request Product Description Length Must Be Greater than or equal 5 char")]
