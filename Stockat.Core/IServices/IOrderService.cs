@@ -60,5 +60,9 @@ namespace Stockat.Core.IServices
 
 
         public Task<GenericResponseDto<Dictionary<string, int>>> OrderSummaryCalc();
+
+        public Task<OrderProduct> getorderbySessionOrPaymentId(string id);
+
+
     }
 }
