@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Stockat.Core.DTOs.ChatDTOs;
+using Stockat.Core.DTOs.ChatBotDTOs;
 
 namespace Stockat.Core.IServices;
 
