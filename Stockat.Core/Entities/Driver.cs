@@ -44,12 +44,7 @@ namespace Stockat.Core.Entities
         // Last Update Time
         public DateTime LastUpdateTime { get; set; } = DateTime.UtcNow;
 
-        // Foreign Key
-        // Assigned Order Id
-        public int? AssignedOrderId { get; set; } = null;
-
-
         // Navigation Properties
-        public virtual OrderProduct? AssignedOrder { get; set; } // Nullable to allow for unassigned drivers
+        public virtual ICollection<OrderProduct> Orders { get; set; } = new List<OrderProduct>();
     }
 }

@@ -27,9 +27,9 @@ public class OrderProductConfiguration : IEntityTypeConfiguration<OrderProduct>
            .OnDelete(DeleteBehavior.NoAction);
 
         builder
-            .HasOne(d => d.Driver)
-            .WithOne(o => o.AssignedOrder)
-            .HasForeignKey<OrderProduct>(d => d.DriverId)
+            .HasOne(o => o.Driver)
+            .WithMany(d => d.Orders)
+            .HasForeignKey(o => o.DriverId)
             .OnDelete(DeleteBehavior.NoAction);
 
 
