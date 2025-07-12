@@ -481,6 +481,7 @@ public class OrderService : IOrderService
 
             // Update the order status to Cancelled
             order.Status = OrderStatus.Cancelled;
+            order.PaymentStatus = PaymentStatus.Failed;
             _repo.OrderRepo.Update(order);
             // Update the stock status to ForSale
             var stock = await _repo.StockRepo.GetByIdAsync(order.StockId);
