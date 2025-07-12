@@ -13,6 +13,7 @@ using System.Text.Json.Serialization;
 using Stockat.API.Services;
 using Stockat.Core.Helpers;
 using Stripe;
+using Stockat.Service.Services.PaymentCancellationService;
 
 namespace Stockat.API;
 
@@ -72,6 +73,8 @@ public class Program
 
 
         //BackGround service injection
+        builder.Services.AddHostedService<AuctionMonitorService>();
+        builder.Services.AddHostedService<PaymentCancellation>();
         //builder.Services.AddHostedService<Stockat.Service.Services.AuctionServices.AuctionMonitorService>();
 
         var app = builder.Build();

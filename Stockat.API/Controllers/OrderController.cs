@@ -347,18 +347,37 @@ public class OrderController : ControllerBase
 
         return Ok(res);
     }
-
-
-
-
     [AllowAnonymous]
-    [HttpGet("test/email")]
-    public async Task<IActionResult> TestInvoice(int orderid)
+    [HttpGet("analysis/OrderSummary")]
+    public async Task<IActionResult> CalculateOrderSummary()
     {
 
-        await _serviceManager.OrderService.InvoiceGeneratorAsync(orderid);
-        return Ok();
+        var res = await _serviceManager.OrderService.OrderSummaryCalc();
+        return Ok(res);
     }
+
+    // Update Driver for Order
+    [HttpPut("{orderId}/driver")]
+    public async Task<IActionResult> UpdateOrderDriver(int orderId, [FromBody] string driverId)
+    {
+        if (string.IsNullOrEmpty(driverId))
+        {
+            _logger.LogError("UpdateOrderDriver: Driver ID is null or empty.");
+            return BadRequest("Driver ID is required.");
+        }
+        try
+        {
+            var response = await _serviceManager.OrderService.UpdateOrderDriverAsync(orderId, driverId);
+            return StatusCode(response.Status, response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"UpdateOrderDriver: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the order's driver.");
+        }
+    }
+
+
 
 
 }
