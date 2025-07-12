@@ -667,7 +667,7 @@ public class OrderService : IOrderService
             // Fetch orders for the Buyers
             //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
 
-            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Order, ["Seller", "Buyer"]);
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.BuyerId == userId && o.OrderType == OrderType.Order, ["Seller", "Buyer", "Product"]);
             if (orders == null || !orders.Any())
             {
                 _logger.LogInfo("No orders found for the seller.");
