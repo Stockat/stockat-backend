@@ -247,7 +247,8 @@ internal sealed class AuthenticationService : IAuthenticationService
             return;
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var resetLink = $"http://localhost:4200/reset-password?email={email}&token={WebUtility.UrlEncode(token)}";
+        var frontendUrl = _configuration["Frontend:BaseUrl"];
+        var resetLink = $"{frontendUrl}/reset-password?email={email}&token={WebUtility.UrlEncode(token)}";
 
         var message = $"<p>Click <a href='{resetLink}'>here</a> to reset your password.</p>";
         await _emailService.SendEmailAsync(user.Email, "Reset Password", message);
@@ -381,7 +382,8 @@ internal sealed class AuthenticationService : IAuthenticationService
     private async Task SendConfirmationEmail(User user)
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        var confirmationLink = $"http://localhost:4200/confirm-email?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+        var frontendUrl = _configuration["Frontend:BaseUrl"];
+        var confirmationLink = $"{frontendUrl}/confirm-email?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
         var emailMessage = $"<p>Click <a href='{confirmationLink}'>here</a> to confirm your email.</p>";
         await _emailService.SendEmailAsync(user.Email, "Confirm your email", emailMessage);

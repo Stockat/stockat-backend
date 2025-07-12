@@ -16,19 +16,23 @@ namespace Stockat.API.Extensions;
 public static class ServiceExtensions
 {
     // regiseter cors
-    public static void ConfigureCors(this IServiceCollection services)
+    public static void ConfigureCors(this IServiceCollection services, IConfiguration configuration)
     {
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+
         services.AddCors(options =>
         {
             options.AddPolicy("CorsPolicy", builder =>
+            {
                 builder
-                    .WithOrigins("http://localhost:4200") // <-- Your frontend URL
+                    .WithOrigins(allowedOrigins ?? Array.Empty<string>())
                     .AllowAnyMethod()
                     .AllowAnyHeader()
-                    .AllowCredentials() // <-- This is required for SignalR with auth
-            );
+                    .AllowCredentials();
+            });
         });
     }
+
     // register iis
     public static void ConfigureIISIntegration(this IServiceCollection services)
     {
