@@ -15,6 +15,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Stockat.Core.Helpers;
+using Microsoft.Extensions.Options;
 //using Microsoft.AspNetCore.SignalR;
 
 namespace Stockat.Service;
@@ -50,12 +52,15 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IServiceEditRequestService> _serviceEditRequestService;
     private readonly Lazy<IReviewService> _reviewService;
 
+
+    private readonly Lazy<DomainConfigs> _domainConfigs;
     public ServiceManager(IRepositoryManager repositoryManager, ILoggerManager logger, IMapper mapper, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
         _imageService = new Lazy<IImageService>(() => new ImageKitService(configuration));
         _emailService = new Lazy<IEmailService>(() => new EmailService(configuration));
         _productService = new Lazy<IProductService>(() => new ProductService(logger, mapper, repositoryManager, _imageService.Value, httpContextAccessor));
         _fileService = new Lazy<IFileService>(() => new CloudinaryFileService(configuration));
+        _domainConfigs = new Lazy<DomainConfigs>(() => new DomainConfigs(configuration));
 
         _chatService = new Lazy<IChatService>(() => new ChatService(repositoryManager, mapper, _imageService.Value, _fileService.Value, configuration));
 
@@ -67,7 +72,7 @@ public sealed class ServiceManager : IServiceManager
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
         // Order Service
-        _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor, _emailService.Value));
+        _orderService = new Lazy<IOrderService>(() => new OrderService(logger, mapper, repositoryManager, httpContextAccessor, _emailService.Value, _domainConfigs.Value));
 
         // Driver Service
         _driverservice = new Lazy<IDriverService>(() => new DriverService(logger, mapper, repositoryManager));
@@ -87,7 +92,7 @@ public sealed class ServiceManager : IServiceManager
         _stockService = new Lazy<IStockService>(() => new StockService(logger, mapper, repositoryManager, httpContextAccessor));
 
         // Auction Services
-        _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager,this));
+        _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager, this));
         _auctionBidRequestService = new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper));
         _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper));
 
@@ -140,7 +145,7 @@ public sealed class ServiceManager : IServiceManager
 
     public ITagService TagService => _tagService.Value;
 
-   // public IUserVerificationService UserVerificationService => _userVerificationService.Value;
+    // public IUserVerificationService UserVerificationService => _userVerificationService.Value;
 
 
 
