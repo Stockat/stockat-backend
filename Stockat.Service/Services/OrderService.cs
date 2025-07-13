@@ -557,7 +557,7 @@ public class OrderService : IOrderService
         try
         {
             //Get the user ID from the HTTP context
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 _logger.LogError("User ID not found in the HTTP context.");
@@ -657,7 +657,7 @@ public class OrderService : IOrderService
         try
         {
             //Get the user ID from the HTTP context
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 _logger.LogError("User ID not found in the HTTP context.");
@@ -707,7 +707,7 @@ public class OrderService : IOrderService
         try
         {
             // Get the user ID from the HTTP context
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 _logger.LogError("User ID not found in the HTTP context.");
