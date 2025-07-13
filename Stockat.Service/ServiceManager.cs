@@ -85,7 +85,7 @@ public sealed class ServiceManager : IServiceManager
         // Auction Services
         _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager,this));
         _auctionBidRequestService = new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper));
-        _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper));
+        _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper,this,logger));
 
         _categoryService = new Lazy<ICategoryService>(() => new CategoryService(logger, mapper, repositoryManager));
         _tagService = new Lazy<ITagService>(() => new TagService(logger, mapper, repositoryManager));

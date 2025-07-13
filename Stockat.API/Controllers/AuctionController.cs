@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Stockat.Core;
@@ -182,6 +183,27 @@ namespace Stockat.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, "error occurred");
+            }
+        }
+
+        [HttpGet("GetAdminAuctions")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAdminAuctions(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                // Get all auctions without seller filter
+                var pagedAuctions = await _serviceManager.AuctionService.GetAllAuctionsAsync(
+                    pageNumber, pageSize);
+
+                return Ok(pagedAuctions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting admin auctions");
+                return StatusCode(500, "Internal server error");
             }
         }
 
