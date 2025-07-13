@@ -2,20 +2,24 @@
 using Azure.Core;
 using Microsoft.Extensions.Logging;
 using Stockat.Core;
+using Stockat.Core.Consts;
 using Stockat.Core.DTOs.AuctionDTOs;
 using Stockat.Core.Entities;
+using Stockat.Core.Enums;
 using Stockat.Core.Enums;
 using Stockat.Core.Exceptions;
 using Stockat.Core.IRepositories;
 using Stockat.Core.IServices;
 using Stockat.Core.IServices.IAuctionServices;
-using Stockat.Core.Enums;
+using Stockat.Core.Shared;
+using Stripe.Checkout;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 namespace Stockat.Service.Services.AuctionServices
 {
@@ -332,6 +336,13 @@ namespace Stockat.Service.Services.AuctionServices
                     auction.AuctionOrder = order;
                     winningBid.AuctionOrder = order;
 
+                    // Create Stripe session
+                    var session = await CreateStripeSession(order, auction);
+                    order.StripeSessionId = session.Id;
+
+                    // Send payment email
+                    await SendPaymentEmail(auction, winningBid, session.Url);
+
                     //send email
                     var buyer = (await _repositoryManager.UserRepo.FindAllAsync(u => u.Id == winningBid.BidderId)).FirstOrDefault();
                     var seller = (await _repositoryManager.UserRepo.FindAllAsync(u => u.Id == auction.SellerId)).FirstOrDefault();
@@ -340,8 +351,8 @@ namespace Stockat.Service.Services.AuctionServices
                     string sellerMsg = $"<p>The auction <strong>{auction.Name}</strong> has been finalized. The winning bid was <strong>{winningBid.BidAmount:C}</strong>. You can now process the order.</p>";
                     string buyerMsg = $"<p>Congratulations! You have won the auction <strong>{auction.Name}</strong> with a bid of <strong>{winningBid.BidAmount:C}</strong>. Please proceed to payment and shipping.</p>";
 
-                    if (buyer != null)
-                        await _serviceManager.EmailService.SendEmailAsync(buyer.Email, subject, buyerMsg);
+                    //if (buyer != null)
+                    //    await _serviceManager.EmailService.SendEmailAsync(buyer.Email, subject, buyerMsg);
                     if (seller != null)
                         await _serviceManager.EmailService.SendEmailAsync(seller.Email, subject, sellerMsg);
                 }
@@ -391,6 +402,75 @@ namespace Stockat.Service.Services.AuctionServices
 
             if (auction.EndTime <= auction.StartTime)
                 throw new BusinessException("End date must be after start date");
+        }
+
+
+        private async Task<Session> CreateStripeSession(AuctionOrder order, Auction auction)
+        {
+            var options = new SessionCreateOptions
+            {
+                SuccessUrl = $"http://localhost:4200/auction-orders/success/",
+                CancelUrl = $"http://localhost:4200/auction-orders/?canceled=true",
+                LineItems = new List<SessionLineItemOptions>
+                {
+                    new SessionLineItemOptions
+                    {
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            UnitAmount = (long)(auction.CurrentBid * 100),
+                            Currency = "usd",
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = auction.Name ?? "Auction Item",
+                            }
+                        },
+                        Quantity = auction.Quantity,
+                    }
+                },
+                Mode = "payment",
+                Metadata = new Dictionary<string, string>
+                {
+                        { "orderId", order.Id.ToString() },
+                        { "type", "auction_order" }
+                }
+            };
+
+            var service = new SessionService();
+            return service.Create(options);
+        }
+
+        public async Task<PagedResponse<AuctionDetailsDto>> GetAllAuctionsAsync(int pageNumber, int pageSize)
+        {
+            Expression<Func<Auction, bool>> filter = a => true; // No filtering, return all
+
+            var auctions = await _repositoryManager.AuctionRepo
+                .FindAllAsync(filter, skip: (pageNumber - 1) * pageSize, take: pageSize,
+                    includes: new[] { "Stock" },
+                    orderBy: a => a.StartTime,
+                    orderByDirection: OrderBy.Descending);
+
+            var totalCount = await _repositoryManager.AuctionRepo.CountAsync(filter);
+
+            var data = _mapper.Map<List<AuctionDetailsDto>>(auctions);
+
+            return new PagedResponse<AuctionDetailsDto>(data, pageNumber, pageSize, totalCount);
+        }
+
+       
+        private async Task SendPaymentEmail(Auction auction, AuctionBidRequest winningBid, string paymentUrl)
+        {
+            var buyer = await _repositoryManager.UserRepo.GetByIdAsync(winningBid.BidderId);
+            if (buyer == null) return;
+
+            var subject = $"Payment Required: You Won {auction.Name}";
+                 var message = $@"
+                <p>Congratulations! You've won the auction for <strong>{auction.Name}</strong> with a bid of <strong>${winningBid.BidAmount}</strong>.</p>
+                <p>Please complete your payment within 24 hours:</p>
+                <p><a href='{paymentUrl}'>Complete Payment Now</a></p>
+                <p>If payment is not received, your win may be forfeited.</p>
+                   ";
+
+            await _serviceManager.EmailService.SendEmailAsync(buyer.Email, subject, message);
         }
     }
 

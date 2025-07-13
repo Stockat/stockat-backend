@@ -1,6 +1,6 @@
 using AutoMapper;
 using Stockat.Core;
-using Stockat.Core.DTOs.ChatDTOs;
+using Stockat.Core.DTOs.ChatBotDTOs;
 using Stockat.Core.Entities;
 using Stockat.Core.Entities.Chat;
 using Stockat.Core.IServices;
@@ -134,20 +134,29 @@ public class ChatHistoryService : IChatHistoryService
         if (limit <= 0 || limit > 100)
             throw new ArgumentException("Limit must be between 1 and 100.", nameof(limit));
 
+        Console.WriteLine($"GetChatBotHistoryAsync: Querying database for userId: {userId}, limit: {limit}");
+        
         var messages = await _repositoryManager.ChatBotMessageRepository.FindAllAsync(
             m => m.UserId == userId,
             orderBy: m => m.Timestamp,
-            orderByDirection: "ASC",
+            orderByDirection: "DESC",
             take: limit,
             skip:0
         );
-        return messages.Select(m => new ChatBotMessageDto
+        
+        Console.WriteLine($"GetChatBotHistoryAsync: Found {messages.Count()} messages in database");
+        
+        var result = messages.Select(m => new ChatBotMessageDto
         {
             MessageText = m.Content,
             SenderId = m.Role == "user" ? userId : "system",
             SentAt = m.Timestamp,
             Role = m.Role
         }).ToList();
+        
+        Console.WriteLine($"GetChatBotHistoryAsync: Returning {result.Count()} converted messages");
+        
+        return result;
     }
 
     public async Task ClearChatBotHistoryAsync(string userId)

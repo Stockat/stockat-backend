@@ -42,4 +42,6 @@ public interface IServiceManager
     IAnalyticsService AnalyticsService { get; }
     IServiceEditRequestService ServiceEditRequestService { get; }
     IReviewService ReviewService { get; }
+
+    IOpenAIService OpenAIService { get;  }
 }

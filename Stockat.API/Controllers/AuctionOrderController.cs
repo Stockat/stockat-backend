@@ -2,11 +2,14 @@
 using Stockat.Core;
 using Stockat.Core.DTOs.AuctionDTOs;
 using Stockat.Core.IServices;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Stockat.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class AuctionOrderController : ControllerBase
     {
         private readonly IServiceManager _serviceManager;
@@ -126,6 +129,48 @@ namespace Stockat.API.Controllers
         {
             var orders = await _serviceManager.AuctionOrderService.GetAllOrdersAsync();
             return Ok(orders);
+        }
+
+        [HttpPost("{orderId:int}/checkout")]
+        [Authorize]
+        public async Task<IActionResult> CreateCheckoutSession(int orderId)
+        {
+            try
+            {
+                var buyerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(buyerId))
+                    return Unauthorized("User is not authenticated.");
+
+                var result = await _serviceManager.AuctionOrderService.CreateStripeCheckoutSessionAsync(orderId, buyerId);
+                return StatusCode(result.Status, result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Checkout Internal server error: {ex.Message}");
+            }
+        }
+
+        // Debug endpoint to manually complete payment (for testing)
+        [HttpPost("{orderId:int}/complete-payment")]
+        [Authorize]
+        public async Task<IActionResult> CompletePaymentManually(int orderId)
+        {
+            try
+            {
+                var buyerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(buyerId))
+                    return Unauthorized("User is not authenticated.");
+
+                // Simulate webhook completion
+                await _serviceManager.AuctionOrderService.UpdateStripePaymentID(orderId, "test_session", "test_payment_intent");
+                await _serviceManager.AuctionOrderService.HandleAuctionOrderCompletion(null, orderId.ToString());
+                
+                return Ok(new { message = "Payment completed manually for testing." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Manual completion error: {ex.Message}");
+            }
         }
     }
 }

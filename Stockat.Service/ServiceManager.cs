@@ -10,6 +10,7 @@ using Stockat.Infrastructure.Services;
 using Stockat.Core.IServices.IAuctionServices;
 using Stockat.Service.Services;
 using Stockat.Service.Services.AuctionServices;
+using Stockat.Core.DTOs.ChatBotDTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,6 +54,7 @@ public sealed class ServiceManager : IServiceManager
     private readonly Lazy<IAnalyticsService> _analyticsService;
     private readonly Lazy<IServiceEditRequestService> _serviceEditRequestService;
     private readonly Lazy<IReviewService> _reviewService;
+    private readonly Lazy<IOpenAIService> _openAIService;
 
 
     private readonly Lazy<DomainConfigs> _domainConfigs;
@@ -98,15 +100,17 @@ public sealed class ServiceManager : IServiceManager
         // Auction Services
         _auctionService = new Lazy<IAuctionService>(() => new AuctionService(mapper, logger, repositoryManager, this));
         _auctionBidRequestService = new Lazy<IAuctionBidRequestService>(() => new AuctionBidRequestService(repositoryManager, mapper));
-        _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper));
+        _auctionOrderService = new Lazy<IAuctionOrderService>(() => new AuctionOrderService(repositoryManager, mapper,this,logger));
 
         _categoryService = new Lazy<ICategoryService>(() => new CategoryService(logger, mapper, repositoryManager));
         _tagService = new Lazy<ITagService>(() => new TagService(logger, mapper, repositoryManager));
 
         _chatHistoryService = new Lazy<IChatHistoryService>(() => new ChatHistoryService(repositoryManager, mapper));
 
-        _aiService = new Lazy<IAIService>(() => new AIService(this, logger));
-        _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger));
+        // OpenAI Service
+        _openAIService = new Lazy<IOpenAIService>(() => new OpenAIService(configuration, logger, new HttpClient()));
+        _aiService = new Lazy<IAIService>(() => new AIService(this, logger, _openAIService.Value));
+        _analyticsService = new Lazy<IAnalyticsService>(() => new AnalyticsService(repositoryManager, mapper, logger, this));
 
         _serviceEditRequestService = new Lazy<IServiceEditRequestService>(() => new ServiceEditRequestService(logger, mapper, repositoryManager, _imageService.Value, _emailService.Value));
         _reviewService = new Lazy<IReviewService>(() => new ReviewService(repositoryManager, mapper, logger, httpContextAccessor));
@@ -158,6 +162,7 @@ public sealed class ServiceManager : IServiceManager
     public IChatHistoryService ChatHistoryService => _chatHistoryService.Value;
     public IAnalyticsService AnalyticsService => _analyticsService.Value;
     public IAIService AIService => _aiService.Value;
+    public IOpenAIService OpenAIService => _openAIService.Value;
     public IServiceEditRequestService ServiceEditRequestService => _serviceEditRequestService.Value;
     public IReviewService ReviewService => _reviewService.Value;
     public IOrderProductAuditService orderProductAuditService => _orderProductAuditService.Value;

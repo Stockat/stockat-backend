@@ -27,7 +27,7 @@ public class Program
         "/nlog.config"));
         builder.Services.AddSwaggerDocumentation();
         // Add services to the container.
-        builder.Services.ConfigureCors();
+        builder.Services.ConfigureCors(builder.Configuration);
         builder.Services.ConfigureIISIntegration();
 
         builder.Services.ConfigureLoggerService(); // register logger service
@@ -93,6 +93,8 @@ public class Program
         }
         else
         {
+            app.MapOpenApi();
+            app.UseSwaggerDocumentation();
             app.UseHsts();
         }
 
@@ -106,6 +108,8 @@ public class Program
 
 
         app.UseCors("CorsPolicy");
+
+        app.UseHttpsRedirection(); 
 
         app.UseAuthentication();
         app.UseAuthorization();

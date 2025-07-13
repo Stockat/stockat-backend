@@ -1,6 +1,7 @@
 ﻿using Stockat.Core.Consts;
 using Stockat.Core.DTOs.AuctionDTOs;
 using Stockat.Core.Entities;
+using Stockat.Core.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +30,8 @@ namespace Stockat.Core.IServices.IAuctionServices
         Task<AuctionDetailsDto> AddAuctionAsync(Auction auction);
 
         Task<AuctionDetailsDto> EditAuctionAsync(int id, AuctionUpdateDto auction);
+
+        public Task<PagedResponse<AuctionDetailsDto>> GetAllAuctionsAsync(int pageNumber, int pageSize);
 
         Task RemoveAuctionAsync(int id);
 
