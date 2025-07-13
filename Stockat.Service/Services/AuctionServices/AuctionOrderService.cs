@@ -584,8 +584,8 @@ namespace Stockat.Service.Services.AuctionServices
 
                 var options = new SessionCreateOptions
                 {
-                    SuccessUrl = "http://localhost:4200/",
-                    CancelUrl = "http://localhost:4200/profile",
+                    SuccessUrl = "https://stockat-frontend-git-main-stockat-groups-projects.vercel.app/",
+                    CancelUrl = "https://stockat-frontend-git-main-stockat-groups-projects.vercel.app/profile",
                     LineItems = new List<SessionLineItemOptions> { sessionItems },
                     Mode = "payment",
                     Metadata = new Dictionary<string, string>
