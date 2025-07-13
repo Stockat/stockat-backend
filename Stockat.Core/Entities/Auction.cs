@@ -92,7 +92,11 @@ namespace Stockat.Core.Entities
 
         public string? PaymentTransactionId { get; set; }
 
-        public bool? PaymentStatus { get; set; }
+       // public bool? PaymentStatus { get; set; }
+
+        public string? StripeSessionId { get; set; }
+        public string? StripePaymentIntentId { get; set; }
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
 
         public int AuctionId { get; set; }
         public Auction Auction { get; set; }

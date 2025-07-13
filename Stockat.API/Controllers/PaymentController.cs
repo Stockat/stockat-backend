@@ -33,6 +33,7 @@ public class PaymentController : ControllerBase
     public async Task<IActionResult> StripeWebhook()
     {
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+        _logger.LogInfo($"Webhook received: {json}");
 
         try
         {
@@ -45,6 +46,10 @@ public class PaymentController : ControllerBase
             string sessionId = null;
             string paymentIntentId = null;
 
+            
+            _logger.LogInfo($"Stripe event type: {stripeEvent.Type}");
+
+
             switch (stripeEvent.Type)
             {
                 case "checkout.session.completed":
@@ -52,6 +57,8 @@ public class PaymentController : ControllerBase
                     var orderId = session.Metadata["orderId"];
                     var type = session.Metadata["type"];
                     int id = int.Parse(orderId);
+                    
+                    _logger.LogInfo($"Checkout session completed. OrderId: {orderId}, Type: {type}, SessionId: {session.Id}");
 
 
                     switch (type)
@@ -73,6 +80,11 @@ public class PaymentController : ControllerBase
                             await _serviceManager.ServiceRequestService.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
                             await _serviceManager.ServiceRequestService.InvoiceGeneratorAsync(id);
                             break;
+                        case "auction_order":
+                            _logger.LogInfo($"Auction order checkout complete. Order ID: {orderId}, Session ID: {session.Id}, Payment Intent ID: {session.PaymentIntentId}");
+                            await _serviceManager.AuctionOrderService.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
+                            await _serviceManager.AuctionOrderService.HandleAuctionOrderCompletion(session, orderId);
+                            break;
                     }
 
                     break;
@@ -85,33 +97,42 @@ public class PaymentController : ControllerBase
                     //    sessionId = session2.Id;
                     //    paymentIntentId = session2.PaymentIntentId;
 
-                    //    // Continue using session logic
-                    //    var order = await _serviceManager.OrderService.getorderbySessionOrPaymentId(sessionId);
-                    //    if (order != null)
-                    //    {
-                    //        await _serviceManager.OrderService.UpdateStripePaymentID(order.Id, session2.Id, session2.PaymentIntentId);
-                    //        await _serviceManager.OrderService.UpdateOrderStatusAsync(order.Id, OrderStatus.Cancelled);
-                    //    }
-                    //    else
-                    //    {
-                    //        await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(sessionId);
-                    //    }
-                    //    break;
-                    //case "payment_intent.payment_failed": // The payment was attempted but failed (e.g. card declined)
-                    //    var paymentIntent = (PaymentIntent)stripeEvent.Data.Object;
-                    //    paymentIntentId = paymentIntent.Id;
+                    var session2 = stripeEvent.Data.Object as Session;
+                    string orderId2 = null;
+                    string type2 = null;
+                    int id2 = 0;
+                    
+                    if (session2 != null)
+                    {
+                        orderId2 = session2.Metadata["orderId"];
+                        type2 = session2.Metadata["type"];
+                        id2 = int.Parse(orderId2);
+                    }
 
-                    //    // Look up order by PaymentIntent
-                    //    var order2 = await _serviceManager.OrderService.getorderbySessionOrPaymentId(paymentIntentId);
-                    //    if (order2 != null)
-                    //    {
-                    //        await _serviceManager.OrderService.UpdateOrderStatusAsync(order2.Id, OrderStatus.Cancelled);
-                    //    }
-                    //    else
-                    //    {
-                    //        await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(paymentIntentId);
-                    //    }
-                    //    break;
+                    switch (type2)
+                    {
+                        case "order":
+                        case "req":
+                            await _serviceManager.OrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
+                            await _serviceManager.OrderService.UpdateStatus(id2, OrderStatus.Cancelled, PaymentStatus.Failed);
+                            break;
+                        case "service_request":
+                            await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(session2.Id);
+                            break;
+                        case "auction_order":
+                            //_logger.LogInfo($"Auction order checkout complete. Order ID: {orderId}, Session ID: {session.Id}, Payment Intent ID: {session.PaymentIntentId}");
+    
+                            // First update payment IDs
+                            await _serviceManager.AuctionOrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
+                            
+                            // Then update payment status and order status
+                            await _serviceManager.AuctionOrderService.UpdateOrderPaymentStatus(id2, PaymentStatus.Paid);
+                            await _serviceManager.AuctionOrderService.UpdateOrderStatusAsync(id2, OrderStatus.Processing);
+                            
+                            _logger.LogInfo($"Auction order {id2} payment completed successfully. Status: Processing, PaymentStatus: Paid");
+                             break;
+                            
+                    }
 
                     //    break;
 
@@ -126,6 +147,15 @@ public class PaymentController : ControllerBase
         }
     }
 
+
+    // Test endpoint to verify webhook is working
+    [HttpPost("webhook/test")]
+    [AllowAnonymous]
+    public IActionResult TestWebhook()
+    {
+        _logger.LogInfo("Test webhook endpoint called");
+        return Ok(new { message = "Webhook test endpoint is working" });
+    }
 
     // End Stripe Endpoints
 
