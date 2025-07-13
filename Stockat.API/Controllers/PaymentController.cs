@@ -43,6 +43,9 @@ public class PaymentController : ControllerBase
                 Request.Headers["Stripe-Signature"],
                 endpointSecret
             );
+            string sessionId = null;
+            string paymentIntentId = null;
+
             
             _logger.LogInfo($"Stripe event type: {stripeEvent.Type}");
 
@@ -73,7 +76,7 @@ public class PaymentController : ControllerBase
                             await _serviceManager.OrderService.UpdateStatus(id, OrderStatus.Processing, PaymentStatus.Paid);
                             await _serviceManager.OrderService.InvoiceGeneratorAsync(id);
                             break;
-                        case "service_request":                            
+                        case "service_request":
                             await _serviceManager.ServiceRequestService.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
                             await _serviceManager.ServiceRequestService.InvoiceGeneratorAsync(id);
                             break;
@@ -86,11 +89,13 @@ public class PaymentController : ControllerBase
 
                     break;
 
-                case "checkout.session.expired": // The user did not complete the checkout (timed out or closed tab) within 24 hours
-                case "payment_intent.payment_failed": // The payment was attempted but failed (e.g. card declined)
-                    string failedId = stripeEvent.Type == "checkout.session.expired"
-                        ? ((Session)stripeEvent.Data.Object).Id
-                        : ((PaymentIntent)stripeEvent.Data.Object).Id;
+                    //case "checkout.session.expired": // The user did not complete the checkout (timed out or closed tab) within 24 hours
+                    //    var session2 = (Session)stripeEvent.Data.Object;
+                    //    _logger.LogDebug("********************************************");
+                    //    _logger.LogDebug("Session ID:" + session2.Id);
+                    //    _logger.LogDebug("********************************************");
+                    //    sessionId = session2.Id;
+                    //    paymentIntentId = session2.PaymentIntentId;
 
                     var session2 = stripeEvent.Data.Object as Session;
                     string orderId2 = null;
@@ -129,13 +134,8 @@ public class PaymentController : ControllerBase
                             
                     }
 
-                    _logger.LogWarn($"❌ Checkout failed/expired: {failedId}");
-                    _logger.LogError("*************************************************************" + failedId);
-                    break;
+                    //    break;
 
-                default:
-                    _logger.LogError($"Unhandled event type: {stripeEvent.Type}");
-                    break;
             }
 
             return Ok();

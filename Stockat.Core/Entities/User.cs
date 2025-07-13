@@ -30,7 +30,7 @@ public class User : IdentityUser
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
 
-    [NotMapped]
+    //[NotMapped]
     public bool IsApproved => UserVerification?.Status == VerificationStatus.Approved; // to be reviewed --> defaults to false; will be set to true only after National ID is validated
     public bool IsDeleted {  get; set; } = false;
 
@@ -62,7 +62,7 @@ public class User : IdentityUser
     public IEnumerable<ChatConversation> AllConversations => ConversationsAsUser1.Concat(ConversationsAsUser2);
 
     // Computed properties for punishment status
-    [NotMapped]
+    //[NotMapped]
     public bool IsBlocked => Punishments?.Any(p => 
         (p.Type == PunishmentType.TemporaryBan || p.Type == PunishmentType.PermanentBan) &&
         (p.EndDate == null || p.EndDate > DateTime.UtcNow)) ?? false;

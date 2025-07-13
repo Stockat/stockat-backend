@@ -25,10 +25,11 @@ public interface IRepositoryManager
     IProductRepository ProductRepository { get; }
     IOrderRepository OrderRepo { get; }
     IBaseRepository<StockDetails> StockDetailsRepo { get; }
+    IBaseRepository<OrderProductAudit> OrderProductAudit { get; }
 
     //IBaseRepository<OrderProduct> OrderRepo { get; }
 
-
+    IBaseRepository<Driver> DriverRepo { get; }
 
 
     IUserRepository UserRepo { get; }

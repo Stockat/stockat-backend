@@ -241,4 +241,19 @@ public class ServiceController : ControllerBase
         var result = await _service.ServiceService.GetAllServicesForAdminAsync(page, size, includeBlockedSellers, includeDeletedSellers, includeDeletedServices);
         return Ok(result);
     }
+
+    [HttpGet("top")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetTopServices()
+    {
+        try
+        {
+            var result = await _service.ServiceService.GetTopServicesAsync();
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred while retrieving top services: {ex.Message}");
+        }
+    }
 }

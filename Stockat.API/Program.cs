@@ -13,6 +13,7 @@ using System.Text.Json.Serialization;
 using Stockat.API.Services;
 using Stockat.Core.Helpers;
 using Stripe;
+using Stockat.Service.Services.PaymentCancellationService;
 
 namespace Stockat.API;
 
@@ -26,7 +27,7 @@ public class Program
         "/nlog.config"));
         builder.Services.AddSwaggerDocumentation();
         // Add services to the container.
-        builder.Services.ConfigureCors();
+        builder.Services.ConfigureCors(builder.Configuration);
         builder.Services.ConfigureIISIntegration();
 
         builder.Services.ConfigureLoggerService(); // register logger service
@@ -38,6 +39,8 @@ public class Program
         builder.Services.ConfigureServiceManager(); // adding service layer dependencies
 
         builder.Services.Configure<StripeConfigs>(builder.Configuration.GetSection("Stripe"));
+        builder.Services.Configure<DomainConfigs>(builder.Configuration.GetSection("DomainUrl"));
+
 
         builder.Services.Configure<ApiBehaviorOptions>(options =>
         {
@@ -61,7 +64,7 @@ public class Program
         builder.Services.AddScoped<Stockat.Core.IServices.IAuctionServices.IAuctionNotificationService, Stockat.API.Services.AuctionNotificationService>();
 
         // Register AuctionMonitorService from the API layer
-        builder.Services.AddHostedService<Stockat.API.Services.AuctionMonitorService>();
+        // builder.Services.AddHostedService<Stockat.API.Services.AuctionMonitorService>();
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
@@ -72,6 +75,8 @@ public class Program
 
 
         //BackGround service injection
+        //builder.Services.AddHostedService<AuctionMonitorService>();
+        builder.Services.AddHostedService<PaymentCancellation>();
         //builder.Services.AddHostedService<Stockat.Service.Services.AuctionServices.AuctionMonitorService>();
 
         var app = builder.Build();
@@ -88,6 +93,8 @@ public class Program
         }
         else
         {
+            app.MapOpenApi();
+            app.UseSwaggerDocumentation();
             app.UseHsts();
         }
 
@@ -101,6 +108,8 @@ public class Program
 
 
         app.UseCors("CorsPolicy");
+
+        app.UseHttpsRedirection(); 
 
         app.UseAuthentication();
         app.UseAuthorization();

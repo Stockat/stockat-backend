@@ -20,7 +20,7 @@ public interface IProductService
     Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginated
         (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags);
     Task<GenericResponseDto<PaginatedDto<IEnumerable<ProductHomeDto>>>> getAllProductsPaginatedForAdmin
-     (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags);
+     (int _size, int _page, string location, int category, int minQuantity, int minPrice, int[] tags, bool? isDeleted, string productStatus = "");
 
 
 

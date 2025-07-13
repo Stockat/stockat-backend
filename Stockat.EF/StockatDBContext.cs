@@ -52,12 +52,13 @@ public class StockatDBContext : IdentityDbContext<User>
 
     //Logs Table
     public DbSet<OrderProductAudit> OrderProductAudits { get; set; }
+    public DbSet<Driver> Drivers { get; set; }
 
-    public StockatDBContext(DbContextOptions options, IHttpContextAccessor httpContextAccessor) : base(options)
+    public StockatDBContext(DbContextOptions<StockatDBContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
     {
         _httpContextAccessor = httpContextAccessor;
     }
-    public StockatDBContext(DbContextOptions options) : base(options)
+    public StockatDBContext(DbContextOptions<StockatDBContext> options) : base(options)
     {
 
     }
@@ -88,7 +89,7 @@ public class StockatDBContext : IdentityDbContext<User>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "BackGround Service";
 
         var audits = new List<OrderProductAudit>();
 

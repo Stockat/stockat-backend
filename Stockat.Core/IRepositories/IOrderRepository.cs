@@ -27,6 +27,6 @@ public interface IOrderRepository : IBaseRepository<OrderProduct>
     public TopProductReportDto GetTopProductPerWeekAsync(OrderType? type, OrderStatus? status, ReportMetricType metric);
 
 
-
+    public Task<Dictionary<string, int>> GetOrderStatusCountsAsync();
 
 }

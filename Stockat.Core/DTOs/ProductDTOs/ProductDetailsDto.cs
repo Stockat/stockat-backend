@@ -23,6 +23,8 @@ public class ProductDetailsDto
     public string CategoryName { get; set; }
     public int MinQuantity { get; set; }
 
+    public bool CanBeRequested { get; set; }
+
 
     //Array of images
     public virtual ICollection<string> ImagesArr { get; set; }

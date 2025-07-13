@@ -441,7 +441,7 @@ public class ServiceRequestService : IServiceRequestService
         );
 
         int totalCount = await _repo.ServiceRequestRepo.CountAsync(r => true);
-        int inProgressCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.InProgress);
+        int readyCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.Ready);
         int deliveredCount = await _repo.ServiceRequestRepo.CountAsync(r => r.ServiceStatus == ServiceStatus.Delivered);
 
         var paginated = new PaginatedDto<IEnumerable<ServiceRequestDto>>
@@ -457,7 +457,7 @@ public class ServiceRequestService : IServiceRequestService
         var stats = new ServiceRequestStatsDto
         {
             Total = totalCount,
-            InProgress = inProgressCount,
+            Ready = readyCount,
             Delivered = deliveredCount
         };
 
@@ -702,4 +702,179 @@ public class ServiceRequestService : IServiceRequestService
         
         _logger.LogInfo($"Invoice generated and sent for service request {requestId} to {user.Email}");
     }
+
+    // --- SELLER ANALYTICS METHODS ---
+    public async Task<object> GetSellerServiceRequestStatusBreakdownAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId,
+            includes: ["Service"]);
+
+        var breakdown = requests
+            .GroupBy(r => r.ServiceStatus)
+            .Select(g => new { Status = g.Key.ToString(), Count = g.Count() })
+            .ToList();
+        return breakdown;
+    }
+
+    public async Task<object> GetSellerServiceRequestMonthlyTrendAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId,
+            includes: ["Service"]
+            );
+        var trend = requests
+            .GroupBy(r => new { r.CreatedAt.Year, r.CreatedAt.Month })
+            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+            .Select(g => new { Year = g.Key.Year, Month = g.Key.Month, Count = g.Count() })
+            .ToList();
+        return trend;
+    }
+
+    public async Task<object> GetSellerServiceRevenueAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId && r.ServiceStatus == ServiceStatus.Delivered,
+            includes: ["Service"]);
+
+        var now = DateTime.UtcNow;
+        var thisMonth = requests.Where(r => r.CreatedAt.Year == now.Year && r.CreatedAt.Month == now.Month).Sum(r => r.TotalPrice);
+        var total = requests.Sum(r => r.TotalPrice);
+        return new { TotalRevenue = total, ThisMonthRevenue = thisMonth };
+    }
+
+    public async Task<object> GetSellerTopServicesByRequestsAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId, 
+            includes: ["Service"]);
+
+        var top = requests
+            .GroupBy(r => new { r.ServiceId, r.Service.Name })
+            .Select(g => new { ServiceId = g.Key.ServiceId, ServiceName = g.Key.Name, RequestCount = g.Count() })
+            .OrderByDescending(x => x.RequestCount)
+            .Take(5)
+            .ToList();
+        return top;
+    }
+
+    public async Task<object> GetSellerCustomerFeedbackAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId && r.ServiceStatus == ServiceStatus.Delivered,
+            includes: ["Reviews", "Reviews.Reviewer"]
+        );
+
+        var reviews = requests.SelectMany(r => r.Reviews).ToList();
+        
+        var averageRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0;
+        var totalReviews = reviews.Count;
+        var recentReviews = reviews.OrderByDescending(r => r.CreatedAt).Take(5).ToList();
+
+        return new
+        {
+            AverageRating = Math.Round(averageRating, 1),
+            TotalReviews = totalReviews,
+            RecentReviews = recentReviews.Select(r => new
+            {
+                Rating = r.Rating,
+                Comment = r.Comment,
+                CreatedAt = r.CreatedAt,
+                BuyerName = r.Reviewer.FirstName + " " + r.Reviewer.LastName
+            }).ToList()
+        };
+    }
+
+    public async Task<object> GetSellerConversionFunnelAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(r => r.Service.SellerId == sellerId);
+        
+        var funnel = new
+        {
+            Pending = requests.Count(r => r.ServiceStatus == ServiceStatus.Pending),
+            InProgress = requests.Count(r => r.ServiceStatus == ServiceStatus.InProgress),
+            Ready = requests.Count(r => r.ServiceStatus == ServiceStatus.Ready),
+            Delivered = requests.Count(r => r.ServiceStatus == ServiceStatus.Delivered),
+            Cancelled = requests.Count(r => r.ServiceStatus == ServiceStatus.Cancelled)
+        };
+
+        return funnel;
+    }
+
+    public async Task<object> GetSellerServiceReviewsAsync(string sellerId)
+    {
+        var services = await _repo.ServiceRepo.FindAllAsync(s => s.SellerId == sellerId, includes: ["Reviews", "Reviews.Reviewer"]);
+        var allReviews = services.SelectMany(s => s.Reviews).ToList();
+        var averageRating = allReviews.Any() ? allReviews.Average(r => r.Rating) : 0;
+        var totalReviews = allReviews.Count;
+        var recentReviews = allReviews.OrderByDescending(r => r.CreatedAt).Take(5).ToList();
+        return new
+        {
+            AverageRating = Math.Round(averageRating, 1),
+            TotalReviews = totalReviews,
+            RecentReviews = recentReviews.Select(r => new
+            {
+                Rating = r.Rating,
+                Comment = r.Comment,
+                CreatedAt = r.CreatedAt,
+                ReviewerName = r.Reviewer.FirstName + " " + r.Reviewer.LastName
+            }).ToList()
+        };
+    }
+
+    public async Task<object> GetSellerTopCustomersAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId && r.ServiceStatus == ServiceStatus.Delivered,
+            includes: ["Buyer", "Service"]
+        );
+
+        var topCustomers = requests
+            .GroupBy(r => new { r.BuyerId, r.Buyer.FirstName, r.Buyer.LastName, r.Buyer.Email })
+            .Select(g => new
+            {
+                CustomerId = g.Key.BuyerId,
+                CustomerName = g.Key.FirstName + " " + g.Key.LastName,
+                Email = g.Key.Email,
+                TotalSpent = g.Sum(r => r.TotalPrice),
+                OrderCount = g.Count(),
+                LastOrderDate = g.Max(r => r.CreatedAt),
+                AverageOrderValue = g.Average(r => r.TotalPrice)
+            })
+            .OrderByDescending(x => x.TotalSpent)
+            .Take(10)
+            .ToList();
+
+        return topCustomers;
+    }
+
+    public async Task<object> GetSellerCustomerDemographicsAsync(string sellerId)
+    {
+        var requests = await _repo.ServiceRequestRepo.FindAllAsync(
+            r => r.Service.SellerId == sellerId && r.ServiceStatus == ServiceStatus.Delivered,
+            includes: ["Buyer"]
+        );
+
+        var customers = requests
+            .GroupBy(r => r.BuyerId)
+            .Select(g => g.First().Buyer)
+            .ToList();
+
+        // Location distribution (by city)
+        var locationDistribution = customers
+            .Where(c => !string.IsNullOrEmpty(c.City))
+            .GroupBy(c => c.City)
+            .Select(g => new { City = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(10)
+            .ToList();
+
+                return new
+        {
+            LocationDistribution = locationDistribution,
+            TotalCustomers = customers.Count
+        };
+    }
+
+  
 }

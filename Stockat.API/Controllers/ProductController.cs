@@ -188,10 +188,10 @@ public class ProductController : ControllerBase
     [HttpGet("admin")]
     [Authorize]
     public async Task<IActionResult> getAllProductsPaginatedForAdminAsync
-     ([FromQuery] int size, [FromQuery] int[] tags, [FromQuery] int page = 0, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0)
+     ([FromQuery] int size, [FromQuery] int[] tags, [FromQuery] int page = 0, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, string? productStatus = "", bool? isDeleted = null)
     {
 
-        var res = await _serviceManager.ProductService.getAllProductsPaginatedForAdmin(size, page, location, category, minQuantity, minPrice, tags);
+        var res = await _serviceManager.ProductService.getAllProductsPaginatedForAdmin(size, page, location, category, minQuantity, minPrice, tags, isDeleted, productStatus);
         return Ok(res);
     }
 
@@ -199,6 +199,14 @@ public class ProductController : ControllerBase
     public async Task<IActionResult> GetProductWithStocksForAdmin(int id)
     {
         var res = await _serviceManager.ProductService.GetProductWithStocksForAdminAsync(id);
+        return Ok(res);
+    }
+
+    [HttpGet("{sellerId}")]
+    public async Task<IActionResult> GetSpecificSellerProducts
+    (string sellerId, [FromQuery] int[] tags, string location = "", int category = 0, int minQuantity = 0, int minPrice = 0, int size = 9, int page = 0)
+    {
+        var res = await _serviceManager.ProductService.GetAllProductForSellerAsync(size, page, location, category, minQuantity, minPrice, tags, sellerId);
         return Ok(res);
     }
 
