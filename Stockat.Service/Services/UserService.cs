@@ -199,13 +199,25 @@ public class UserService : IUserService
     public async Task<GenericResponseDto<string>> ToggleActivationAsync()
     {
         var userId = GetCurrentUserId();
-
-        var user = await _repo.UserRepo.FindAsync(u => u.Id == userId);
+        var user = await _repo.UserRepo.FindAsync(u => u.Id == userId, includes: new[] { "SellerOrderProducts", "BuyerOrderProducts" });
         if (user == null)
             throw new NotFoundException("User not found.");
 
-        user.IsDeleted = !user.IsDeleted;
+        // If deactivating (IsDeleted = true), block if user has active orders or service requests
+        if (!user.IsDeleted) // going to deactivate
+        {
+            // Check OrderProducts (as seller or buyer)
+            bool hasActiveOrders = (user.SellerOrderProducts?.Any(o => o.Status != OrderStatus.Delivered && o.Status != OrderStatus.Cancelled) == true)
+                || (user.BuyerOrderProducts?.Any(o => o.Status != OrderStatus.Delivered && o.Status != OrderStatus.Cancelled) == true);
 
+            // Check ServiceRequests (as buyer)
+            bool hasActiveServiceRequests = await _repo.ServiceRequestRepo.AnyAsync(r => r.BuyerId == user.Id && r.ServiceStatus != ServiceStatus.Delivered && r.ServiceStatus != ServiceStatus.Cancelled);
+
+            if (hasActiveOrders || hasActiveServiceRequests)
+                throw new BadRequestException("Cannot deactivate account with active orders or service requests. Please complete or cancel them first.");
+        }
+
+        user.IsDeleted = !user.IsDeleted;
         _repo.UserRepo.Update(user);
         await _repo.CompleteAsync();
 
@@ -337,6 +349,18 @@ public class UserService : IUserService
         if (user.IsDeleted)
             throw new BadRequestException("User is already deactivated.");
 
+        // Check OrderProducts (as seller or buyer) using direct query
+        bool hasActiveOrders = await _repo.OrderRepo.AnyAsync(
+            o => (o.SellerId == user.Id || o.BuyerId == user.Id) &&
+                 o.Status != OrderStatus.Delivered && o.Status != OrderStatus.Cancelled
+        );
+
+        // Check ServiceRequests (as buyer)
+        bool hasActiveServiceRequests = await _repo.ServiceRequestRepo.AnyAsync(r => r.BuyerId == user.Id && r.ServiceStatus != ServiceStatus.Delivered && r.ServiceStatus != ServiceStatus.Cancelled);
+
+        if (hasActiveOrders || hasActiveServiceRequests)
+            throw new BadRequestException("Cannot deactivate account with active orders or service requests. Please complete or cancel them first.");
+
         user.IsDeleted = true;
         _repo.UserRepo.Update(user);
         await _repo.CompleteAsync();
@@ -370,6 +394,7 @@ public class UserService : IUserService
         if (!user.IsDeleted)
             throw new BadRequestException("User is already active.");
 
+        // Allow activation at any time (no checks)
         user.IsDeleted = false;
         _repo.UserRepo.Update(user);
         await _repo.CompleteAsync();

@@ -250,8 +250,19 @@ internal sealed class AuthenticationService : IAuthenticationService
         var frontendUrl = _configuration["Frontend:BaseUrl"];
         var resetLink = $"{frontendUrl}/reset-password?email={email}&token={WebUtility.UrlEncode(token)}";
 
-        var message = $"<p>Click <a href='{resetLink}'>here</a> to reset your password.</p>";
-        await _emailService.SendEmailAsync(user.Email, "Reset Password", message);
+        var message = $@"
+<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; border-radius: 8px; padding: 24px;'>
+  <h2 style='color: #db2777; text-align: center;'>Reset Your Password</h2>
+  <p style='font-size: 1.1em;'>Hi {user.FirstName},</p>
+  <p>We received a request to reset your password. Click the button below to set a new password:</p>
+  <div style='text-align: center; margin: 24px 0;'>
+    <a href='{resetLink}' style='background: #db2777; color: #fff; padding: 12px 24px; border-radius: 4px; text-decoration: none; font-weight: bold;'>Reset Password</a>
+  </div>
+  <p>If you did not request a password reset, you can safely ignore this email.</p>
+  <hr style='margin: 32px 0; border: none; border-top: 1px solid #eee;'/>
+  <p style='font-size: 0.9em; color: #888; text-align: center;'>Stockat &copy; {DateTime.Now.Year} &mdash; <a href='https://stockat.com' style='color: #db2777;'>Visit our website</a></p>
+</div>";
+        await _emailService.SendEmailAsync(user.Email, "Reset your password - Stockat", message);
     }
 
     // will be called to serve the forgot password endpoint
@@ -385,8 +396,19 @@ internal sealed class AuthenticationService : IAuthenticationService
         var frontendUrl = _configuration["Frontend:BaseUrl"];
         var confirmationLink = $"{frontendUrl}/confirm-email?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
-        var emailMessage = $"<p>Click <a href='{confirmationLink}'>here</a> to confirm your email.</p>";
-        await _emailService.SendEmailAsync(user.Email, "Confirm your email", emailMessage);
+        var emailMessage = $@"
+<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; border-radius: 8px; padding: 24px;'>
+  <h2 style='color: #db2777; text-align: center;'>Welcome to Stockat!</h2>
+  <p style='font-size: 1.1em;'>Hi {user.FirstName},</p>
+  <p>Thank you for registering with Stockat. Please confirm your email address to activate your account:</p>
+  <div style='text-align: center; margin: 24px 0;'>
+    <a href='{confirmationLink}' style='background: #db2777; color: #fff; padding: 12px 24px; border-radius: 4px; text-decoration: none; font-weight: bold;'>Confirm Email</a>
+  </div>
+  <p>If you did not create this account, please ignore this email or <a href='mailto:support@stockat.com'>contact support</a>.</p>
+  <hr style='margin: 32px 0; border: none; border-top: 1px solid #eee;'/>
+  <p style='font-size: 0.9em; color: #888; text-align: center;'>Stockat &copy; {DateTime.Now.Year} &mdash; <a href='https://stockat.com' style='color: #db2777;'>Visit our website</a></p>
+</div>";
+        await _emailService.SendEmailAsync(user.Email, "Confirm your email - Stockat", emailMessage);
     }
 
     public async Task<User> GetCurrentUser()
