@@ -175,8 +175,8 @@ public class OrderService : IOrderService
         };
         var options = new Stripe.Checkout.SessionCreateOptions
         {
-            SuccessUrl = "http://localhost:4200/profile",
-            CancelUrl = "http://localhost:4200/profile",
+            SuccessUrl = $"{_domainConfigs.FrontURL}profile",
+            CancelUrl = $"{_domainConfigs.FrontURL}profile",
             LineItems = new List<Stripe.Checkout.SessionLineItemOptions>(),
             Mode = "payment",
             Metadata = new Dictionary<string, string>

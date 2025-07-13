@@ -268,7 +268,7 @@ public class InvoiceGenerator
         <div class=""card"">
             <!-- Header -->
             <div class=""header"">
-                <img src=""https://ik.imagekit.io/bgd2lywhi/Eamil-Assets/Logo.png?updatedAt=1752341129358"" alt=""Company Logo"">
+                <img src=""https://ik.imagekit.io/bgd2lywhi/Email-Assets/Logo2.png?updatedAt=1752390334452"" alt=""Company Logo"">
                 <h1>Payment Receipt</h1>
             </div>
 
