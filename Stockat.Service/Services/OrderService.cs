@@ -814,7 +814,7 @@ public class OrderService : IOrderService
         try
         {
             // Get the user ID from the HTTP context
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 _logger.LogError("User ID not found in the HTTP context.");
@@ -863,7 +863,7 @@ public class OrderService : IOrderService
         try
         {
             // Get the user ID from the HTTP context
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 _logger.LogError("User ID not found in the HTTP context.");
@@ -1134,5 +1134,16 @@ public class OrderService : IOrderService
             Data = dto,
             Message = "Order driver updated successfully."
         };
+    }
+
+    // helper function
+    private string GetCurrentUserId()
+    {
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+            throw new UnauthorizedAccessException("User ID not found in token.");
+
+        return userId;
     }
 }
