@@ -556,22 +556,22 @@ public class OrderService : IOrderService
     {
         try
         {
-            // Get the user ID from the HTTP context
-            //var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
-            //if (string.IsNullOrEmpty(userId))
-            //{
-            //    _logger.LogError("User ID not found in the HTTP context.");
-            //    return new GenericResponseDto<IEnumerable<OrderDTO>>
-            //    {
-            //        Status = 400,
-            //        Message = "User ID is required."
-            //    };
-            //}
+            //Get the user ID from the HTTP context
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogError("User ID not found in the HTTP context.");
+                return new GenericResponseDto<IEnumerable<OrderDTO>>
+                {
+                    Status = 400,
+                    Message = "User ID is required."
+                };
+            }
 
             // Fetch orders for the seller
             //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
 
-            var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == o.SellerId && o.OrderType == OrderType.Order, ["Seller", "Buyer"]);
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId && o.OrderType == OrderType.Order, ["Seller", "Buyer"]);
             if (orders == null || !orders.Any())
             {
                 _logger.LogInfo("No orders found for the seller.");
@@ -814,21 +814,21 @@ public class OrderService : IOrderService
         try
         {
             // Get the user ID from the HTTP context
-            //var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
-            //if (string.IsNullOrEmpty(userId))
-            //{
-            //    _logger.LogError("User ID not found in the HTTP context.");
-            //    return new GenericResponseDto<IEnumerable<OrderDTO>>
-            //    {
-            //        Status = 400,
-            //        Message = "User ID is required."
-            //    };
-            //}
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogError("User ID not found in the HTTP context.");
+                return new GenericResponseDto<IEnumerable<OrderDTO>>
+                {
+                    Status = 400,
+                    Message = "User ID is required."
+                };
+            }
 
             // Fetch orders for the seller
             //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
 
-            var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == o.SellerId && o.OrderType == OrderType.Order, ["Seller", "Buyer"]);
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId && o.OrderType == OrderType.Order, ["Seller", "Buyer"]);
             if (orders == null || !orders.Any())
             {
                 _logger.LogInfo("No orders found for the seller.");
@@ -863,21 +863,21 @@ public class OrderService : IOrderService
         try
         {
             // Get the user ID from the HTTP context
-            //var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
-            //if (string.IsNullOrEmpty(userId))
-            //{
-            //    _logger.LogError("User ID not found in the HTTP context.");
-            //    return new GenericResponseDto<IEnumerable<OrderDTO>>
-            //    {
-            //        Status = 400,
-            //        Message = "User ID is required."
-            //    };
-            //}
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirst("id")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogError("User ID not found in the HTTP context.");
+                return new GenericResponseDto<IEnumerable<OrderDTO>>
+                {
+                    Status = 400,
+                    Message = "User ID is required."
+                };
+            }
 
             // Fetch orders for the seller
             //var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId,[]);
 
-            var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == o.SellerId && o.OrderType == OrderType.Request, ["Seller", "Buyer"]);
+            var orders = await _repo.OrderRepo.FindAllAsync(o => o.SellerId == userId && o.OrderType == OrderType.Request, ["Seller", "Buyer"]);
             if (orders == null || !orders.Any())
             {
                 _logger.LogInfo("No Request orders found for the seller.");
