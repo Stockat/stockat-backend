@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Stockat.Core.Entities;
+using Stockat.Core.Enums;
 using Stockat.Core.IRepositories;
 
 namespace Stockat.EF.Repositories;
@@ -23,14 +24,14 @@ public class UserRepository : BaseRepository<User>, IUserRepository
                 .Select(u => new
                 {
                     User = u,
-                    ProductCount = _context.Products.Count(p => p.SellerId == u.Id && !p.isDeleted)
+                    ProductCount = _context.Products.Count(p => p.SellerId == u.Id && !p.isDeleted),
+                    ServiceCount = _context.Services.Count(s => s.SellerId == u.Id && !s.IsDeleted && s.IsApproved == ApprovalStatus.Approved)
                 })
-                .Where(x => x.ProductCount > 0)
-                .OrderByDescending(x => x.ProductCount)
+                .Where(x => x.ProductCount > 0 || x.ServiceCount > 0)
+                .OrderByDescending(x => x.ProductCount + x.ServiceCount)
                 .Take(limit)
                 .Select(x => x.User)
                 .ToListAsync();
-
             return topSellers;
         }
         catch (Exception)
