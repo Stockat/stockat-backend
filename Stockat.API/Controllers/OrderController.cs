@@ -9,6 +9,7 @@ using Stripe.Checkout;
 using Stockat.Core.DTOs;
 using Stripe;
 using Stockat.Core.DTOs.OrderDTOs.OrderAnalysisDto;
+using System.Threading.Tasks;
 
 namespace Stockat.API.Controllers;
 
@@ -138,10 +139,12 @@ public class OrderController : ControllerBase
 
     // Get All Orders For Seller
     [HttpGet("seller")]
-    public IActionResult GetAllOrdersForSeller()
+    public async Task<IActionResult> GetAllOrdersForSeller()
     {
         try
         {
+
+            var sellerId= await _serviceManager.UserService.GetCurrentUserIdAsyncService();
             // Call the service to get all orders for the seller
             var response = _serviceManager.OrderService.GetAllSellerOrdersAsync().Result;
             // Return the response

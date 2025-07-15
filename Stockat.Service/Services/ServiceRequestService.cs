@@ -550,8 +550,8 @@ public class ServiceRequestService : IServiceRequestService
 
             var options = new SessionCreateOptions
             {
-                SuccessUrl = "http://localhost:4200/profile",
-                CancelUrl = "http://localhost:4200/profile",
+                SuccessUrl = "https://stockat-frontend-git-main-stockat-groups-projects.vercel.app/profile",
+                CancelUrl = "https://stockat-frontend-git-main-stockat-groups-projects.vercel.app/profile",
                 LineItems = new List<SessionLineItemOptions>(),
                 Mode = "payment",
                 Metadata = new Dictionary<string, string>

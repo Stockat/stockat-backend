@@ -37,7 +37,7 @@ public class PaymentController : ControllerBase
 
         try
         {
-            var endpointSecret = "whsec_998b0fe189fdd578f23438e132d9f7f2425b5982eb5f3ec3d98e14275daa0d3e";
+            var endpointSecret = "whsec_r7K1sJ3doUtYevHw1RQCd0WDDagzHab7";
             var stripeEvent = EventUtility.ConstructEvent(
                 json,
                 Request.Headers["Stripe-Signature"],

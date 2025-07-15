@@ -234,7 +234,7 @@ namespace Stockat.Service.Services
         public async Task<GenericResponseDto<List<StockDTO>>> GetAllStocksAsync()
         {
             // Check if the request came from Admin to return all stocks
-            var currentUserId = "1a44c91f-138e-4cf2-a5ef-915e5c882673"; //GetCurrentUserId();
+            var currentUserId = GetCurrentUserId();
             if (currentUserId == "1a44c91f-138e-4cf2-a5ef-915e5c882673")
             {
                 // Get all stocks with related entities
