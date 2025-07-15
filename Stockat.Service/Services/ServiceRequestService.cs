@@ -363,10 +363,10 @@ public class ServiceRequestService : IServiceRequestService
                 _logger.LogError($"Service request with ID {requestId} not found for admin {userId}.");
                 throw new NotFoundException($"Service request with ID {requestId} not found for admin {userId}.");
             }
-            // Only allow admin to set status to Delivered if current status is InProgress
-            if (request.ServiceStatus != ServiceStatus.InProgress || dto.Status != ServiceStatus.Delivered)
+            // Only allow admin to set status to Delivered if current status is Ready
+            if (request.ServiceStatus != ServiceStatus.Ready || dto.Status != ServiceStatus.Delivered)
             {
-                throw new BadRequestException("Admin can only set status to Delivered for requests that are In Progress.");
+                throw new BadRequestException("Admin can only set status to Delivered for requests that are Ready.");
             }
         }
         else
