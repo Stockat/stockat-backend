@@ -136,11 +136,11 @@ public class PaymentController : ControllerBase
                     _logger.LogInfo($"Session ID is : {sessionId}");
                     sessionId = session2.Id;
                     var order = await _serviceManager.OrderService.getorderbySessionOrPaymentId(sessionId);
-                    _logger.LogInfo($"Order Data is : SessionID:{order.SessionId},OrderID:{order.Id},Date:{order.CraetedAt}");
                     if (order != null)
                     {
+                        _logger.LogInfo($"Order Data is : SessionID:{order.SessionId},OrderID:{order.Id},Date:{order.CraetedAt}");
                         await _serviceManager.OrderService.UpdateStripePaymentID(order.Id, session2.Id, session2.PaymentIntentId);
-                        await _serviceManager.OrderService.UpdateStatus(order.Id, OrderStatus.Cancelled, PaymentStatus.Failed);
+                        await _serviceManager.OrderService.CancelOrderOnPaymentFailureAsync(sessionId);
                     }
 
                     break;
