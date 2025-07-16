@@ -318,6 +318,28 @@ public class ChatBotController : ControllerBase
             var topServices = await _serviceManager.AnalyticsService.GetTopUsedServicesAsync(5);
             var categoryStats = await _serviceManager.AnalyticsService.GetCategoryStatsAsync();
 
+            // --- Fetch all approved/not deleted sellers ---
+            var allSellersResult = await _serviceManager.UserService.GetAllUsersAsync(1, 10000, null, true, true, false); // isActive: true, isVerified: true, isBlocked: false
+            var allSellers = allSellersResult.Data.PaginatedData
+                .Where(u => u.Roles != null && u.Roles.Contains("Seller"))
+                .Select(s => new { s.Id, s.FirstName, s.LastName, s.Email });
+
+            // --- Fetch all approved/not deleted services ---
+            var allServicesResult = await _serviceManager.ServiceService.GetAllServicesForAdminAsync(1, 10000, false, false, false);
+            var allServices = allServicesResult.Data.PaginatedData
+                .Where(s => s.IsApproved == Stockat.Core.Enums.ApprovalStatus.Approved && !s.IsDeleted)
+                .Select(s => new { s.Id, s.Name, s.Description, s.SellerId });
+
+            // --- Fetch all approved/not deleted products ---
+            var allProductsResult = await _serviceManager.ProductService.getAllProductsPaginatedForAdmin(10000, 1, null, 0, 0, 0, new int[0], false, "Approved");
+            var allProducts = allProductsResult.Data.PaginatedData
+                .Select(p => new { p.Id, p.Name, p.Description, p.SellerId, p.CategoryName });
+
+            // --- Fetch all auctions (not deleted) ---
+            var allAuctions = (await _serviceManager.AuctionService.GetAllAuctionsAsync())
+                .Where(a => a.IsDeleted == false)
+                .Select(a => new { a.Id, a.Name, a.ProductId, a.SellerId, a.EndTime });
+
             _logger.LogInformation($"GetPlatformDataForContext: Found {topSellers.Count()} top sellers, {topProducts.Count()} top products, {liveAuctions.Count()} live auctions, {topServices.Count()} top services, {categoryStats.Count()} categories");
 
             var result = new
@@ -334,11 +356,16 @@ public class ChatBotController : ControllerBase
                     liveAuctionsCount = liveAuctions.Count(),
                     totalServices = topServices.Count(),
                     totalCategories = categoryStats.Count()
-                }
+                },
+                // --- Add summary lists for context awareness ---
+                allSellers = allSellers,
+                allServices = allServices,
+                allProducts = allProducts,
+                allAuctions = allAuctions
             };
 
-            _logger.LogInformation($"GetPlatformDataForContext: Returning platform data with {result.topSellers.Count()} sellers, {result.topProducts.Count()} products, {result.liveAuctions.Count()} auctions, {result.topServices.Count()} services, {result.categories.Count()} categories");
-            
+            _logger.LogInformation($"GetPlatformDataForContext: Returning platform data with {result.topSellers.Count()} sellers, {result.topProducts.Count()} products, {result.liveAuctions.Count()} auctions, {result.topServices.Count()} services, {result.categories.Count()} categories, {allSellers.Count()} all sellers, {allServices.Count()} all services, {allProducts.Count()} all products, {allAuctions.Count()} all auctions");
+
             return result;
         }
         catch (Exception ex)

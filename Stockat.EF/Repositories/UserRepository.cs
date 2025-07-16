@@ -25,10 +25,11 @@ public class UserRepository : BaseRepository<User>, IUserRepository
                 {
                     User = u,
                     ProductCount = _context.Products.Count(p => p.SellerId == u.Id && !p.isDeleted),
-                    ServiceCount = _context.Services.Count(s => s.SellerId == u.Id && !s.IsDeleted && s.IsApproved == ApprovalStatus.Approved)
+                    ServiceCount = _context.Services.Count(s => s.SellerId == u.Id && !s.IsDeleted && s.IsApproved == ApprovalStatus.Approved),
+                    AuctionCount = _context.Auction.Count(c => c.SellerId == u.Id )
                 })
-                .Where(x => x.ProductCount > 0 || x.ServiceCount > 0)
-                .OrderByDescending(x => x.ProductCount + x.ServiceCount)
+                .Where(x => x.ProductCount > 0 || x.ServiceCount > 0 || x.AuctionCount > 0)
+                .OrderByDescending(x => x.ProductCount + x.ServiceCount + x.AuctionCount)
                 .Take(limit)
                 .Select(x => x.User)
                 .ToListAsync();
