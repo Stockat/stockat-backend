@@ -46,7 +46,7 @@ public class PaymentController : ControllerBase
             string sessionId = null;
             string paymentIntentId = null;
 
-            
+
             _logger.LogInfo($"Stripe event type: {stripeEvent.Type}");
 
 
@@ -57,7 +57,7 @@ public class PaymentController : ControllerBase
                     var orderId = session.Metadata["orderId"];
                     var type = session.Metadata["type"];
                     int id = int.Parse(orderId);
-                    
+
                     _logger.LogInfo($"Checkout session completed. OrderId: {orderId}, Type: {type}, SessionId: {session.Id}");
 
 
@@ -89,7 +89,7 @@ public class PaymentController : ControllerBase
 
                     break;
 
-                    //case "checkout.session.expired": // The user did not complete the checkout (timed out or closed tab) within 24 hours
+                case "checkout.session.expired": // The user did not complete the checkout (timed out or closed tab) within 24 hours
                     //    var session2 = (Session)stripeEvent.Data.Object;
                     //    _logger.LogDebug("********************************************");
                     //    _logger.LogDebug("Session ID:" + session2.Id);
@@ -98,43 +98,52 @@ public class PaymentController : ControllerBase
                     //    paymentIntentId = session2.PaymentIntentId;
 
                     var session2 = stripeEvent.Data.Object as Session;
-                    string orderId2 = null;
-                    string type2 = null;
-                    int id2 = 0;
-                    
-                    if (session2 != null)
+                    //string orderId2 = null;
+                    //string type2 = null;
+                    //int id2 = 0;
+
+                    //if (session2 != null)
+                    //{
+                    //    orderId2 = session2.Metadata["orderId"];
+                    //    type2 = session2.Metadata["type"];
+                    //    id2 = int.Parse(orderId2);
+                    //}
+
+                    //switch (type2)
+                    //{
+                    //    case "order":
+                    //    case "req":
+                    //        await _serviceManager.OrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
+                    //        await _serviceManager.OrderService.UpdateStatus(id2, OrderStatus.Cancelled, PaymentStatus.Failed);
+                    //        break;
+                    //    case "service_request":
+                    //        await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(session2.Id);
+                    //        break;
+                    //    case "auction_order":
+                    //        //_logger.LogInfo($"Auction order checkout complete. Order ID: {orderId}, Session ID: {session.Id}, Payment Intent ID: {session.PaymentIntentId}");
+
+                    //        // First update payment IDs
+                    //        await _serviceManager.AuctionOrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
+
+                    //        // Then update payment status and order status
+                    //        await _serviceManager.AuctionOrderService.UpdateOrderPaymentStatus(id2, PaymentStatus.Paid);
+                    //        await _serviceManager.AuctionOrderService.UpdateOrderStatusAsync(id2, OrderStatus.Processing);
+
+                    //        _logger.LogInfo($"Auction order {id2} payment completed successfully. Status: Processing, PaymentStatus: Paid");
+                    //         break;
+
+                    //}
+                    _logger.LogInfo($"Session ID is : {sessionId}");
+                    sessionId = session2.Id;
+                    var order = await _serviceManager.OrderService.getorderbySessionOrPaymentId(sessionId);
+                    if (order != null)
                     {
-                        orderId2 = session2.Metadata["orderId"];
-                        type2 = session2.Metadata["type"];
-                        id2 = int.Parse(orderId2);
+                        _logger.LogInfo($"Order Data is : SessionID:{order.SessionId},OrderID:{order.Id},Date:{order.CraetedAt}");
+                        await _serviceManager.OrderService.UpdateStripePaymentID(order.Id, session2.Id, session2.PaymentIntentId);
+                        await _serviceManager.OrderService.CancelOrderOnPaymentFailureAsync(sessionId);
                     }
 
-                    switch (type2)
-                    {
-                        case "order":
-                        case "req":
-                            await _serviceManager.OrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
-                            await _serviceManager.OrderService.UpdateStatus(id2, OrderStatus.Cancelled, PaymentStatus.Failed);
-                            break;
-                        case "service_request":
-                            await _serviceManager.ServiceRequestService.CancelServiceRequestOnPaymentFailureAsync(session2.Id);
-                            break;
-                        case "auction_order":
-                            //_logger.LogInfo($"Auction order checkout complete. Order ID: {orderId}, Session ID: {session.Id}, Payment Intent ID: {session.PaymentIntentId}");
-    
-                            // First update payment IDs
-                            await _serviceManager.AuctionOrderService.UpdateStripePaymentID(id2, session2.Id, session2.PaymentIntentId);
-                            
-                            // Then update payment status and order status
-                            await _serviceManager.AuctionOrderService.UpdateOrderPaymentStatus(id2, PaymentStatus.Paid);
-                            await _serviceManager.AuctionOrderService.UpdateOrderStatusAsync(id2, OrderStatus.Processing);
-                            
-                            _logger.LogInfo($"Auction order {id2} payment completed successfully. Status: Processing, PaymentStatus: Paid");
-                             break;
-                            
-                    }
-
-                    //    break;
+                    break;
 
             }
 

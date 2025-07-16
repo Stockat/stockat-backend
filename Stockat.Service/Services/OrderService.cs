@@ -1089,7 +1089,7 @@ public class OrderService : IOrderService
     {
         try
         {
-            var res = await _repo.OrderRepo.FindAsync(o => o.SessionId == id || o.PaymentId == id);
+            var res = await _repo.OrderRepo.FindAsync(o => o.SessionId == id || o.PaymentId == id && o.OrderType == OrderType.Order);
             return res;
         }
         catch (Exception ex)
